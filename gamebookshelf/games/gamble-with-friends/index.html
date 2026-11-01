@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Gamble With Friends</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alfa+Slab+One&family=Figtree:wght@400;600;700&display=swap">
+<style>
+:root{--page:#e8e1d3;--panel:#faf6ec;--ink:#251a17;--mute:#74655a;--line:#d2c6b2;--felt:#11654a;--felt2:#0a4631;--brass:#b9791a;--brassl:#ecc766;--red:#b9322b;--slab:"Alfa Slab One","Rockwell","Georgia",serif;--sans:"Figtree",system-ui,-apple-system,"Segoe UI",sans-serif;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--page:#1b0e17;--panel:#2a1923;--ink:#f4ead8;--mute:#b9a698;--line:#4a3140}}
+:root[data-theme="dark"]{--page:#1b0e17;--panel:#2a1923;--ink:#f4ead8;--mute:#b9a698;--line:#4a3140}
+*{box-sizing:border-box}html,body{margin:0}
+body{background:radial-gradient(ellipse at 50% -10%,color-mix(in srgb,var(--brass) 18%,var(--page)),var(--page) 60%);color:var(--ink);font-family:var(--sans);min-height:100vh;line-height:1.45}
+main{max-width:780px;margin:0 auto;padding:18px 16px 40px}
+:focus-visible{outline:3px solid var(--brassl);outline-offset:2px}
+.sign{position:relative;text-align:center;background:#170a12;border:3px solid var(--brass);border-radius:18px;padding:30px 16px 22px;margin-bottom:18px;box-shadow:0 0 28px #ecc76633,inset 0 0 30px #000}
+.sign::before,.sign::after{content:"";position:absolute;left:14px;right:14px;height:10px;background:radial-gradient(circle,var(--brassl) 3px,transparent 3.5px) 0 0/20px 10px;filter:drop-shadow(0 0 3px var(--brassl))}
+.sign::before{top:8px}.sign::after{bottom:8px;animation:bulbs 1.6s steps(1) infinite;background-position:10px 0}
+@keyframes bulbs{50%{opacity:.25}}
+h1{margin:0;font:400 clamp(30px,8vw,48px)/1.05 var(--slab);color:var(--brassl);text-shadow:0 0 14px #ecc76688}
+.sub{margin:8px 0 0;color:#f1e4c8;font-size:15px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:12px}
+.panel h3{margin:0 0 10px;font:400 20px var(--slab);color:var(--brass)}
+input,select{font:inherit;padding:9px 10px;border-radius:9px;border:1px solid var(--line);background:var(--page);color:var(--ink)}
+.fr{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:8px 0}
+button.b{font:700 15px var(--sans);background:linear-gradient(#f2d47e,#c58a1d);color:#2a1700;border:0;border-radius:10px;padding:10px 18px;cursor:pointer;box-shadow:0 2px 0 #7a4d0c,0 4px 8px #0004}
+button.b:active{transform:translateY(2px);box-shadow:0 0 0 #7a4d0c}
+button.b.g{background:transparent;color:var(--ink);border:1px solid var(--line);box-shadow:none}
+button.b:disabled{opacity:.45}
+.err{color:var(--red);min-height:20px;font-size:14px;font-weight:600}
+.top{display:flex;justify-content:space-between;align-items:flex-end;gap:10px;flex-wrap:wrap}
+.top small{color:var(--mute);font-size:13px}
+.code{font:400 32px/1 var(--slab);letter-spacing:6px;color:var(--brass)}
+.clock{font:400 34px/1 var(--slab);font-variant-numeric:tabular-nums;background:#170a12;color:var(--brassl);padding:6px 14px;border-radius:10px;border:2px solid var(--brass)}
+.clock.low{color:#ff8a7a;border-color:var(--red);animation:bulbs 1s steps(1) infinite}
+.bar{height:20px;border-radius:10px;background:#0003;box-shadow:inset 0 2px 4px #0005;overflow:hidden;margin:14px 0 6px}
+.bar i{display:block;height:100%;width:0;background:repeating-linear-gradient(115deg,var(--brassl) 0 12px,var(--brass) 12px 24px);transition:width .5s}
+#goaltxt{font-weight:600}
+.pr{display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--line)}
+.av{flex:0 0 34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;border:3px dashed #fffa;font-size:14px}
+.pn{flex:1;min-width:0;font-weight:600}
+.pn small{display:block;font-weight:400;color:var(--mute)}
+.pr b.m{font:400 18px var(--slab);color:var(--brass)}
+.banner{padding:14px;border-radius:12px;text-align:center;font:400 20px var(--slab);margin:10px 0;background:linear-gradient(#f2d47e,#c58a1d);color:#2a1700}
+.banner.l{background:var(--red);color:#fff}
+.cb{--c:#999;width:60px;height:60px;border-radius:50%;border:4px dashed #fffd;background:var(--c);color:#fff;font:700 15px var(--sans);cursor:pointer;box-shadow:0 0 0 3px var(--c),0 5px 8px #0006;transition:transform .15s}
+.cb.c10{--c:#e6dfcc;color:#2a2118}.cb.c50{--c:#b9322b}.cb.c100{--c:#2a5db0}.cb.c500{--c:#1d1d1d}
+.cb.on{transform:translateY(-7px);box-shadow:0 0 0 3px var(--c),0 0 0 6px var(--brassl),0 9px 10px #0007}
+.betlabel{font-weight:700;margin-right:4px}
+.tabs{display:flex;gap:4px;margin:14px 0 0;overflow-x:auto}
+.tab{flex:0 0 auto;padding:11px 16px;border-radius:12px 12px 0 0;border:1px solid var(--line);border-bottom:0;background:var(--panel);color:var(--mute);font:700 15px var(--sans);cursor:pointer}
+.tab.on{background:var(--felt);color:#fff;border-color:#5a3414}
+.table{background:radial-gradient(ellipse at 50% 35%,var(--felt),var(--felt2));border:10px solid #5a3414;border-radius:0 0 26px 26px;box-shadow:inset 0 0 0 2px var(--brass),inset 0 0 70px #0008,0 12px 28px #0005;padding:20px;color:#fff;min-height:280px}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:10px 0}
+.card{display:inline-flex;flex-direction:column;align-items:center;justify-content:center;width:52px;height:74px;background:#fffdf6;color:#171717;border-radius:8px;margin-right:6px;box-shadow:0 3px 6px #0007;font:700 22px/1 var(--sans)}
+.card i{font-style:normal;font-size:22px}
+.card.r{color:#c0281f}
+.card.h{background:repeating-linear-gradient(45deg,#7a1f1f 0 6px,#5a1515 6px 12px);border:3px solid #fffdf6;color:transparent}
+.reels{display:flex;gap:10px;justify-content:center;margin:12px auto;padding:14px;max-width:340px;background:linear-gradient(#e9c46a,#a76a14);border-radius:16px;box-shadow:inset 0 0 0 3px #7a4d0c,0 6px 12px #0006;position:relative}
+.reels::after{content:"";position:absolute;left:8px;right:8px;top:50%;height:3px;background:#c0281f88}
+.reel{flex:1;height:98px;background:#fffdf6;border-radius:10px;font-size:48px;display:flex;align-items:center;justify-content:center;box-shadow:inset 0 6px 10px #0004,inset 0 -6px 10px #0004;color:#222}
+.msg{min-height:28px;font:400 19px var(--slab);margin:10px 0;text-align:center;color:var(--brassl)}
+.chip{padding:8px 14px;border-radius:20px;border:2px solid #fff9;background:#0004;color:#fff;font:600 14px var(--sans);cursor:pointer;text-transform:capitalize}
+.chip.on{background:#fff;color:#111}
+.ball{width:76px;height:76px;border-radius:50%;margin:4px auto;display:flex;align-items:center;justify-content:center;font:400 32px var(--slab);background:#222;border:5px solid var(--brassl);color:#fff;box-shadow:0 0 18px #0008}
+.note{font-size:13px;color:var(--mute);margin-top:16px;text-align:center}
+.pu{display:inline-flex;gap:6px;align-items:center;padding:6px 12px;border-radius:999px;border:1px solid var(--brass);background:var(--panel);color:var(--ink);font:600 14px var(--sans)}
+button.pu{cursor:pointer}.pu small{color:var(--brass);font-weight:700}
+.gold{margin-left:auto;font-weight:700;color:var(--brass)}
+.offers{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px}
+.offer{border:1px dashed var(--brass);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:6px;font-size:14px}
+.offer .oe{font-size:32px}.offer span{color:var(--mute);flex:1}
+.toast{position:fixed;left:50%;top:34%;z-index:50;transform:translateX(-50%);font:400 clamp(34px,10vw,56px) var(--slab);pointer-events:none;animation:rise 1.3s ease-out forwards;text-shadow:0 3px 12px #000a}
+.toast.good{color:var(--brassl)}.toast.bad{color:#ff8a7a}
+@keyframes rise{0%{opacity:0;transform:translate(-50%,20px) scale(.8)}15%{opacity:1;transform:translate(-50%,0) scale(1.1)}100%{opacity:0;transform:translate(-50%,-60px) scale(1)}}
+.conf{position:fixed;top:-30px;z-index:49;font-size:26px;pointer-events:none;animation:fall 2s linear forwards}
+@keyframes fall{to{transform:translateY(110vh) rotate(540deg)}}
+.mute{position:absolute;top:14px;right:14px;z-index:2;background:#0006;border:1px solid var(--brass);border-radius:50%;width:38px;height:38px;font-size:18px;cursor:pointer;color:#fff}
+.cb.call{--c:#6b2a8a;font-size:12px}
+details.panel summary{cursor:pointer;font:400 20px var(--slab);color:var(--brass)}
+details.panel li{font-size:14px;margin:4px 0}
+.grid5{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;max-width:320px;margin:0 auto}
+.cell{aspect-ratio:1;border-radius:10px;border:2px solid #fff6;background:#0004;font-size:26px;cursor:pointer;color:#fff}
+.cell.gem{background:#2a8f5a}.cell.mine{background:#b9322b}.cell:disabled{opacity:1;cursor:default}
+.hide{display:none}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<main>
+<header class="sign"><button class="mute" id="mute" onclick="toggleSnd()" aria-label="Toggle sound">🔊</button><h1>Gamble With Friends</h1><p class="sub">Team up, play any table you like, and hit the chip goal before the clock runs out.</p></header>
+
+<div id="lobby">
+ <details class="panel"><summary>How to play</summary>
+ <ul><li>Create a room and share the invite link, or join with a friend’s 4-letter code.</li><li>Everyone starts with 1,000 chips and plays any table. All your chips count toward one team total.</li><li>Reach the stage goal before the clock runs out. Goals grow every stage.</li><li>Clearing a stage pays gold. Spend it in the shop on power-ups, like the Totem that reverses your last loss.</li><li>If the clock wins, the run is over. How far can your team get?</li></ul></details>
+ <div class="panel"><h3>Your name</h3><input id="name" maxlength="14" placeholder="Name"></div>
+ <div class="panel"><h3>Start a room</h3>
+  <div class="fr">Difficulty <select id="goal"><option value="2">Easy (×2 per player)</option><option value="3" selected>Normal (×3)</option><option value="5">Hard (×5)</option></select>
+  Time <select id="mins"><option value="5">5 min</option><option value="10" selected>10 min</option><option value="20">20 min</option></select></div>
+  <button class="b" onclick="create()">Create room</button></div>
+ <div class="panel"><h3>Join a friend’s room</h3>
+  <div class="fr"><input id="jc" maxlength="4" placeholder="CODE" style="width:100px;text-transform:uppercase"><button class="b" onclick="join()">Join</button></div></div>
+ <div class="fr"><button class="b g" onclick="practice()">Practice solo</button></div>
+ <div class="err" id="err"></div><div class="note" id="dbnote"></div>
+</div>
+
+<div id="room" class="hide">
+ <div class="panel">
+  <div class="top"><div><small>Room code</small><div class="code" id="code"></div></div><div class="clock" id="clock"></div></div>
+  <div class="bar"><i id="fill"></i></div>
+  <div id="goaltxt"></div><div class="fr"><button class="b g" id="cinv" onclick="copyInvite()">Copy invite link</button></div>
+  <div id="start" class="fr"></div>
+  <div id="plist"></div>
+ </div>
+ <div id="banner"></div>
+ <div id="shop"></div>
+ <div class="fr" id="pups"></div>
+ <div class="fr"><span class="betlabel">React</span><button class="pu" onclick="react('👏')">👏</button><button class="pu" onclick="react('🔥')">🔥</button><button class="pu" onclick="react('😭')">😭</button><button class="pu" onclick="react('💀')">💀</button><button class="pu" onclick="react('🍀')">🍀</button></div>
+ <div class="fr" id="bets"></div>
+ <div class="tabs">
+  <button class="tab on" data-t="bj">Blackjack</button>
+  <button class="tab" data-t="sl">Slots</button>
+  <button class="tab" data-t="rl">Roulette</button>
+  <button class="tab" data-t="pk">Plinko</button>
+  <button class="tab" data-t="di">Dice</button>
+  <button class="tab" data-t="cf">Coin flip</button>
+  <button class="tab" data-t="cr">Crash</button>
+  <button class="tab" data-t="po">Hold’em</button>
+  <button class="tab" data-t="mn">Mines</button>
+  <button class="tab" data-t="hl">Hi-Lo</button>
+ </div>
+ <div class="table"><div id="game"></div></div>
+ <div class="note">Everyone starts with 1,000 play chips. Clear each stage by getting the team’s combined chips to the goal before the clock ends. Goals grow every stage. Earn gold for clearing stages and spend it on power-ups. Play money only, no real gambling.</div>
+</div>
+</main>
+<script>
+var $=function(i){return document.getElementById(i)};
+var allin=false,hold=0,db=null,uid="local",canW=true,code="",me={name:"",bank:1000,gold:5,pu:[],ll:0,st:0,rs:0,pr:0},shownRound=0,room={},PL={},tab="bj",bet=50,bj=null,rb=null,sp=false,local=false,unsubs=[],q=Promise.resolve(),lastLock="",wonSent=false;
+function err(m){$("err").textContent=m||""}
+function nameVal(){var v=$("name").value.trim()||"Player";try{localStorage.setItem("gwf-name",v)}catch(e){}return v}
+(async function(){
+ try{
+  if(typeof claude!="undefined"){
+   db=await claude.use("db");var u=await claude.use("user");
+   if(u){uid=String(await u.id());try{if(await u.can("data.write")===false)canW=false}catch(e){}}
+  }
+ }catch(e){db=null}
+ if(!db)$("dbnote").textContent=typeof claude=="undefined"?"Shared rooms aren\u2019t available on this site yet. Choose Practice solo to play.":"Shared rooms need you signed in to claude.ai with access the page owner granted (Contributor or Editor). Until then only solo practice works.";
+ else if(!canW)$("dbnote").textContent="You have view-only access, so you can watch but not play in shared rooms. Ask the owner for edit access.";
+ try{$("name").value=localStorage.getItem("gwf-name")||""}catch(e){}
+ try{var hh=location.hash.replace("#","").toUpperCase();if(hh.length==4)$("jc").value=hh}catch(e){}
+})();
+function genCode(){var s="ABCDEFGHJKLMNPQRSTUVWXYZ",c="";for(var i=0;i<4;i++)c+=s.charAt(Math.floor(Math.random()*s.length));return c}
+async function create(){
+ err();if(!db||!canW){err("Shared rooms need edit access to this page.");return}
+ var c=genCode();
+ try{await db.doc("rooms/"+c).set({mult:+$("goal").value,stage:1,base:0,mins:+$("mins").value,deadline:0,won:false,wt:0,created:Date.now()});await enter(c)}
+ catch(e){err("Couldn’t create the room ("+(e.code||"error")+").")}
+}
+async function join(){
+ err();if(!db||!canW){err("Shared rooms need edit access to this page.");return}
+ var c=$("jc").value.trim().toUpperCase();if(c.length!=4){err("Enter the 4-letter code.");return}
+ try{await enter(c)}catch(e){err("Couldn’t join ("+(e.code||"error")+").")}
+}
+async function enter(c){
+ var rs=await db.doc("rooms/"+c).get();
+ if(!rs.exists){err("No room with that code.");return}
+ code=c;room=rs.data();
+ var pd=db.doc("rooms/"+c+"/players/"+uid),ps=await pd.get();
+ me=Object.assign({gold:5,pu:[],ll:0,st:0,rs:0,pr:0},ps.exists?ps.data():{bank:1000,msg:"joined",t:Date.now()});
+ me.name=nameVal();await pd.set(Object.assign({},me));
+ PL[uid]=me;open_();
+ unsubs.push(db.doc("rooms/"+c).onSnapshot(function(s){if(s.exists){room=s.data();top_()}},function(){}));
+ unsubs.push(db.collection("rooms/"+c+"/players").onSnapshot(function(s){var n={};s.docs.forEach(function(d){n[d.id]=d.data()});n[uid]=me;PL=n;top_()},function(){}));
+ setInterval(tick,500);
+}
+function practice(){
+ local=true;code="SOLO";me={name:nameVal(),bank:1000,gold:5,pu:[],ll:0,st:0,rs:0,pr:0,msg:"practicing"};PL={local:me};uid="local";
+ room={mult:3,stage:1,base:1000,mins:10,deadline:0,won:false};open_();setInterval(tick,500);
+}
+function open_(){$("lobby").className="hide";$("room").className="";$("code").textContent=code;bets();top_();game()}
+function total(){var t=0;for(var k in PL)t+=(k==uid?me.bank:PL[k].bank)||0;return t}
+function goalNow(){var b=room.base||Math.max(1,Object.keys(PL).length)*1000;return Math.round((room.mult||3)*b*Math.pow(1.7,(room.stage||1)-1)/100)*100}
+function status(){
+ if(!room.deadline)return"wait";
+ if(room.won||total()>=goalNow())return"won";
+ if(Date.now()>=room.deadline)return"lost";
+ return"play";
+}
+function fmt(ms){ms=Math.max(0,ms);var s=Math.ceil(ms/1000);return Math.floor(s/60)+":"+("0"+s%60).slice(-2)}
+function tick(){
+ var st=status();
+ $("clock").textContent=st=="wait"?"--:--":st=="play"?fmt(room.deadline-Date.now()):st=="won"?"✓":"0:00";
+ $("clock").className="clock"+(st=="play"&&room.deadline-Date.now()<30000?" low":"");
+ if(!hold&&st+(me.bank<10)!=lastLock)top_(),game();
+}
+function top_(){
+ var st=status(),t=total(),G=goalNow(),sg=room.stage||1;
+ if(st!="won")wonSent=false;
+ if(st=="won"&&!room.won&&!local&&!wonSent){wonSent=true;db.doc("rooms/"+code).update({won:true,wt:t}).catch(function(){})}
+ if(st=="won"&&(me.rs||0)<sg){
+  var t0=room.wt||t,ex=Math.max(0,Math.floor((t0-G)/(G*.1))),rw=4+sg+(boss()?3:0)+Math.min(4,ex)+(has("interest")?Math.min(5,Math.floor(me.gold/5)):0);
+  me.gold+=rw;me.rs=sg;fx("stage",rw);sync(null,0,"cleared stage "+sg+", +"+rw+" gold");return}
+ if(st=="play"&&(me.st||0)!=sg){me.st=sg;var pg=has("piggy");if(pg)me.bank+=50;sync(null,0,pg?"Piggy Bank paid 50 chips":(me.msg||"playing"));return}
+ $("fill").style.width=Math.min(100,t/G*100)+"%";
+ $("goaltxt").textContent="Stage "+sg+(boss()?" 👹 Boss: "+boss().n+" ("+boss().d+")":"")+": team total "+t.toLocaleString()+" of "+G.toLocaleString()+" chips";
+ var ids=Object.keys(PL).sort(function(a,b){return((b==uid?me:PL[b]).bank)-((a==uid?me:PL[a]).bank)});
+ $("plist").innerHTML=ids.map(function(k){var p=k==uid?me:PL[k],nm=p.name||"Player",h=0;for(var i=0;i<nm.length;i++)h=(h*31+nm.charCodeAt(i))%360;
+  var em=(p.pu||[]).map(function(x){return PU[x]?PU[x].e:""}).join("");
+  return '<div class="pr"><span class="av" style="background:hsl('+h+',55%,38%)">'+esc(nm.charAt(0).toUpperCase())+'</span><div class="pn">'+esc(nm)+(k==uid?" (you)":"")+' '+em+(p.em?' '+p.em:'')+'<small>'+esc(p.msg||"")+'</small></div><b class="m">'+p.bank+' ¢</b></div>'}).join("");
+ var s=$("start");
+ if(st=="wait")s.innerHTML='<span>'+ids.length+' in the room. Visit the shop, then:</span><button class="b" onclick="go()">Start the clock ('+room.mins+' min)</button>';
+ else if(st=="won")s.innerHTML='<button class="b" onclick="nextStage()">Go to stage '+(sg+1)+'</button>';
+ else s.innerHTML="";
+ $("banner").innerHTML=st=="won"?'<div class="banner">🎉 Stage '+sg+' cleared with '+t.toLocaleString()+' chips. Shop, then move on.</div>':st=="lost"?'<div class="banner l">⏰ Run over at stage '+sg+'. The team finished at '+t.toLocaleString()+' of '+G.toLocaleString()+'.</div>':"";
+ pups();shop(st);
+ if(tab=="po"&&!hold&&(room.round?room.round.n:0)!=shownRound&&st=="play")drawPO();
+ if(!hold&&st+(me.bank<10)!=lastLock)game();
+}
+function esc(s){return String(s).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
+function go(){
+ var bm=boss(),d=Date.now()+room.mins*60000*(bm&&bm.fuse?.7:1),u={deadline:d};room.deadline=d;
+ if(!room.base){room.base=Math.max(1,Object.keys(PL).length)*1000;u.base=room.base}
+ top_();if(!local)db.doc("rooms/"+code).update(u).catch(function(){});
+}
+function nextStage(){
+ var n=(room.stage||1)+1;room.stage=n;room.deadline=0;room.won=false;room.wt=0;top_();game();
+ if(!local)db.doc("rooms/"+code).update({stage:n,deadline:0,won:false,wt:0}).catch(function(){});
+}
+function sync(g,net,m){
+ me.msg=m||((net>0?"won ":net<0?"lost ":"pushed ")+(net?Math.abs(net):"")+" at "+g);me.t=Date.now();PL[uid]=me;top_();
+ if(local)return;
+ var snap=Object.assign({},me);
+ q=q.then(function(){return db.doc("rooms/"+code+"/players/"+uid).set(snap)}).catch(function(){});
+}
+function bets(){
+ $("bets").innerHTML='<span class="betlabel">Bet</span>'+[10,50,100,500].map(function(b){return '<button class="cb c'+b+(b==bet&&!allin?' on':'')+'" onclick="bet='+b+';allin=false;bets()" aria-label="Bet '+b+'">'+b+'</button>'}).join("")+'<button class="cb call'+(allin?' on':'')+'" onclick="allin=true;bets()">All in</button> <span id="hint" class="err"></span>';
+}
+function hint(m){var h=$("hint");if(h)h.textContent=m||""}
+document.querySelectorAll(".tab").forEach(function(t){t.onclick=function(){
+ document.querySelectorAll(".tab").forEach(function(x){x.classList.remove("on")});
+ t.classList.add("on");tab=t.dataset.t;game()}});
+function game(){
+ var st=status();lastLock=st+(me.bank<10);
+ var g=$("game");
+ if(st=="wait"){g.innerHTML='<div class="msg">Tables open when someone starts the clock.</div>';return}
+ if(st=="won"){g.innerHTML='<div class="msg">Stage cleared! Spend your gold in the shop, then start the next stage.</div>';return}
+ if(st=="lost"){g.innerHTML='<div class="msg">Run over at stage '+(room.stage||1)+'.</div><div class="row" style="justify-content:center"><button class="b g" style="color:#fff" onclick="location.reload()">Back to lobby</button></div>';return}
+ var bm=boss();if(bm&&bm.slots&&tab=="sl"){g.innerHTML='<div class="msg">Boss rule: the slot machine is jammed this stage. Try another table.</div>';return}
+ if(me.bank<10&&!(bj&&!bj.over)){g.innerHTML='<div class="msg">You’re out of chips. Cheer on your friends, they can still carry the team.</div>';return}
+ ({bj:drawBJ,sl:drawSL,rl:drawRL,pk:drawPK,di:drawDI,cf:drawCF,cr:drawCR,po:drawPO,mn:drawMN,hl:drawHL})[tab]();
+}
+function take(b){var bm=boss();if(allin&&me.bank>=10){b=me.bank;if(bm&&bm.cap)b=Math.min(b,bm.cap);bet=b}if(bm&&bm.cap&&b>bm.cap){hint("Boss rule: bets are capped at "+bm.cap+" chips.");return false}if(me.bank<b){hint("Not enough chips for that bet.");return false}hint();me.bank-=b;hold=1;top_();return true}
+function has(id){return(me.pu||[]).indexOf(id)>=0}
+function done(g,w,b){
+ var gain=w-b;
+ if(gain>0){
+  var m=0;if(has("clover"))m+=.1;if(has("streak"))m+=Math.min(.3,.05*(me.sk||0));if(has("charm")&&w>=5*b)m+=.25;if(me.ex)m+=1;
+  w+=Math.floor(gain*m);if(gain>=100&&has("tip"))me.gold+=1;me.sk=(me.sk||0)+1;
+ }else if(w<b)me.sk=0;
+ me.ex=0;
+ if(w==0&&has("net"))w+=Math.floor(b*.15);
+ if(w<b)me.ll=b-w;
+ var bs=boss();me.bank+=w;if(w<b&&bs&&bs.tax)me.bank=Math.max(0,me.bank-Math.floor(b*.1));hold=0;
+ if(me.bank<10&&has("wind")){me.pu.splice(me.pu.indexOf("wind"),1);me.bank+=100}
+ fx(w>b?"win":w<b?"lose":"push",w-b);sync(g,w-b);
+}
+/* Blackjack */
+function draw(){var r="A23456789TJQK".charAt(Math.floor(Math.random()*13));var s="♠♥♦♣".charAt(Math.floor(Math.random()*4));return r+s}
+function val(h){var t=0,a=0;h.forEach(function(c){var r=c.charAt(0);if(r=="A"){t+=11;a++}else if("TJQK".indexOf(r)>=0)t+=10;else t+=+r});while(t>21&&a>0){t-=10;a--}return t}
+function ch(c,hide){var red=c.charAt(1)=="♥"||c.charAt(1)=="♦";return '<span class="card'+(red?' r':'')+(hide?' h':'')+'"><b>'+(c.charAt(0)=="T"?"10":c.charAt(0))+'</b><i>'+c.charAt(1)+'</i></span>'}
+function drawBJ(){
+ var g=$("game");
+ if(!bj){g.innerHTML='<div class="msg">Place your bet and deal.</div><div class="row" style="justify-content:center"><button class="b" onclick="deal()">Deal</button></div>';return}
+ var d=bj.over?bj.d.map(function(c){return ch(c)}).join(""):ch(bj.d[0])+ch(bj.d[1],1);
+ g.innerHTML='<div>Dealer '+(bj.over?'('+val(bj.d)+')':'')+'</div><div class="row">'+d+'</div><div>You ('+val(bj.p)+')</div><div class="row">'+bj.p.map(function(c){return ch(c)}).join("")+'</div><div class="msg">'+bj.m+'</div><div class="row" style="justify-content:center">'+(bj.over?'<button class="b" onclick="bj=null;game()">New hand</button>':'<button class="b" onclick="hit()">Hit</button><button class="b" onclick="stand()">Stand</button>')+'</div>';
+}
+function deal(){
+ if(status()!="play"||!take(bet))return;
+ bj={bet:bet,p:[draw(),draw()],d:[draw(),draw()],over:false,m:"Hit or stand?"};
+ if(val(bj.p)==21)end("Blackjack! Pays 3 to 2.",Math.floor(bj.bet*2.5));else drawBJ();
+}
+function end(m,w){bj.over=true;bj.m=m;done("blackjack",w,bj.bet);drawBJ()}
+function hit(){bj.p.push(draw());var v=val(bj.p);if(v>21)end("Bust. The house wins.",0);else if(v==21)stand();else drawBJ()}
+function stand(){
+ while(val(bj.d)<17)bj.d.push(draw());
+ var p=val(bj.p),d=val(bj.d);
+ if(d>21||p>d)end("You win "+bj.bet+" ¢!",bj.bet*2);
+ else if(p==d)end("Push. Bet returned.",bj.bet);
+ else end("Dealer wins.",0);
+}
+/* Slots */
+var SY=["🍒","🍋","🔔","⭐","💎","7️⃣"],MU=[4,6,10,15,30,80];
+function drawSL(){
+ $("game").innerHTML='<div class="reels"><div class="reel" id="r0">🎰</div><div class="reel" id="r1">🎰</div><div class="reel" id="r2">🎰</div></div><div class="msg" id="sm">Three of a kind pays big. Two of a kind pays half back.</div><div class="row" style="justify-content:center"><button class="b" id="spin" onclick="spin()">Spin</button></div>';
+}
+function spin(){
+ if(sp||status()!="play"||!take(bet))return;sp=true;$("spin").disabled=true;
+ var b=bet,res=[0,1,2].map(function(){return Math.floor(Math.random()*6)}),n=0;
+ var w=0,m="No luck.";
+ if(res[0]==res[1]&&res[1]==res[2]){w=b*MU[res[0]];m="JACKPOT! "+w+" ¢!"}
+ else if(res[0]==res[1]||res[1]==res[2]||res[0]==res[2]){w=has("candle")?b:Math.floor(b/2);m=has("candle")?"Two match. Bet back.":"Two match. Half back."}
+ var iv=setInterval(function(){
+  for(var i=0;i<3;i++){var e=$("r"+i);if(e)e.textContent=SY[n<12+i*6?Math.floor(Math.random()*6):res[i]]}
+  n++;
+  if(n>=25){clearInterval(iv);sp=false;done("slots",w,b);var s=$("sm"),sb=$("spin");if(s)s.textContent=m;if(sb)sb.disabled=false}
+ },70);
+}
+/* Roulette */
+var RED=[1,3,5,7,9,12,14,16,18,19,21,23,25,27,30,32,34,36];
+function col(n){return n==0?"green":RED.indexOf(n)>=0?"red":"black"}
+function drawRL(){
+ $("game").innerHTML='<div class="ball" id="ball">?</div><div class="msg" id="rm">Choose a bet type, then spin.</div><div class="row" style="justify-content:center">'+
+ ["red","black","even","odd","green"].map(function(k){return '<button class="chip'+(rb==k?' on':'')+'" onclick="rb=\''+k+'\';drawRL()">'+k+(k=="green"?" (35×)":"")+'</button>'}).join("")+
+ '</div><div class="row" style="justify-content:center">or a number: <input id="rn" type="number" min="0" max="36" style="width:70px" oninput="rb=null"> <button class="b" onclick="rspin()">Spin</button></div>';
+}
+function rspin(){
+ var num=$("rn").value,kind=rb;
+ if(kind===null&&num===""){$("rm").textContent="Pick a bet first.";return}
+ if(kind===null&&(+num<0||+num>36)){$("rm").textContent="Numbers go 0 to 36.";return}
+ if(status()!="play"||!take(bet))return;
+ var b=bet,n=Math.floor(Math.random()*37),e=$("ball");
+ e.textContent=n;e.style.background=col(n)=="red"?"#c0392b":col(n)=="green"?"#1f8f4a":"#222";
+ var w=0;
+ if(kind=="red"||kind=="black"){if(col(n)==kind)w=b*2}
+ else if(kind=="green"){if(n==0)w=b*36}
+ else if(kind=="even"){if(n>0&&n%2==0)w=b*2}
+ else if(kind=="odd"){if(n%2==1)w=b*2}
+ else if(+num===n)w=b*36;
+ $("rm").textContent=w?"Landed on "+n+". You win "+(w-b)+" ¢!":"Landed on "+n+". House takes it.";
+ done("roulette",w,b);
+}
+
+/* Plinko */
+var PKM=[6,2,1.1,1,0.4,1,1.1,2,6],pk=false,PW=340,PD=34,PT=26,PY=30;
+function pkX(i,k){return PW/2+(k-i/2)*PD}
+function pkY(i){return PT+i*PY}
+function drawPK(){
+ $("game").innerHTML='<canvas id="pkc" width="340" height="320" style="display:block;margin:0 auto;max-width:100%"></canvas><div class="msg" id="pm">Drop a ball. The edges pay the most.</div><div class="row" style="justify-content:center"><button class="b" id="pkb" onclick="plink()">Drop ball</button></div>';
+ pkDraw(-1,null);
+}
+function pkDraw(hl,ball){
+ var c=$("pkc");if(!c)return;var x=c.getContext("2d");x.clearRect(0,0,340,320);
+ x.fillStyle="rgba(255,255,255,.8)";
+ for(var i=0;i<8;i++)for(var k=0;k<=i;k++){x.beginPath();x.arc(pkX(i,k),pkY(i),3.5,0,7);x.fill()}
+ x.font="bold 12px Figtree,sans-serif";x.textAlign="center";
+ for(var k=0;k<9;k++){
+  var bx=pkX(8,k),by=pkY(8)+10;
+  x.fillStyle=k==hl?"#ecc766":PKM[k]>=2?"#b9322b":PKM[k]>=1?"#2a5db0":"#2b2b2b";
+  x.fillRect(bx-15,by,30,26);
+  x.fillStyle=k==hl?"#2a1700":"#fff";x.fillText(PKM[k]+"×",bx,by+17);
+ }
+ if(ball){x.beginPath();x.arc(ball[0],ball[1],7,0,7);x.fillStyle="#ecc766";x.fill();x.lineWidth=2;x.strokeStyle="#7a4d0c";x.stroke()}
+}
+function plink(){
+ if(pk||status()!="play"||!take(bet))return;
+ pk=true;var b=bet,k=0,path=[0],i=0,t=0;
+ for(var j=0;j<8;j++){k+=Math.random()<.5?1:0;path.push(k)}
+ var pb=$("pkb");if(pb)pb.disabled=true;
+ function step(){
+  t+=.09;if(t>=1){t=0;i++}
+  if(i>=8){
+   var mu=(has("magnet")&&k==4)?1:PKM[k],w=Math.floor(b*mu);pk=false;pkDraw(k,null);
+   var m=$("pm");if(m)m.textContent=mu+"×: "+(w>b?"you win "+(w-b)+" ¢!":w==b?"bet returned.":"you lose "+(b-w)+" ¢.");
+   var pb2=$("pkb");if(pb2)pb2.disabled=false;
+   done("plinko",w,b);return;
+  }
+  var x0=pkX(i,path[i]),x1=pkX(i+1,path[i+1]),y0=pkY(i),y1=pkY(i+1);
+  pkDraw(-1,[x0+(x1-x0)*t,y0+(y1-y0)*t*t-10-Math.sin(Math.PI*t)*6]);
+  requestAnimationFrame(step);
+ }
+ step();
+}
+/* Dice */
+var dm="under",dc=50;
+function drawDI(){
+ $("game").innerHTML='<div class="ball" id="dn" style="width:92px;height:92px;border-radius:18px">?</div><div class="msg" id="dmsg">Pick your odds. Lower chance pays more.</div><div class="row" style="justify-content:center"><button class="chip'+(dm=="under"?' on':'')+'" onclick="dm=\'under\';drawDI()">Roll under</button><button class="chip'+(dm=="over"?' on':'')+'" onclick="dm=\'over\';drawDI()">Roll over</button></div><div class="row" style="justify-content:center">Win chance <input type="range" id="dr" min="5" max="95" value="'+dc+'" oninput="dc=+this.value;dinfo()"> <b id="dinfo"></b></div><div class="row" style="justify-content:center"><button class="b" onclick="droll()">Roll</button></div>';
+ dinfo();
+}
+function dinfo(){var e=$("dinfo");if(e)e.textContent=dc+"%, pays "+(97/dc).toFixed(2)+"×"}
+function droll(){
+ if(status()!="play"||!take(bet))return;
+ var b=bet,r=Math.floor(Math.random()*100),win=dm=="under"?r<dc:r>=100-dc,w=win?Math.floor(b*97/dc):0;
+ var n=$("dn"),m=$("dmsg");if(n)n.textContent=r;
+ if(m)m.textContent=win?"Rolled "+r+". You win "+(w-b)+" ¢!":"Rolled "+r+". Not this time.";
+ done("dice",w,b);
+}
+/* Coin flip */
+var cs="heads",cfl=false;
+function drawCF(){
+ $("game").innerHTML='<div class="ball" id="coin">?</div><div class="msg" id="cm">Call it. Pays 1.96×.</div><div class="row" style="justify-content:center"><button class="chip'+(cs=="heads"?' on':'')+'" onclick="cs=\'heads\';drawCF()">Heads</button><button class="chip'+(cs=="tails"?' on':'')+'" onclick="cs=\'tails\';drawCF()">Tails</button></div><div class="row" style="justify-content:center"><button class="b" id="cfb" onclick="flip()">Flip</button></div>';
+}
+function flip(){
+ if(cfl||status()!="play"||!take(bet))return;
+ cfl=true;var b=bet,pick=cs,heads=Math.random()<.5,n=0,fb=$("cfb");if(fb)fb.disabled=true;
+ var iv=setInterval(function(){
+  var c=$("coin"),last=n>=10;
+  if(c)c.textContent=last?(heads?"H":"T"):(n%2?"H":"T");
+  n++;
+  if(last){clearInterval(iv);cfl=false;
+   var win=(heads&&pick=="heads")||(!heads&&pick=="tails"),w=win?Math.floor(b*1.96):0,m=$("cm");
+   if(m)m.textContent=(heads?"Heads":"Tails")+(win?". You win "+(w-b)+" ¢!":". You lose.");
+   var f2=$("cfb");if(f2)f2.disabled=false;
+   done("coin flip",w,b);}
+ },90);
+}
+/* Crash */
+var cr=null;
+function drawCR(){
+ $("game").innerHTML='<div class="ball" id="crn" style="width:180px;height:100px;border-radius:20px;font-size:44px">1.00×</div><div class="msg" id="crm">Launch, then cash out before it crashes.</div><div class="row" style="justify-content:center"><button class="b" id="crgo" onclick="crStart()">Launch</button><button class="b g" id="crco" style="color:#fff" disabled onclick="crOut()">Cash out</button></div>';
+}
+function crStart(){
+ if(cr||status()!="play"||!take(bet))return;
+ var u=Math.random(),cp=Math.min(100,Math.max(1,Math.floor(97/(1-u))/100));
+ cr={b:bet,cp:cp,t0:Date.now(),m:1};
+ var g=$("crgo"),c=$("crco");if(g)g.disabled=true;if(c)c.disabled=false;var n0=$("crn");if(n0){n0.style.color="";n0.textContent="1.00×"}
+ cr.iv=setInterval(crTick,50);
+}
+function crTick(){
+ var m=Math.floor(Math.exp(.16*(Date.now()-cr.t0)/1000)*100)/100,e=$("crn");
+ if(m>=cr.cp){crEnd(false,cr.cp);return}
+ if(!e){crEnd(true,cr.m);return}
+ cr.m=m;e.textContent=m.toFixed(2)+"×";
+}
+function crOut(){if(cr)crEnd(true,cr.m)}
+function crEnd(win,m){
+ clearInterval(cr.iv);var b=cr.b,w=win?Math.floor(b*m):0;cr=null;
+ var e=$("crn"),s=$("crm"),g=$("crgo"),c=$("crco");
+ if(e){e.textContent=m.toFixed(2)+"×";e.style.color=win?"#ecc766":"#ff8a7a"}
+ if(s)s.textContent=win?"Cashed out at "+m.toFixed(2)+"×. "+(w>b?"You win "+(w-b)+" ¢!":"Bet returned."):"Crashed at "+m.toFixed(2)+"×. Bet lost.";
+ if(g)g.disabled=false;if(c)c.disabled=true;
+ done("crash",w,b);
+}
+
+/* Power-ups */
+var PU={totem:{e:"🗿",n:"Totem",d:"Use it to reverse your last loss.",p:6,use:1},clover:{e:"🍀",n:"Lucky Clover",d:"Wins pay 10% extra.",p:8},net:{e:"🛡️",n:"Safety Net",d:"Busted bets refund 15%.",p:6},piggy:{e:"🐷",n:"Piggy Bank",d:"Pays 50 chips at the start of every stage.",p:5},warp:{e:"⏳",n:"Time Warp",d:"Use it to add 30 seconds to the team clock.",p:5,use:1},interest:{e:"🏧",n:"Interest",d:"When a stage clears, +1 gold per 5 gold you hold (max 5).",p:7},
+ streak:{e:"🔥",n:"Hot Streak",d:"Each win in a row adds +5% to your next win (max +30%).",p:7},
+ charm:{e:"🎰",n:"Jackpot Charm",d:"Wins of 5× your bet or more pay +25%.",p:7},
+ tip:{e:"🫙",n:"Tip Jar",d:"+1 gold whenever you win 100+ chips in one round.",p:5},
+ dd:{e:"🎟️",n:"Double Down",d:"Use it before a round: your next win pays double profit.",p:6,use:1},
+ wind:{e:"💨",n:"Second Wind",d:"Go broke once and get 100 chips back. Used up when it triggers.",p:6},
+ voucher:{e:"🧾",n:"Chip Voucher",d:"Use it for 150 chips right away.",p:5,use:1},
+ crystal:{e:"🔮",n:"Crystal Ball",d:"See the house’s hole cards in Hold’em before you bet.",p:6},
+ pockets:{e:"🎒",n:"Deep Pockets",d:"Carry 2 more power-ups (it takes one slot itself).",p:5},
+ candle:{e:"🕯️",n:"Lucky Candle",d:"Slots: two of a kind returns your whole bet.",p:5},
+ magnet:{e:"🧲",n:"Magnet Pegs",d:"Plinko: the middle slot pays 1× instead of 0.4×.",p:5},
+ squad:{e:"🧯",n:"Bomb Squad",d:"Mines: only 2 mines instead of 3.",p:6}};
+function pups(){
+ var h=(me.pu||[]).map(function(id){var p=PU[id];return p.use?'<button class="pu" title="'+p.d+'" onclick="useP(\''+id+'\')">'+p.e+' '+p.n+' <small>use</small></button>':'<span class="pu" title="'+p.d+'">'+p.e+' '+p.n+'</span>'}).join(" ");
+ $("pups").innerHTML='<span class="betlabel">Power-ups</span>'+(h||'<span style="color:var(--mute)">none yet</span>')+(me.ex?' <span class="pu">🎟️ Double Down armed</span>':'')+'<span class="gold">🪙 '+me.gold+' gold</span>';
+}
+function shop(st){
+ var e=$("shop");if(st!="wait"&&st!="won"){e.innerHTML="";return}
+ var f=rng((room.stage||1)*977+hsh(uid)+((me.rrs==(room.stage||1)?me.rr:0)||0)*131),ks=Object.keys(PU),o=[];
+ while(o.length<3){var k=ks[Math.floor(f()*ks.length)];if(o.indexOf(k)<0)o.push(k)}
+ e.innerHTML='<div class="panel"><h3>Shop</h3><div class="offers">'+o.map(function(k){var p=PU[k],own=has(k),full=(me.pu||[]).length>=maxS(),no=own||full||me.gold<p.p;
+  return '<div class="offer"><div class="oe">'+p.e+'</div><b>'+p.n+'</b><span>'+p.d+'</span><button class="b" '+(no?'disabled':'')+' onclick="buy(\''+k+'\')">'+(own?'Owned':full?'Slots full':'Buy for '+p.p+' gold')+'</button></div>'}).join("")+'</div><div class="fr"><button class="b g" '+(me.gold<2?'disabled':'')+' onclick="reroll()">Reroll offers (2 gold)</button><span class="note" style="margin:0">Slots '+(me.pu||[]).length+'/'+maxS()+'</span></div></div>';
+}
+function maxS(){return 4+(has("pockets")?2:0)}
+function reroll(){if(me.gold<2)return;var sg=room.stage||1;me.rr=(me.rrs==sg?me.rr:0)+1;me.rrs=sg;me.gold-=2;sync(null,0,"rerolled the shop")}
+function buy(id){var p=PU[id];if(me.gold<p.p||me.pu.length>=maxS()||has(id))return;me.gold-=p.p;me.pu.push(id);sync(null,0,"bought "+p.n)}
+function useP(id){
+ var i=me.pu.indexOf(id);if(i<0)return;
+ if(id=="totem"){if(!me.ll){hint("No loss to reverse yet.");return}var r=me.ll;me.ll=0;me.bank+=r;me.pu.splice(i,1);hint();sync(null,0,"🗿 Totem reversed a "+r+" chip loss")}
+ else if(id=="warp"){if(status()!="play"){hint("Use it while the clock is running.");return}me.pu.splice(i,1);room.deadline+=30000;if(!local)db.doc("rooms/"+code).update({deadline:room.deadline}).catch(function(){});hint();sync(null,0,"⏳ Time Warp added 30 seconds")}
+ else if(id=="dd"){if(me.ex){hint("Already armed.");return}me.ex=1;me.pu.splice(i,1);hint();sync(null,0,"🎟️ Double Down armed")}
+ else if(id=="voucher"){me.pu.splice(i,1);me.bank+=150;hint();sync(null,0,"🧾 Chip Voucher paid 150 chips")}
+}
+/* Hold'em vs the house, shared board */
+var HN=["High card","Pair","Two pair","Three of a kind","Straight","Flush","Full house","Four of a kind","Straight flush"];
+function rng(s){return function(){s|=0;s=s+0x6D2B79F5|0;var t=Math.imul(s^s>>>15,1|s);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function hsh(str){var h=7;for(var i=0;i<str.length;i++)h=(h*31+str.charCodeAt(i))|0;return h}
+function deck(seed){var d=[];for(var r=2;r<15;r++)for(var k=0;k<4;k++)d.push([r,k]);var f=rng(seed);for(var i=51;i>0;i--){var j=Math.floor(f()*(i+1)),x=d[i];d[i]=d[j];d[j]=x}return d}
+function deal2(){var d=deck(room.round.seed),f=rng(room.round.seed^hsh(uid)),pool=d.slice(7),i=Math.floor(f()*(pool.length-1));return{board:d.slice(0,5),house:d.slice(5,7),mine:[pool[i],pool[i+1]]}}
+function sc(h){
+ var r=h.map(function(c){return c[0]}).sort(function(a,b){return b-a}),f=h.every(function(c){return c[1]==h[0][1]}),n={};
+ r.forEach(function(x){n[x]=(n[x]||0)+1});
+ var g=Object.keys(n).map(Number).sort(function(a,b){return n[b]-n[a]||b-a}),cs=g.map(function(x){return n[x]}).join("");
+ var wh=r[0]==14&&r[1]==5&&r[4]==2,st=g.length==5&&(r[0]-r[4]==4||wh),hi=wh?5:r[0];
+ var cat=st&&f?8:cs=="41"?7:cs=="32"?6:f?5:st?4:cs=="311"?3:cs=="221"?2:cs=="2111"?1:0;
+ return[cat].concat(st?[hi]:g);
+}
+function cmp(a,b){for(var i=0;i<Math.max(a.length,b.length);i++){var d=(a[i]||0)-(b[i]||0);if(d)return d}return 0}
+function best(c){var b=null;for(var i=0;i<7;i++)for(var j=i+1;j<7;j++){var s=sc(c.filter(function(_,k){return k!=i&&k!=j}));if(!b||cmp(s,b)>0)b=s}return b}
+function chp(c,hide){var red=c[1]==1||c[1]==2;return '<span class="card'+(red?' r':'')+(hide?' h':'')+'"><b>'+(c[0]>10?"JQKA".charAt(c[0]-11):c[0])+'</b><i>'+"♠♥♦♣".charAt(c[1])+'</i></span>'}
+function drawPO(){
+ var g=$("game"),R=room.round;shownRound=R?R.n:0;
+ if(!R){g.innerHTML='<div class="msg">Nobody has dealt yet.</div><div class="row" style="justify-content:center"><button class="b" onclick="dealR()">Deal the table</button></div>';return}
+ var h=deal2(),played=me.pr>=R.n,m="Everyone shares the board and the house hand. Beat the house to win 1.9×.";
+ if(played){var a=best(h.mine.concat(h.board)),c=best(h.house.concat(h.board)),k=cmp(a,c);m=(k>0?"You win: "+HN[a[0]]+" beats "+HN[c[0]]:k<0?"House wins: "+HN[c[0]]+" beats "+HN[a[0]]:"Push: both have "+HN[a[0]])+"."}
+ g.innerHTML='<div>Round '+R.n+', shared board</div><div class="row">'+h.board.map(function(c){return chp(c)}).join("")+'</div><div>House</div><div class="row">'+(played||has("crystal")?h.house.map(function(c){return chp(c)}).join(""):chp([2,0],1)+chp([2,0],1))+'</div><div>Your hole cards</div><div class="row">'+h.mine.map(function(c){return chp(c)}).join("")+'</div><div class="msg">'+m+'</div><div class="row" style="justify-content:center">'+(played?'<button class="b" onclick="dealR()">Deal next hand</button>':'<button class="b" onclick="ppl()">Play hand</button>')+'</div>';
+}
+function dealR(){
+ var rd={n:(room.round?room.round.n:0)+1,seed:Math.floor(Math.random()*2e9)};room.round=rd;
+ if(!local)db.doc("rooms/"+code).update({round:rd}).catch(function(){});
+ drawPO();
+}
+function ppl(){
+ var R=room.round;if(status()!="play"||!R||me.pr>=R.n||!take(bet))return;
+ var h=deal2(),k=cmp(best(h.mine.concat(h.board)),best(h.house.concat(h.board))),b=bet,w=k>0?Math.floor(b*1.9):k==0?b:0;
+ me.pr=R.n;done("hold’em",w,b);drawPO();
+}
+
+/* Feel: sound, pop-ups, confetti */
+var snd=true,AC=null;
+function tone(f,t,d,ty,v){if(!snd)return;try{AC=AC||new(window.AudioContext||window.webkitAudioContext)();var o=AC.createOscillator(),g=AC.createGain(),n=AC.currentTime+t;o.type=ty||"sine";o.frequency.value=f;g.gain.setValueAtTime(v||.12,n);g.gain.exponentialRampToValueAtTime(.001,n+d);o.connect(g);g.connect(AC.destination);o.start(n);o.stop(n+d)}catch(e){}}
+function toggleSnd(){snd=!snd;$("mute").textContent=snd?"🔊":"🔇";if(snd)tone(660,0,.1)}
+function calm(){try{return window.matchMedia("(prefers-reduced-motion:reduce)").matches}catch(e){return false}}
+function pop(txt,cls){if(calm())return;var d=document.createElement("div");d.className="toast "+cls;d.textContent=txt;document.body.appendChild(d);setTimeout(function(){d.remove()},1400)}
+function confetti(n){if(calm())return;for(var i=0;i<n;i++){var d=document.createElement("div");d.className="conf";d.textContent=["🪙","✨","🎉","♠️","♦️"][i%5];d.style.left=Math.random()*100+"vw";d.style.animationDelay=Math.random()*.6+"s";document.body.appendChild(d);(function(x){setTimeout(function(){x.remove()},2700)})(d)}}
+function fx(k,n){
+ if(k=="win"){tone(523,0,.12,"triangle");tone(659,.1,.12,"triangle");tone(784,.2,.2,"triangle");pop("+"+n+" ¢","good");if(n>=300)confetti(24)}
+ else if(k=="lose"){tone(196,0,.25,"sawtooth",.07);pop("−"+(-n)+" ¢","bad")}
+ else if(k=="push")tone(440,0,.1);
+ else if(k=="stage"){[523,659,784,1047].forEach(function(f,i){tone(f,i*.12,.25,"triangle")});pop("Stage cleared!","good");confetti(50)}
+}
+function copyInvite(){
+ var u=location.href.split("#")[0]+"#"+code,b=$("cinv");
+ function ok(){b.textContent="Copied!";setTimeout(function(){b.textContent="Copy invite link"},1500)}
+ try{navigator.clipboard.writeText(u).then(ok,function(){$("hostnote").textContent="Invite link: "+u})}catch(e){$("hostnote").textContent="Invite link: "+u}
+}
+
+/* Boss stages */
+var MODS=[{n:"Jammed slots",d:"the slot machine is out of order",slots:1},{n:"Short fuse",d:"the clock is 30% shorter",fuse:1},{n:"Penny pinchers",d:"bets are capped at 100 chips",cap:100},{n:"Crooked house",d:"lost bets cost 10% extra",tax:1}];
+function boss(){var s=room.stage||1;return s%3==0?MODS[(s/3-1)%4]:null}
+function react(e){me.em=e;sync(null,0,me.msg||"playing")}
+/* Mines */
+var mn=null;
+function mnMul(k){var M=mn?mn.M:3,m=.97;for(var i=0;i<k;i++)m*=(25-i)/(25-M-i);return m}
+function drawMN(){
+ var g=$("game");
+ if(!mn){g.innerHTML='<div class="msg">Find gems and dodge the mines. Cash out any time.</div><div class="row" style="justify-content:center"><button class="b" onclick="mnStart()">Start</button></div>';return}
+ var k=mn.rev.length,c="";
+ for(var i=0;i<25;i++){var r=mn.rev.indexOf(i)>=0,m=mn.over&&mn.mines.indexOf(i)>=0;c+='<button class="cell'+(r?' gem':'')+(m?' mine':'')+'" '+(mn.over||r?'disabled':'')+' onclick="mnPick('+i+')">'+(r?"💎":m?"💣":"")+'</button>'}
+ g.innerHTML='<div class="grid5">'+c+'</div><div class="msg">'+mn.m+'</div><div class="row" style="justify-content:center">'+(mn.over?'<button class="b" onclick="mn=null;drawMN()">New game</button>':'<button class="b" '+(k?'':'disabled')+' onclick="mnOut()">Cash out '+Math.floor(mn.b*mnMul(k))+' ¢</button>')+'</div>';
+}
+function mnStart(){
+ if(status()!="play"||!take(bet))return;
+ var M=has("squad")?2:3,s=[];while(s.length<M){var x=Math.floor(Math.random()*25);if(s.indexOf(x)<0)s.push(x)}
+ mn={b:bet,M:M,mines:s,rev:[],over:false,m:"Pick a tile. "+M+" mines are hiding."};drawMN();
+}
+function mnPick(i){
+ if(!mn||mn.over)return;
+ if(mn.mines.indexOf(i)>=0){mn.over=true;mn.m="Boom! You hit a mine.";done("mines",0,mn.b);game();return}
+ mn.rev.push(i);var k=mn.rev.length;
+ if(k>=25-mn.M){mnOut();return}
+ mn.m="Safe! Worth "+Math.floor(mn.b*mnMul(k))+" ¢ ("+mnMul(k).toFixed(2)+"×).";drawMN();
+}
+function mnOut(){var w=Math.floor(mn.b*mnMul(mn.rev.length));mn.over=true;mn.m="Cashed out "+w+" ¢.";done("mines",w,mn.b);game()}
+/* Hi-Lo */
+var hl=null;
+function hlc(r){return r>10?"JQKA".charAt(r-11):r}
+function drawHL(){
+ var g=$("game");
+ if(!hl){g.innerHTML='<div class="msg">Is the next card higher or lower? Ties lose. Cash out any time.</div><div class="row" style="justify-content:center"><button class="b" onclick="hlStart()">Start</button></div>';return}
+ var up=14-hl.r,dn=hl.r-2;
+ g.innerHTML='<div class="row" style="justify-content:center">'+chp([hl.r,hl.s])+'</div><div class="msg">'+hl.m+'</div><div class="row" style="justify-content:center">'+(hl.over?'<button class="b" onclick="hl=null;drawHL()">New game</button>':'<button class="b" '+(up?'':'disabled')+' onclick="hlGo(1)">Higher '+(up?'('+(.97*13/up).toFixed(2)+'×)':'')+'</button><button class="b" '+(dn?'':'disabled')+' onclick="hlGo(0)">Lower '+(dn?'('+(.97*13/dn).toFixed(2)+'×)':'')+'</button>'+(hl.k?'<button class="b g" style="color:#fff" onclick="hlOut()">Cash out '+Math.floor(hl.b*hl.mu)+' ¢</button>':''))+'</div>';
+}
+function hlStart(){if(status()!="play"||!take(bet))return;hl={b:bet,r:2+Math.floor(Math.random()*13),s:Math.floor(Math.random()*4),mu:1,k:0,over:false,m:"Higher or lower?"};drawHL()}
+function hlGo(d){
+ var n=2+Math.floor(Math.random()*13),ways=d?14-hl.r:hl.r-2,win=d?n>hl.r:n<hl.r;
+ hl.r=n;hl.s=Math.floor(Math.random()*4);
+ if(win){hl.mu*=.97*13/ways;hl.k++;hl.m="Correct! Worth "+Math.floor(hl.b*hl.mu)+" ¢.";drawHL()}
+ else{hl.over=true;hl.m="Wrong. Bet lost.";done("hi-lo",0,hl.b);game()}
+}
+function hlOut(){var w=Math.floor(hl.b*hl.mu);hl.over=true;hl.m="Cashed out "+w+" ¢.";done("hi-lo",w,hl.b);game()}
+</script>
+</body>
+</html>
