@@ -23,6 +23,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/configure-pages@v5
+      # draws the Fresh Tracks launcher art from the game itself; the site falls back to generated art if this step fails
+      - name: Render Fresh Tracks art
+        continue-on-error: true
+        timeout-minutes: 15
+        run: |
+          python3 -m http.server 8000 --directory gamebookshelf >/dev/null 2>&1 &
+          npm install --no-save --no-package-lock --silent puppeteer-core@23
+          node .github/keyart.cjs
       - uses: actions/upload-pages-artifact@v3
         with:
           # the website lives in the gamebookshelf folder

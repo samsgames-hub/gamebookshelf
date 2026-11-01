@@ -293,7 +293,7 @@ const sky=new THREE.Mesh(new THREE.SphereGeometry(2800,48,24),new THREE.ShaderMa
 // time-of-day looks: sun elevation/azimuth (deg), colours, light, fog, grading, weather
 const TOD={
  dawn:{name:'Dawn',el:7,az:-125,zen:0x2f4f8f,hor:0xf3b49a,haze:0xe7c6c2,sun:0xffb27a,sunI:2.6,sky:0x8ea6e0,gnd:0xe8d6e6,hemiI:.62,fog:0xe5c9c7,fogD:.0032,cloud:.32,snow:0,exp:.66,sat:1.08,gain:[1.03,.99,.98],lift:[.01,.0,.02],stars:.15},
- day:{name:'Bluebird',el:34,az:148,zen:0x1f5fbf,hor:0xbcd7f2,haze:0xd6e4f2,sun:0xfff6e8,sunI:3.2,sky:0x8fb8ff,gnd:0xe6eef8,hemiI:.6,fog:0xc6dbef,fogD:.0026,cloud:.28,snow:0,exp:.56,sat:1.06,gain:[1,1,1.01],lift:[0,0,.01],stars:0},
+ day:{name:'Bluebird',el:34,az:148,zen:0x1048aa,hor:0xa8c8ec,haze:0xd0e0f0,sun:0xfff6e8,sunI:3.2,sky:0x8fb8ff,gnd:0xe6eef8,hemiI:.6,fog:0xc6dbef,fogD:.0022,cloud:.28,snow:0,exp:.52,sat:1.06,gain:[1,1,1.01],lift:[0,0,.01],stars:0},
  golden:{name:'Golden hour',el:10,az:128,zen:0x2d5a9e,hor:0xffd8b0,haze:0xeadcce,sun:0xffc07a,sunI:3,sky:0x8aa6d8,gnd:0xf0e0d0,hemiI:.6,fog:0xead8c8,fogD:.0021,cloud:.36,snow:0,exp:.62,sat:1.12,gain:[1.04,1,.95],lift:[.01,.005,0],stars:0},
  storm:{name:'Snowstorm',el:30,az:160,zen:0x8a96a6,hor:0xc3ccd6,haze:0xc8d0da,sun:0xdfe6f0,sunI:.9,sky:0xbcc8d8,gnd:0xd8dee6,hemiI:1.25,fog:0xc4ccd6,fogD:.0125,cloud:.95,snow:1,exp:.66,sat:.85,gain:[.98,1,1.02],lift:[.02,.02,.03],stars:0},
  dusk:{name:'Blue hour',el:-3,az:165,zen:0x0e1a3a,hor:0x5b6fa8,haze:0x6d7aa6,sun:0x8aa0ff,sunI:.55,sky:0x4a5f9c,gnd:0x8a96c0,hemiI:.9,fog:0x56648f,fogD:.0034,cloud:.22,snow:0,exp:.95,sat:1,gain:[.96,.99,1.06],lift:[0,.005,.03],stars:.9}};
@@ -340,17 +340,20 @@ function makeTextures(){
 // ================= MOUNTAIN: height field, features, chunk streaming =================
 // The rider descends toward -Z. s = -z is distance down the mountain, u = lateral offset from the run's centre line.
 const TER={seed:1,ph:[],feats:[],featEnd:0,dropPre:[],chunks:new Map(),STEP:1.25,L:50,HALF:150,AHEAD:10,BEHIND:2,queue:[]};
-function terSeed(seed){TER.seed=seed|0;const r=mulberry(seed);TER.ph=[0,1,2,3,4,5,6,7].map(()=>r()*TAU);TER.rnd=mulberry(seed*7+3);TER.feats=[{t:'kick',s:78,u:0,w:5,H:2.1,len:12,deck:5,land:13}];TER.featEnd=95;TER.y0=0;TER.y0=-ybase(0);
+function terSeed(seed){TER.seed=seed|0;const r=mulberry(seed);TER.ph=[0,1,2,3,4,5,6,7].map(()=>r()*TAU);TER.rnd=mulberry(seed*7+3);TER.feats=[{t:'kick',s:78,u:0,w:6.5,H:2.1,len:12,deck:5,land:13}];TER.featEnd=95;TER.y0=0;TER.y0=-ybase(0);
  TER.chunks.forEach(c=>disposeChunk(c));TER.chunks.clear();TER.queue=[];ensureFeatures(700)}
 const cx=s=>60*Math.sin(s/430+TER.ph[0])+26*Math.sin(s/165+TER.ph[1])-60*Math.sin(TER.ph[0])-26*Math.sin(TER.ph[1]);
 const grade=s=>.34+.09*Math.sin(s/280+TER.ph[2])+.05*Math.sin(s/97+TER.ph[3]);
 const ybase=s=>-(.34*s-.09*280*Math.cos(s/280+TER.ph[2])-.05*97*Math.cos(s/97+TER.ph[3]))+TER.y0;
 const halfW=s=>58+18*Math.sin(s/310+TER.ph[4]);
 // features: kickers, rollers, cornice drops, gates
-function ensureFeatures(sMax){const r=TER.rnd;while(TER.featEnd<sMax){let s=TER.featEnd+rr2(r,48,105);const W=halfW(s),roll=r();
-  if(roll<.55){const n=r()<.45?2:1;for(let i=0;i<n;i++){const u=n===1?(r()*2-1)*W*.35:(i?1:-1)*rr2(r,7,W*.45),big=r()<.3;TER.feats.push({t:'kick',s:s+i*rr2(r,3,10),u,w:rr2(r,3.8,5.5),H:big?rr2(r,2.6,3.4):rr2(r,1.4,2.4),len:big?rr2(r,13,16):rr2(r,9,12),deck:big?rr2(r,6,10):rr2(r,2,6),land:big?rr2(r,15,19):rr2(r,10,14)})}}
-  else if(roll<.58&&s>260){TER.feats.push({t:'drop',s,H:rr2(r,2.6,5.2),H2:rr2(r,1.2,2.6)})}
-  else if(roll<.82){const n=2+(r()*3|0);for(let i=0;i<n;i++)TER.feats.push({t:'roll',s:s+i*rr2(r,14,20),u:(r()*2-1)*W*.3,w:W*rr2(r,.5,.9),H:rr2(r,.9,1.6),len:rr2(r,4.5,6.5)})}
+const kicker=(r,s,u,sz)=>({t:'kick',s,u,w:rr2(r,5.2,7.2)+sz*.6,H:[rr2(r,1.3,1.8),rr2(r,2,2.6),rr2(r,2.8,3.6)][sz],len:[rr2(r,8,10),rr2(r,10,12.5),rr2(r,13,16)][sz],deck:[rr2(r,1.5,3.5),rr2(r,3,6),rr2(r,6,10)][sz],land:[rr2(r,9,12),rr2(r,12,15),rr2(r,16,20)][sz]});
+function ensureFeatures(sMax){const r=TER.rnd;while(TER.featEnd<sMax){let s=TER.featEnd+rr2(r,38,80);const W=halfW(s),roll=r();
+  if(roll<.24&&s>150){// a park line: three table tops in a row, small to big
+   const u=(r()*2-1)*W*.2;let ss=s;for(let i=0;i<3;i++){const k=kicker(r,ss,u+(r()-.5)*3,i);TER.feats.push(k);ss+=k.len+k.deck+k.land+rr2(r,14,22)}s=ss-20}
+  else if(roll<.62){const n=r()<.4?2:1;for(let i=0;i<n;i++){const u=n===1?(r()*2-1)*W*.28:(i?1:-1)*rr2(r,9,W*.4),sz=r()<.3?2:r()<.55?1:0;TER.feats.push(kicker(r,s+i*rr2(r,3,10),u,sz))}}
+  else if(roll<.65&&s>260){TER.feats.push({t:'drop',s,H:rr2(r,2.6,5.2),H2:rr2(r,1.2,2.6)})}
+  else if(roll<.86){const n=2+(r()*3|0);for(let i=0;i<n;i++)TER.feats.push({t:'roll',s:s+i*rr2(r,14,20),u:(r()*2-1)*W*.3,w:W*rr2(r,.5,.9),H:rr2(r,1,2.1),len:rr2(r,4.2,6)})}
   if(r()<.55){const sg=s+rr2(r,30,55);TER.feats.push({t:'gate',s:sg,u:(r()*2-1)*halfW(sg)*.5,gap:rr2(r,6,8)})}
   TER.featEnd=s}
  TER.feats.sort((a,b)=>a.s-b.s);TER.drops=TER.feats.filter(f=>f.t==='drop');TER.fbin=new Map();TER.feats.forEach((f,i)=>{if(f.t==='gate')return;const b0=Math.floor((f.s-30)/25),b1=Math.floor((f.s+45)/25);for(let b=b0;b<=b1;b++){if(!TER.fbin.has(b))TER.fbin.set(b,[]);TER.fbin.get(b).push(f)}})}
@@ -376,7 +379,7 @@ function groundN(x,z,out){const e=.6,hx=groundH(x+e,z)-groundH(x-e,z),hz=groundH
 function fieldN(x,s,out,e){e=e||.8;const hx=heightS(x+e,s)-heightS(x-e,s),hz=heightS(x,s-e)-heightS(x,s+e);return out.set(-hx/(2*e),1,-hz/(2*e)).normalize()}
 // --------- materials ---------
 const MAT={};
-function snowMaterial(){const m=new THREE.MeshStandardMaterial({color:0xffffff,vertexColors:true,roughness:.62,metalness:0,normalMap:TX.snowN,normalScale:new THREE.Vector2(.6,.6),envMapIntensity:.35});
+function snowMaterial(){const m=new THREE.MeshStandardMaterial({color:0xffffff,vertexColors:true,roughness:.62,metalness:0,normalMap:TX.snowN,normalScale:new THREE.Vector2(.85,.85),envMapIntensity:.35});
  m.userData.u={sunView:{value:new THREE.Vector3()},sunCol:{value:new THREE.Color()},spark:{value:1.4}};
  m.onBeforeCompile=sh=>{Object.assign(sh.uniforms,m.userData.u);
   sh.vertexShader=sh.vertexShader.replace('#include <common>','#include <common>\nvarying vec3 vWP;').replace('#include <worldpos_vertex>','#include <worldpos_vertex>\nvWP=(modelMatrix*vec4(transformed,1.)).xyz;');
@@ -547,20 +550,39 @@ function updateChunks(s,sync){const kc=Math.floor(s/TER.L),want=[];for(let k=Mat
 function nearProps(x,z,r,cb){const C=PROPS.CELL,i0=Math.floor((x-r)/C),i1=Math.floor((x+r)/C),j0=Math.floor((z-r)/C),j1=Math.floor((z+r)/C);for(let i=i0;i<=i1;i++)for(let j=j0;j<=j1;j++){const a=PROPS.hash.get(i+','+j);if(a)for(const p of a)cb(p)}}
 // --------- far mountains (a ring that travels with the camera) ---------
 let farMts=null;
-function mountainRing(R0,hMin,hMax,N,rows,sd,haze){const P=[],Cc=[],I=[];
- const ridged=(a,f,k)=>{const n=vn2(a*f,k,TER.seed+sd+k);return 1-Math.abs(n*2-1)};
- const prof=[];for(let i=0;i<N;i++){const a=i/N;let h=hMin+(hMax-hMin)*(.35*vn2(a*6,0,TER.seed+sd)+.65*Math.pow(ridged(a,17,1),2.3)*(.4+.6*vn2(a*4,9,TER.seed+sd+5)));h+=(hMax-hMin)*(.18*Math.pow(ridged(a,47,2),2)+.06*ridged(a,130,3));prof.push(h)}
- for(let i=0;i<=N;i++){const a=i/N*TAU,h=prof[i%N],c=Math.cos(a),s=Math.sin(a);
-  for(let k=0;k<rows;k++){const t=k/(rows-1),tt=Math.pow(t,.75),y=lerp(-420,h,tt),rad=R0+lerp(R0*.12,0,tt);P.push(c*rad,y,s*rad);
-   const n=vn2(i/9,k*1.7,TER.seed+sd+40),n2=vn2(i/2.2,k*3.1,TER.seed+sd+41),rock=sstep(.62,.9,n*.7+n2*.45)*sstep(.25,.6,t),snow=1-rock*.75;
-   const v=lerp(.92,.3,rock)*(t<.2?.9:1);Cc.push(v*.97,v*.98,v)}}
- for(let i=0;i<N;i++)for(let k=0;k<rows-1;k++){const a=i*rows+k,b=(i+1)*rows+k;I.push(a,b,a+1,b,b+1,a+1)}
- const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(P,3));g.setAttribute('color',new THREE.Float32BufferAttribute(Cc,3));g.setIndex(I);g.computeVertexNormals();
- const m=new THREE.ShaderMaterial({uniforms:{sunDir:skyU.sunDir,sunCol:skyU.sunCol,haze:skyU.haze,hor:skyU.hor,zen:skyU.zen,hz:{value:haze}},vertexColors:true,fog:false,
-  vertexShader:'varying vec3 vC;varying vec3 vN;varying float vH;void main(){vC=color;vN=normalize(mat3(modelMatrix)*normal);vH=position.y;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
-  fragmentShader:'uniform vec3 sunDir;uniform vec3 sunCol;uniform vec3 haze;uniform vec3 hor;uniform vec3 zen;uniform float hz;varying vec3 vC;varying vec3 vN;varying float vH;void main(){vec3 n=normalize(vN);float l=max(dot(n,sunDir),0.);vec3 amb=mix(hor,zen,.55);vec3 c=vC*(sunCol*l*.95+amb*.55);float f=clamp(hz+.25-vH/2600.,0.,1.);c=mix(c,mix(hor,haze,.5),f);c=mix(c,hor,smoothstep(-60.,-380.,vH));gl_FragColor=linearToOutputTexel(vec4(c,1.));}'});
+// A real 3D range: a polar height field (ridged multifractal) around the camera, lit in HDR like the near terrain.
+// Built at "virtual" scale and shrunk toward the eye so it fits inside the camera's far plane without changing how it looks.
+function farRange(sd){const NA=960,NR=104,R0=1500,R1=8200,K=.36,EY=140,P=new Float32Array((NA+1)*NR*3),H=new Float32Array((NA+1)*NR),V=new Float32Array((NA+1)*NR),Cc=new Float32Array((NA+1)*NR*3),I=[];
+ const seed=TER.seed+sd;
+ const rmf=(x,z)=>{let sum=0,amp=1,f=1,w=1,nm=0;for(let o=0;o<7;o++){let n=1-Math.abs(vn2(x*f+o*7.3,z*f-o*3.1,seed+o*17)*2-1);n*=n;n*=w;w=clamp(n*1.7,0,1);sum+=n*amp;nm+=amp;amp*=.52;f*=2.03}return sum/nm};
+ for(let i=0;i<=NA;i++){const a=i/NA*TAU,ca=Math.cos(a),sa=Math.sin(a);
+  for(let k=0;k<NR;k++){const t=k/(NR-1),r=R0*Math.pow(R1/R0,t),x=ca*r,z=sa*r,id=i*NR+k;
+   const wx=x+(vn2(x/1900,z/1900,seed+5)-.5)*900,wz=z+(vn2(x/1900,z/1900,seed+6)-.5)*900,big=vn2(x/6500,z/6500,seed+3),m=rmf(wx/2400,wz/2400),env=sstep(0,.3,t)*(.55+.45*sstep(.25,.7,t));
+   let h=-560+env*(240+Math.pow(m,1.3)*1900*(.5+.7*big))+(vn2(x/420,z/420,seed+9)-.5)*120*env;
+   H[id]=h;V[id]=m;P[id*3]=x*K;P[id*3+1]=(h-EY)*K;P[id*3+2]=z*K}}
+ for(let i=0;i<NA;i++)for(let k=0;k<NR-1;k++){const a=i*NR+k,b=(i+1)*NR+k;I.push(a,b,a+1,b,b+1,a+1)}
+ const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(P,3));g.setIndex(I);g.computeVertexNormals();
+ const N=g.attributes.normal.array;
+ for(let id=0;id<H.length;id++){const ny=N[id*3+1],h=H[id],x=P[id*3]/K,z=P[id*3+2]/K,n1=vn2(x/170,z/170,seed+21);
+  // base ground (rock, forest on the low flanks); snow is decided per pixel in the shader so its edges stay crisp
+  const forest=(1-sstep(-220,40,h+(n1-.5)*160))*sstep(.55,.75,ny);
+  Cc[id*3]=forest;Cc[id*3+1]=n1;Cc[id*3+2]=0}
+ g.setAttribute('color',new THREE.BufferAttribute(Cc,3));
+ const sky=new THREE.Color(T.sky).multiplyScalar(T.hemiI),gnd=new THREE.Color(T.gnd).multiplyScalar(T.hemiI),hz=new THREE.Color(T.fog).lerp(new THREE.Color(T.hor),.55);
+ const m=new THREE.ShaderMaterial({uniforms:{sunDir:skyU.sunDir,sunCol:skyU.sunCol,sunI:{value:T.sunI},skyC:{value:sky},gndC:{value:gnd},hzC:{value:hz},fd:{value:T.fogD*.038/K},inv:{value:1/K}},vertexColors:true,fog:false,
+  vertexShader:'varying vec3 vC;varying vec3 vN;varying vec3 vP;void main(){vC=color;vN=normal;vP=position;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
+  fragmentShader:'uniform vec3 sunDir;uniform vec3 sunCol;uniform float sunI;uniform vec3 skyC;uniform vec3 gndC;uniform vec3 hzC;uniform float fd;uniform float inv;varying vec3 vC;varying vec3 vN;varying vec3 vP;'+
+  'float h2(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}float vn(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(h2(i),h2(i+vec2(1,0)),f.x),mix(h2(i+vec2(0,1)),h2(i+vec2(1,1)),f.x),f.y);}'+
+  'float fb(vec2 p){float s=0.,a=.5;for(int i=0;i<4;i++){s+=a*vn(p);p=p*2.07+vec2(3.1,1.7);a*=.5;}return s;}'+
+  'void main(){vec3 n=normalize(vN);vec3 w=vP*inv;w.y+=140.;float l=max(dot(n,sunDir),0.);'+
+  'float nn=fb(w.xz/260.),n2=fb(w.xz/48.+w.y/90.),st=vn(vec2(w.y/14.,w.x/700.+w.z/700.));'+
+  'float sl=n.y+(nn-.5)*.42+(n2-.5)*.22+smoothstep(200.,1600.,w.y)*.08;float snow=smoothstep(.6,.66,sl);'+
+  'vec3 rock=vec3(1.07,1.02,.96)*(.07+.06*n2+.05*st);vec3 alb=mix(rock,vec3(.055,.08,.065),vC.r*(1.-snow*.7));alb=mix(alb,vec3(.84,.86,.9)*(.95+.08*nn),snow);'+
+  'vec3 amb=mix(gndC,skyC,n.y*.5+.5)*.8;vec3 c=alb*(sunCol*sunI*l+amb);'+
+  'float d=length(vP);vec3 v=vP/d;float f=1.-exp(-pow(d*fd,1.2));float sv=max(dot(v,sunDir),0.);vec3 hz=hzC*(1.+.9*pow(sv,6.))+sunCol*.15*pow(sv,24.);'+
+  'c=mix(c,hz,clamp(f,0.,1.));c=mix(c,hzC,smoothstep(-260.,-560.,w.y));gl_FragColor=linearToOutputTexel(vec4(c,1.));}'});
  const mesh=new THREE.Mesh(g,m);mesh.frustumCulled=false;mesh.renderOrder=-9;return mesh}
-function buildFarMountains(){farMts=new THREE.Group();farMts.add(mountainRing(2700,260,820,720,7,31,.42));farMts.add(mountainRing(1650,60,300,480,5,77,.3));scene.add(farMts)}
+function buildFarMountains(){farMts=new THREE.Group();farMts.add(farRange(31));scene.add(farMts)}
 
 // ================= PARTICLES, TRACKS, WEATHER =================
 class PSys{constructor(n,map,blend,depthTest){this.n=n;this.p=new Float32Array(n*3);this.v=new Float32Array(n*3);this.life=new Float32Array(n);this.max=new Float32Array(n);this.s0=new Float32Array(n);this.s1=new Float32Array(n);this.c=new Float32Array(n*4);this.drag=new Float32Array(n);this.grav=new Float32Array(n);this.i=0;
@@ -657,7 +679,7 @@ const _t=new THREE.Vector3(),_hq=new THREE.Quaternion(),_e1=new THREE.Euler(),_q
 const POSE={style:1,crouch:0,lean:0,twist:0,look:.95,armL:0,armR:0,grab:0,grabType:0,tuck:0,flail:0,wob:0,brake:0,arms:0};
 function poseRider(dt,t){if(!RD.ready)return;const B=RD.bones,P=POSE;
  for(let i=0;i<B.length;i++){B[i].position.copy(RD.rest[i]);B[i].quaternion.identity()}
- const c=P.crouch,hipDrop=.015+c*.24+P.tuck*.12+P.grab*.3;
+ const c=P.crouch,hipDrop=c*.17+P.tuck*.1+P.grab*.5;
  B[0].position.y-=hipDrop;B[0].position.z+=P.lean*.08-c*.02;B[0].rotation.set(P.lean*.12,P.twist*.25,0);
  // legs: feet stay planted on the bindings
  _hq.copy(B[0].quaternion).invert();
@@ -666,7 +688,7 @@ function poseRider(dt,t){if(!RD.ready)return;const B=RD.bones,P=POSE;
   const hpv=hp.clone(),knv=kn.clone(),anv=an.clone();ik2(hpv,knv,anv,tgt,L.pole,B[L.b[0]],B[L.b[1]]);
   _q3.copy(B[0].quaternion).multiply(B[L.b[0]].quaternion).multiply(B[L.b[1]].quaternion).invert();B[L.b[2]].quaternion.copy(_q3)}
  // torso: loose and a little hunched, shoulders opened toward the nose, head watching the line
- const sw=Math.abs(P.style),fw=P.lean*.35+c*.25+P.tuck*.45+.08*sw+P.grab*.55,br=Math.sin(t*1.6)*.015;
+ const sw=Math.abs(P.style),fw=P.lean*.3+c*.2+P.tuck*.42+.04*sw+P.grab*.66,br=Math.sin(t*1.6)*.015;
  B[0].rotation.y+=.14*sw;
  B[1].rotation.set(fw*.5+br,P.twist*.3+.08*sw,P.wob*.04);B[2].rotation.set(fw*.5,P.twist*.45+.26*sw,-P.wob*.06+.04*sw);
  B[3].rotation.set(-fw*.35+.05,P.look*.3,0);B[4].rotation.set(-fw*.3+.14-P.tuck*.1,P.look*.55,-.06*sw);
@@ -683,7 +705,9 @@ function poseRider(dt,t){if(!RD.ready)return;const B=RD.bones,P=POSE;
   const tw=target.clone();RD.body.localToWorld(tw);const tl=chest.worldToLocal(tw);
   const sh=_a.copy(A.sh).sub(new THREE.Vector3(...RD.J.chest)),el=_b.copy(A.el).sub(new THREE.Vector3(...RD.J.chest)),wr=_p.copy(A.wr).sub(new THREE.Vector3(...RD.J.chest));
   const s0=sh.clone(),e0=el.clone(),w0=wr.clone();const qs=B[A.b[0]].quaternion.clone(),qe=B[A.b[1]].quaternion.clone();
-  ik2(s0,e0,w0,tl,A.pole,B[A.b[0]],B[A.b[1]]);B[A.b[0]].quaternion.slerp(qs,1-g);B[A.b[1]].quaternion.slerp(qe,1-g)}}
+  ik2(s0,e0,w0,tl,A.pole,B[A.b[0]],B[A.b[1]]);B[A.b[0]].quaternion.slerp(qs,1-g);B[A.b[1]].quaternion.slerp(qe,1-g)}
+ // a grab pulls the board up to the hand rather than dropping the body down to the board
+ RD.body.position.y+=P.grab*.38}
 // ================= PHYSICS =================
 const PH={pos:new THREE.Vector3(),vel:new THREE.Vector3(),n:new THREE.Vector3(0,1,0),psi:0,ground:true,air:0,spin:0,flip:0,spinV:0,flipV:0,charge:0,edge:0,steer:0,crash:0,crashAx:new THREE.Vector3(),crashRot:new THREE.Quaternion(),
  boost:0,boosting:false,grabT:0,grabType:0,takeoffPsi:0,maxH:0,takeoffY:0,lastLand:0,top:0,airMax:0,switch:false,brake:0,skid:0,tuck:0,impact:0,lean:0,yawVis:0,wob:0};
@@ -937,7 +961,7 @@ function updateRiderVisual(dt,t){const air=!PH.ground;
  // pose targets
  VIS.impact=Math.max(VIS.impact-dt*2.5,0);if(PH.impact>0){VIS.impact=Math.max(VIS.impact,PH.impact);PH.impact=0}
  const P=POSE,sp=PH.vel.length();
- P.crouch=damp(P.crouch,clamp(PH.charge*.85+VIS.impact*.7+(air?.22:0)+(air&&PH.grabT>0?.55:0)+PH.brake*.2+.03+Math.abs(PH.steer)*.1+Math.min(sp,25)*.002,0,1),12,dt);
+ P.crouch=damp(P.crouch,clamp(PH.charge*.5+VIS.impact*.55+(air?.06:0)+(air&&PH.grabT>0?.5:0)+PH.brake*.15+Math.abs(PH.steer)*.05,0,1),12,dt);
  P.tuck=damp(P.tuck,PH.tuck*(air?0:1),6,dt);P.lean=damp(P.lean,-PH.brake*.8+(air?.15:0),6,dt);P.twist=damp(P.twist,(PH.switch?-1:1)*PH.steer*.5,6,dt);
  P.look=damp(P.look,PH.switch?-1.05:.95,5,dt);P.style=damp(P.style,PH.switch?-1:1,5,dt);P.arms=damp(P.arms,1-P.tuck,6,dt);
  const grabbing=air&&PH.grabT>0;P.grab=damp(P.grab,grabbing?1:0,grabbing?14:8,dt);if(grabbing)P.grabType=PH.grabType;
@@ -978,7 +1002,7 @@ function step(dt,t,norender){let gap=999;
  // world
  const s=-PH.pos.z;updateChunks(s,false);
  sky.position.copy(cam.position);skyU.camPos.value.copy(cam.position);skyU.time.value=t;
- if(farMts)farMts.position.set(cam.position.x,cam.position.y-140,cam.position.z);
+ if(farMts)farMts.position.copy(cam.position);
  sun.position.copy(PH.pos).addScaledVector(sunVec,140);sun.target.position.copy(PH.pos);
  if(MAT.snow){const u=MAT.snow.userData.u;u.sunView.value.copy(sunVec).transformDirection(cam.matrixWorldInverse);u.sunCol.value.copy(sun.color).multiplyScalar(sun.intensity)}
  if(MAT.tree)MAT.tree.userData.u.time.value=t;if(MAT.treeCard)MAT.treeCard.userData.u.time.value=t;
