@@ -133,9 +133,10 @@ details.panel li{font-size:14px;margin:4px 0}
  <div class="note">Everyone starts with 1,000 play chips. Clear each stage by getting the team’s combined chips to the goal before the clock ends. Goals grow every stage. Earn gold for clearing stages and spend it on power-ups. Play money only, no real gambling.</div>
 </div>
 </main>
+<script src="mp.js"></script>
 <script>
 var $=function(i){return document.getElementById(i)};
-var allin=false,hold=0,db=null,uid="local",canW=true,code="",me={name:"",bank:1000,gold:5,pu:[],ll:0,st:0,rs:0,pr:0},shownRound=0,room={},PL={},tab="bj",bet=50,bj=null,rb=null,sp=false,local=false,unsubs=[],q=Promise.resolve(),lastLock="",wonSent=false;
+var netReady=false,allin=false,hold=0,db=null,uid="local",canW=true,code="",me={name:"",bank:1000,gold:5,pu:[],ll:0,st:0,rs:0,pr:0},shownRound=0,room={},PL={},tab="bj",bet=50,bj=null,rb=null,sp=false,local=false,unsubs=[],q=Promise.resolve(),lastLock="",wonSent=false;
 function err(m){$("err").textContent=m||""}
 function nameVal(){var v=$("name").value.trim()||"Player";try{localStorage.setItem("gwf-name",v)}catch(e){}return v}
 (async function(){
@@ -144,26 +145,35 @@ function nameVal(){var v=$("name").value.trim()||"Player";try{localStorage.setIt
    db=await claude.use("db");var u=await claude.use("user");
    if(u){uid=String(await u.id());try{if(await u.can("data.write")===false)canW=false}catch(e){}}
   }
+  else if(window.GWFNet){
+   $("dbnote").textContent="Connecting to the online room server\u2026";
+   await GWFNet.open();db=GWFNet;uid=GWFNet.uid();
+   GWFNet.onstate=function(s){pop(s=="online"?"Back online":"Connection lost, reconnecting\u2026","")};
+   $("dbnote").textContent="Online rooms are on. Anyone with your 4-letter code can join, so pick a name you\u2019re happy to share.";
+  }
  }catch(e){db=null}
- if(!db)$("dbnote").textContent=typeof claude=="undefined"?"Shared rooms aren\u2019t available on this site yet. Choose Practice solo to play.":"Shared rooms need you signed in to claude.ai with access the page owner granted (Contributor or Editor). Until then only solo practice works.";
+ netReady=true;
+ if(!db)$("dbnote").textContent=typeof claude=="undefined"?"Couldn\u2019t reach the online room server. Check your internet connection and reload the page, or choose Practice solo.":"Shared rooms need you signed in to claude.ai with access the page owner granted (Contributor or Editor). Until then only solo practice works.";
  else if(!canW)$("dbnote").textContent="You have view-only access, so you can watch but not play in shared rooms. Ask the owner for edit access.";
  try{$("name").value=localStorage.getItem("gwf-name")||""}catch(e){}
  try{var hh=location.hash.replace("#","").toUpperCase();if(hh.length==4)$("jc").value=hh}catch(e){}
 })();
 function genCode(){var s="ABCDEFGHJKLMNPQRSTUVWXYZ",c="";for(var i=0;i<4;i++)c+=s.charAt(Math.floor(Math.random()*s.length));return c}
+async function waitNet(){for(var i=0;i<40&&!netReady;i++)await new Promise(function(r){setTimeout(r,250)})}
 async function create(){
- err();if(!db||!canW){err("Shared rooms need edit access to this page.");return}
+ err();await waitNet();if(!db||!canW){err(typeof claude=="undefined"?"The online room server isn\u2019t reachable right now. Try Practice solo, or reload in a moment.":"Shared rooms need edit access to this page.");return}
  var c=genCode();
+ if(!window.claude)for(var tries=0;tries<6;tries++){var ex=await db.doc("rooms/"+c).get();if(!ex.exists||Date.now()-((ex.data()||{}).created||0)>2*864e5)break;c=genCode()}
  try{await db.doc("rooms/"+c).set({mult:+$("goal").value,stage:1,base:0,mins:+$("mins").value,deadline:0,won:false,wt:0,created:Date.now()});await enter(c)}
  catch(e){err("Couldn’t create the room ("+(e.code||"error")+").")}
 }
 async function join(){
- err();if(!db||!canW){err("Shared rooms need edit access to this page.");return}
+ err();await waitNet();if(!db||!canW){err(typeof claude=="undefined"?"The online room server isn\u2019t reachable right now. Try Practice solo, or reload in a moment.":"Shared rooms need edit access to this page.");return}
  var c=$("jc").value.trim().toUpperCase();if(c.length!=4){err("Enter the 4-letter code.");return}
  try{await enter(c)}catch(e){err("Couldn’t join ("+(e.code||"error")+").")}
 }
 async function enter(c){
- var rs=await db.doc("rooms/"+c).get();
+ var rs=db.find?await db.find("rooms/"+c):await db.doc("rooms/"+c).get();
  if(!rs.exists){err("No room with that code.");return}
  code=c;room=rs.data();
  var pd=db.doc("rooms/"+c+"/players/"+uid),ps=await pd.get();

@@ -149,6 +149,14 @@ const SITE={
 //  2. Optional: add two pictures to assets/ — a wide banner (about 1920x820) and a 16:9 tile (about 800x450).
 //  3. Copy one of the entries below, paste it at the end of the list and change the details.
 const GAMES=[
+{id:'fresh-tracks',title:'Fresh Tracks',path:'games/fresh-tracks/index.html',
+ hero:'assets/fresh-tracks-hero.webp',tile:'assets/fresh-tracks-tile.webp',accent:'#8fd3ff',
+ tags:['Snowboarding','Endless','3D'],
+ pitch:'Carve down an endless mountain, land big spins and flips, and stay ahead of the avalanche coming down behind you.',
+ blurb:'Every run is a new mountain with its own weather and light, from blue-sky mornings to snowstorms. Weave through pine forests, launch off kickers and cornice drops, chain tricks into combos, and spend your credits on new boards and outfits.',
+ facts:{Players:'1',Length:'2 to 5 minutes a run',Saves:'Gear, credits and records stay in your browser'},
+ controls:[['A D','carve, spin in the air'],['W','tuck, front flip'],['S','brake, back flip'],['Space','hold and let go to jump'],['Shift','boost, grab in the air'],['Esc','pause']],
+ note:'Plays with a keyboard, a controller or touch.'},
 {id:'neon-rift',title:'Neon Rift',path:'games/neon-rift/index.html',
  hero:'assets/neon-rift-hero.jpg',tile:'assets/neon-rift-tile.jpg',accent:'#4cc9ff',
  tags:['First-person shooter','Roguelite','3D'],
@@ -159,12 +167,12 @@ const GAMES=[
  note:'Best on a computer with a mouse.'},
 {id:'gamble-with-friends',title:'Gamble With Friends',path:'games/gamble-with-friends/index.html',
  hero:'assets/gamble-with-friends-hero.jpg',tile:'assets/gamble-with-friends-tile.jpg',accent:'#ecc766',
- tags:['Casino','Strategy','Play chips'],
- pitch:'Hit the casino’s chip goal before the clock runs out, then spend your winnings on power-ups for the next, harder stage.',
+ tags:['Casino','Online multiplayer','Play chips'],
+ pitch:'Team up with friends online, hit the casino’s chip goal before the clock runs out, then spend your winnings on power-ups for the next stage.',
  blurb:'Pick from ten tables, including blackjack, roulette, Plinko and Hold’em. Clear each stage’s chip goal before time runs out and spend your gold in the shop on power-ups like the Totem, which undoes your last loss. Play chips only, no real money.',
- facts:{Players:'1 on this site',Length:'About 10 minutes a stage'},
+ facts:{Players:'Solo, or a room of friends online',Length:'About 10 minutes a stage'},
  controls:[['Mouse','place bets and play']],
- note:'Shared rooms with friends work in the claude.ai version. On this site you play solo.'}
+ note:'Create a room and send your friends the invite link, or share the 4-letter code. Rooms run on a free public server, so anyone with the code can join.'}
 ];
 /* =========================================================== */
 const $=id=>document.getElementById(id),esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -213,6 +221,7 @@ document.addEventListener('keydown',e=>{if(!document.body.classList.contains('op
  if(e.key==='Escape')closeDetails();
  else if(e.key==='Tab'){const f=[...drawer.querySelectorAll('a,button')];if(!f.length)return;const a=f[0],z=f[f.length-1];
   if(e.shiftKey&&document.activeElement===a){e.preventDefault();z.focus()}else if(!e.shiftKey&&document.activeElement===z){e.preventDefault();a.focus()}}});
+document.querySelectorAll('#hero img, #grid img').forEach(img=>{img.addEventListener('error',()=>{const g=GAMES.find(x=>img.getAttribute('src')===x.hero||img.getAttribute('src')===x.tile);if(g&&img.parentNode)img.outerHTML=genArt(g)})});
 show(0);
 </script>
 </body>
