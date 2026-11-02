@@ -170,7 +170,7 @@ const sky=new THREE.Mesh(new THREE.SphereGeometry(2800,48,24),new THREE.ShaderMa
 // time-of-day looks: sun elevation/azimuth (deg), colours, light, fog, grading, weather
 const TOD={
  day:{name:'Midday',el:46,az:150,zen:0x0f45a6,hor:0xa6c6ea,haze:0xcfdeef,sun:0xfff4e4,sunI:3.3,sky:0x93b6f0,gnd:0x7d8a5c,hemiI:.62,fog:0xb9cde6,fogD:.00034,cloud:.3,snow:0,exp:.56,sat:1.08,gain:[1,1,1.01],lift:[0,0,.01],stars:0,head:0},
- golden:{name:'Golden hour',el:9,az:118,zen:0x2a5596,hor:0xffcf9e,haze:0xe9d2bb,sun:0xffb86b,sunI:3.1,sky:0x8aa3d4,gnd:0x8a7a52,hemiI:.58,fog:0xe2c9ae,fogD:.0004,cloud:.34,snow:0,exp:.64,sat:1.13,gain:[1.05,1,.94],lift:[.012,.004,0],stars:0,head:0},
+ golden:{name:'Golden hour',el:9,az:118,zen:0x2a5596,hor:0xffcf9e,haze:0xe9d2bb,sun:0xffb86b,sunI:3.1,sky:0x8aa3d4,gnd:0x8a7a52,hemiI:.58,fog:0xd9c6b0,fogD:.0003,cloud:.34,snow:0,exp:.64,sat:1.13,gain:[1.05,1,.94],lift:[.012,.004,0],stars:0,head:0},
  overcast:{name:'Snow cloud',el:28,az:160,zen:0x8792a3,hor:0xc5ced8,haze:0xccd4dd,sun:0xe2e8f0,sunI:1.05,sky:0xc0cbda,gnd:0xb8c0cc,hemiI:1.25,fog:0xc4ccd6,fogD:.0011,cloud:.92,snow:.35,exp:.66,sat:.9,gain:[.98,1,1.02],lift:[.02,.02,.03],stars:0,head:.4},
  dusk:{name:'Blue hour',el:-2,az:165,zen:0x0f1c3e,hor:0x5f72a8,haze:0x6b78a2,sun:0x95a8ff,sunI:.6,sky:0x51659e,gnd:0x3a4258,hemiI:.85,fog:0x56638c,fogD:.0005,cloud:.22,snow:0,exp:1.05,sat:1.02,gain:[.96,.99,1.06],lift:[0,.005,.03],stars:.8,head:1},
  night:{name:'Night',el:38,az:-40,zen:0x02050d,hor:0x0d1626,haze:0x111a2b,sun:0x9fb4ff,sunI:.32,sky:0x22304f,gnd:0x0d1018,hemiI:.55,fog:0x0b111c,fogD:.0006,cloud:.18,snow:0,exp:1.5,sat:.95,gain:[.95,.99,1.08],lift:[0,.004,.018],stars:1,head:1}};
@@ -422,12 +422,16 @@ function buildRoad(){const N=TRK.N,W=TRK.W;const us=[-W,-W*.5,-W*.2,0,W*.2,W*.5,
 function buildCurbs(){const N=TRK.N,W=TRK.W,segs=[];let i0=-1;
  for(let i=0;i<=N;i++){const k=Math.abs(TRK.lineK[i%N]);if(k>1/95&&i<N){if(i0<0)i0=i}else if(i0>=0){if(i-i0>8)segs.push([i0,i-1]);i0=-1}}
  const P=[],Cc=[],I=[];let vi=0;const prof=[[-.3,0],[-.05,.045],[.35,.06],[.75,.035],[.95,-.02]];TRK.curbs=new Uint8Array(N);
- const strip=(a,b,side)=>{for(let ii=a;ii<=b;ii++){const i=wrapI(ii);TRK.curbs[i]|=side>0?1:2;const L={y0:TRK.py[i],bank:TRK.bank[i]};const red=Math.floor(ii*TRK.DS/1.5)%2;
-  for(const [du,dy] of prof){const u=side*(W+du);P.push(TRK.px[i]+TRK.rx[i]*u,surfY(L,side*Math.min(W,W+du))+dy+.01,TRK.pz[i]+TRK.rz[i]*u);Cc.push(...(red?[.62,.04,.04]:[.85,.85,.83]))}}
+ const strip=(a,b,side)=>{for(let ii=a;ii<=b;ii++){const i=wrapI(ii);TRK.curbs[i]|=side>0?1:2;const L={y0:TRK.py[i],bank:TRK.bank[i]};
+  for(const [du,dy] of prof){const u=side*(W+du);P.push(TRK.px[i]+TRK.rx[i]*u,surfY(L,side*Math.min(W,W+du))+dy+.01,TRK.pz[i]+TRK.rz[i]*u);Cc.push(ii*TRK.DS)}}
   const n=b-a+1,C=prof.length;for(let r=0;r<n-1;r++)for(let c=0;c<C-1;c++){const p=vi+r*C+c,q=p+C;if(side>0)I.push(p,p+1,q,p+1,q+1,q);else I.push(p,q,p+1,p+1,q,q+1)}vi+=n*C};
  for(const [a,b] of segs){const mid=(a+b)>>1,sg=Math.sign(TRK.lineK[mid])||1,len=b-a;strip(a-6,b+6,sg);strip(mid+len*.25|0,b+30,-sg)}
- if(!P.length)return;const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(P,3));g.setAttribute('color',new THREE.Float32BufferAttribute(Cc,3));g.setIndex(I);g.computeVertexNormals();
- const m=new THREE.Mesh(g,new THREE.MeshStandardMaterial({vertexColors:true,roughness:.6,envMapIntensity:.5,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-2}));m.receiveShadow=true;m.castShadow=false;m.frustumCulled=false;addObj(m)}
+ if(!P.length)return;const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(P,3));g.setAttribute('cs',new THREE.Float32BufferAttribute(Cc,1));g.setIndex(I);g.computeVertexNormals();
+ // red and white blocks drawn per pixel, so the stripe edges stay sharp
+ const cm=new THREE.MeshStandardMaterial({color:0xffffff,roughness:.6,envMapIntensity:.5,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-2});
+ cm.onBeforeCompile=sh=>{sh.vertexShader=sh.vertexShader.replace('#include <common>','#include <common>\nattribute float cs;varying float vCs;').replace('#include <begin_vertex>','#include <begin_vertex>\nvCs=cs;');
+  sh.fragmentShader=sh.fragmentShader.replace('#include <common>','#include <common>\nvarying float vCs;').replace('#include <color_fragment>','#include <color_fragment>\ndiffuseColor.rgb*=mix(vec3(.85,.85,.83),vec3(.62,.04,.04),step(1.,mod(vCs/1.5,2.)));')};cm.customProgramCacheKey=()=>'curb';
+ const m=new THREE.Mesh(g,cm);m.receiveShadow=true;m.castShadow=false;m.frustumCulled=false;addObj(m)}
 // ---------- guardrails ----------
 function buildRails(){const N=TRK.N,W=TRK.W,R=W+TRK.RAIL,step=2;
  const prof=[[0,.46],[.07,.52],[.03,.6],[.07,.68],[0,.76]];const P=[],I=[];let vi=0;
@@ -720,12 +724,12 @@ function wheelGeos(R,w,spokes){const key=R.toFixed(3)+'_'+w.toFixed(3)+'_'+spoke
  const cal=new THREE.BoxGeometry(.13,.2,.075);cal.translate(rim*.6,rim*.22,w*.08);
  return WHEEL[key]={tyre,rim:rimG,disc,cal}}
 const WMAT={tyre:null,rimS:null,rimD:null,rimG:null,disc:null,cal:null};
-function wheelMats(){if(WMAT.tyre)return WMAT;WMAT.tyre=new THREE.MeshStandardMaterial({color:0x161616,roughness:.88,metalness:0,envMapIntensity:.35});
+function wheelMats(){if(WMAT.tyre)return WMAT;WMAT.tyre=new THREE.MeshStandardMaterial({color:0x060606,roughness:.86,metalness:0,envMapIntensity:.35});
  WMAT.rimS=new THREE.MeshStandardMaterial({color:0xb4b7bc,roughness:.28,metalness:1,envMapIntensity:.9,side:THREE.DoubleSide});WMAT.rimD=new THREE.MeshStandardMaterial({color:0x26272a,roughness:.32,metalness:.85,envMapIntensity:1.1,side:THREE.DoubleSide});
  WMAT.rimG=new THREE.MeshStandardMaterial({color:0xb08a3a,roughness:.3,metalness:.9,envMapIntensity:1.1,side:THREE.DoubleSide});
  WMAT.disc=new THREE.MeshStandardMaterial({color:0x55565a,roughness:.42,metalness:.85});WMAT.cal=new THREE.MeshStandardMaterial({color:0xb81414,roughness:.4,metalness:.2});return WMAT}
 // ---------- whole car ----------
-const TRIM=new THREE.MeshStandardMaterial({color:0x0e0e10,roughness:.5,metalness:.25,envMapIntensity:.6});
+const TRIM=new THREE.MeshStandardMaterial({color:0x050506,roughness:.5,metalness:.25,envMapIntensity:.6});
 const CHROME=new THREE.MeshStandardMaterial({color:0xd8dadd,roughness:.12,metalness:1,envMapIntensity:1.3});
 let SHADOWTEX=null;
 function buildCarMesh(def,paintIdx,num){const cs=carShape(def),B=cs.B,L=B.L,root=new THREE.Group(),body=new THREE.Group();root.add(body);
@@ -1063,7 +1067,9 @@ function renderSetup(){$('setupTitle').textContent=setupMode==='race'?'Race':'Ti
  seg('optLaps',[[2,'2'],[3,'3'],[5,'5']],save.set.laps,v=>save.set.laps=v);seg('optDiff',DIFF.map((d,i)=>[i,d.n]),save.set.diff,v=>save.set.diff=v);
  $('setupCar').textContent=carDef().name+' in '+PAINTS[save.paint[carDef().id]].n}
 click('bGo',()=>{launch(TRACKS[selTrack],setupMode)});click('setupGarage',()=>{garageSel=Math.max(0,CARS.findIndex(c=>c.id===save.car));renderGarage();show('garage');garageView();backTo='setup'});
-function launch(t,mode){show('loading');$('loadName').textContent=t.name;requestAnimationFrame(()=>requestAnimationFrame(()=>{try{startRace(t,mode);hideAll();G.mode='race';Music.set(.2)}catch(e){console.error(e);$('err').className='';$('err').textContent='Could not build the track: '+e.message}}))}
+function launch(t,mode){show('loading');$('loadName').textContent=t.name;requestAnimationFrame(()=>requestAnimationFrame(()=>{try{startRace(t,mode);
+  // draw one frame behind the loading card so every shader is compiled before the countdown
+  camSnap();camApply(0);renderFrame();requestAnimationFrame(()=>{hideAll();G.mode='race'});Music.set(.2)}catch(e){console.error(e);$('err').className='';$('err').textContent='Could not build the track: '+e.message}}))}
 // ---- garage ----
 function renderGarage(){const L=$('carList');L.innerHTML='';CARS.forEach((c,i)=>{const b=document.createElement('button'),lock=!unlocked(c.id);b.className='ccard'+(i===garageSel?' sel':'')+(lock?' locked':'');
   b.innerHTML='<span class="cname"></span><span class="cdrive"></span>';b.querySelector('.cname').textContent=c.name;b.querySelector('.cdrive').textContent=lock?'Locked':c.drive+(c.id===save.car?', driving':'');

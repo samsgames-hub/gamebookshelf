@@ -149,6 +149,14 @@ const SITE={
 //  2. Optional: add two pictures to assets/ — a wide banner (about 1920x820) and a 16:9 tile (about 800x450).
 //  3. Copy one of the entries below, paste it at the end of the list and change the details.
 const GAMES=[
+{id:'switchback',title:'Switchback',path:'games/switchback/index.html',
+ hero:'assets/switchback-hero.webp',tile:'assets/switchback-tile.webp',accent:'#ffd21f',
+ tags:['Racing','Mountain roads','3D'],
+ pitch:'Race five rivals over three laps of a mountain pass, brake late into the hairpins and use your nitro to take the lead.',
+ blurb:'Four circuits wind through alpine meadows, a lake at golden hour, a snowy ridge and a pass at night. Drift through the hairpins, tuck into a rival’s slipstream to refill your nitro, chase your own ghost in time trial and win races to unlock two faster cars.',
+ facts:{Players:'1',Length:'About 4 minutes a race',Saves:'Records, cars and paint stay in your browser'},
+ controls:[['W S','accelerate, brake'],['A D','steer'],['Space','handbrake drift'],['Shift','nitro'],['C','change camera'],['R','back on the road'],['Esc','pause']],
+ note:'Plays with a keyboard, a controller or touch.'},
 {id:'fresh-tracks',title:'Fresh Tracks',path:'games/fresh-tracks/index.html',
  hero:'assets/fresh-tracks-hero.webp',tile:'assets/fresh-tracks-tile.webp',accent:'#8fd3ff',
  tags:['Snowboarding','Endless','3D'],
@@ -178,15 +186,16 @@ const GAMES=[
 const $=id=>document.getElementById(id),esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const playIcon='<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 1.5l11 6.5-11 6.5z" fill="currentColor"/></svg>';
 const genArt=g=>{const h=[...g.id].reduce((a,c)=>a+c.charCodeAt(0),0)%360;return`<div class="gen" style="background:linear-gradient(135deg,hsl(${h} 55% 28%),hsl(${(h+50)%360} 55% 13%))">${esc(g.title)}</div>`};
+addEventListener('error',e=>{const t=e.target;if(t&&t.tagName==='IMG'&&t.dataset.id){const g=GAMES.find(x=>x.id===t.dataset.id);if(g)t.outerHTML=genArt(g)}},true);
 $('siteName').textContent=SITE.name;document.title=SITE.name;$('foot').textContent=SITE.footer;$('aboutText').textContent=SITE.about;
 $('count').textContent=GAMES.length+(GAMES.length===1?' game':' games');
 
 // ---- featured banner ----
 const hero=$('hero'),DUR=7000,calm=matchMedia('(prefers-reduced-motion: reduce)').matches,multi=GAMES.length>1;let cur=0,timer=null;
-hero.innerHTML=GAMES.map((g,i)=>`<div class="slide${i?'':' on'}" role="group" aria-roledescription="slide" aria-label="${i+1} of ${GAMES.length}: ${esc(g.title)}">${g.hero?`<img src="${esc(g.hero)}" alt="">`:genArt(g)}
+hero.innerHTML=GAMES.map((g,i)=>`<div class="slide${i?'':' on'}" role="group" aria-roledescription="slide" aria-label="${i+1} of ${GAMES.length}: ${esc(g.title)}">${g.hero?`<img src="${esc(g.hero)}" alt="" data-id="${esc(g.id)}">`:genArt(g)}
 <div class="hcopy"><h1>${esc(g.title)}</h1><ul class="tags">${g.tags.map(t=>`<li>${esc(t)}</li>`).join('')}</ul><p>${esc(g.pitch)}</p>
 <div class="acts"><a class="play" href="${esc(g.path)}">${playIcon}Play</a><button class="ghost" type="button" data-more="${i}">Details</button></div></div></div>`).join('')+
-(multi?`<div class="thumbs" role="tablist" aria-label="Choose a featured game">${GAMES.map((g,i)=>`<button class="thumb" type="button" role="tab" aria-selected="${i===0}" data-i="${i}" style="--dur:${DUR}ms">${g.tile?`<img src="${esc(g.tile)}" alt="">`:''}<span>${esc(g.title)}</span><i class="prog"></i></button>`).join('')}</div>
+(multi?`<div class="thumbs" role="tablist" aria-label="Choose a featured game">${GAMES.map((g,i)=>`<button class="thumb" type="button" role="tab" aria-selected="${i===0}" data-i="${i}" style="--dur:${DUR}ms">${g.tile?`<img src="${esc(g.tile)}" alt="" data-id="${esc(g.id)}">`:''}<span>${esc(g.title)}</span><i class="prog"></i></button>`).join('')}</div>
 <div class="dots" role="tablist" aria-label="Choose a featured game">${GAMES.map((g,i)=>`<button type="button" role="tab" aria-selected="${i===0}" aria-label="${esc(g.title)}" data-i="${i}"></button>`).join('')}</div>`:'');
 function show(i){cur=(i+GAMES.length)%GAMES.length;
  hero.querySelectorAll('.slide').forEach((s,k)=>s.classList.toggle('on',k===cur));
@@ -202,14 +211,14 @@ let tx=null;hero.addEventListener('touchstart',e=>{tx=e.touches[0].clientX},{pas
 hero.addEventListener('touchend',e=>{if(tx==null)return;const dx=e.changedTouches[0].clientX-tx;tx=null;if(Math.abs(dx)>50)show(cur+(dx<0?1:-1))});
 
 // ---- all games ----
-$('grid').innerHTML=GAMES.map((g,i)=>`<div class="tile"><a class="art" href="${esc(g.path)}" aria-label="Play ${esc(g.title)}">${g.tile?`<img src="${esc(g.tile)}" alt="" loading="lazy">`:genArt(g)}<span class="hov" aria-hidden="true"><b>${playIcon}</b></span></a>
+$('grid').innerHTML=GAMES.map((g,i)=>`<div class="tile"><a class="art" href="${esc(g.path)}" aria-label="Play ${esc(g.title)}">${g.tile?`<img src="${esc(g.tile)}" alt="" loading="lazy" data-id="${esc(g.id)}">`:genArt(g)}<span class="hov" aria-hidden="true"><b>${playIcon}</b></span></a>
 <div class="meta"><div><h3>${esc(g.title)}</h3><p>${esc(g.tags.slice(0,2).join(', '))}</p></div><button class="info" type="button" data-more="${i}" aria-label="${esc(g.title)} details">Details</button></div></div>`).join('')+
 `<div class="soon"><strong>More games on the way</strong>New games show up here when they’re ready.</div>`;
 
 // ---- details panel ----
 const drawer=$('drawer');let lastFocus=null;
 function openDetails(i){const g=GAMES[i];lastFocus=document.activeElement;
- drawer.innerHTML=`<button class="close" type="button" id="close" aria-label="Close details">✕</button><div class="art">${g.tile||g.hero?`<img src="${esc(g.tile||g.hero)}" alt="">`:genArt(g)}</div>
+ drawer.innerHTML=`<button class="close" type="button" id="close" aria-label="Close details">✕</button><div class="art">${g.tile||g.hero?`<img src="${esc(g.tile||g.hero)}" alt="" data-id="${esc(g.id)}">`:genArt(g)}</div>
 <div class="in"><h2>${esc(g.title)}</h2><ul class="tags">${g.tags.map(t=>`<li>${esc(t)}</li>`).join('')}</ul><p class="blurb">${esc(g.blurb)}</p>
 <a class="play" href="${esc(g.path)}">${playIcon}Play ${esc(g.title)}</a>${g.note?`<p class="note">${esc(g.note)}</p>`:''}
 <dl>${Object.entries(g.facts||{}).map(([k,v])=>`<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join('')}${g.controls?`<dt>Controls</dt><dd><ul>${g.controls.map(([k,v])=>`<li><kbd>${esc(k)}</kbd>${esc(v)}</li>`).join('')}</ul></dd>`:''}</dl></div>`;
