@@ -365,9 +365,9 @@ const skyU={sunDir:{value:new THREE.Vector3(0,1,0)},zen:{value:new THREE.Color()
 const sky=new THREE.Mesh(new THREE.SphereGeometry(2800,48,24),new THREE.ShaderMaterial({uniforms:skyU,vertexShader:SH.skyV,fragmentShader:SH.skyF,side:THREE.BackSide,depthWrite:false,fog:false}));sky.frustumCulled=false;sky.renderOrder=-10;scene.add(sky);
 // time-of-day looks: sun elevation/azimuth (deg), colours, light, fog, grading, weather, floodlights
 const TOD={
- day:{name:'Bluebird',el:44,az:200,zen:0x0d47b0,hor:0xa9c9ee,haze:0xd2e1f1,sun:0xfff3e2,sunI:3.2,sky:0x96b8f2,gnd:0xa4acb8,hemiI:.62,fog:0xbfd3ea,fogD:.00042,cloud:.22,snow:0,exp:.54,sat:1.08,gain:[1,1,1.01],lift:[0,0,.012],stars:0,lamps:0},
- sunrise:{name:'First light',el:7,az:105,zen:0x23498e,hor:0xffc79a,haze:0xf0cdb8,sun:0xffae6a,sunI:3.0,sky:0x8ea6d8,gnd:0x9c8f88,hemiI:.62,fog:0xdcc4b6,fogD:.00036,cloud:.3,snow:0,exp:.62,sat:1.12,gain:[1.05,.99,.95],lift:[.014,.004,0],stars:0,lamps:0},
- golden:{name:'Late session',el:12,az:250,zen:0x2a5596,hor:0xffd2a2,haze:0xe9d6c0,sun:0xffbe72,sunI:3.1,sky:0x8aa3d4,gnd:0x9a8c7c,hemiI:.6,fog:0xdccab4,fogD:.00034,cloud:.32,snow:0,exp:.62,sat:1.12,gain:[1.04,1,.95],lift:[.012,.004,0],stars:0,lamps:0},
+ day:{name:'Bluebird',el:44,az:200,zen:0x0d47b0,hor:0xa9c9ee,haze:0xd2e1f1,sun:0xfff3e2,sunI:3.7,sky:0x8fb2ee,gnd:0x6f7f99,hemiI:.46,fog:0xbfd3ea,fogD:.00042,cloud:.22,snow:0,exp:.54,sat:1.08,gain:[1,1,1.01],lift:[0,0,.012],stars:0,lamps:0},
+ sunrise:{name:'First light',el:7,az:105,zen:0x23498e,hor:0xffc79a,haze:0xf0cdb8,sun:0xffae6a,sunI:3.4,sky:0x8ea6d8,gnd:0x6e6a78,hemiI:.48,fog:0xdcc4b6,fogD:.00036,cloud:.3,snow:0,exp:.62,sat:1.12,gain:[1.05,.99,.95],lift:[.014,.004,0],stars:0,lamps:0},
+ golden:{name:'Late session',el:12,az:250,zen:0x2a5596,hor:0xffd2a2,haze:0xe9d6c0,sun:0xffbe72,sunI:3.5,sky:0x8aa3d4,gnd:0x6f6878,hemiI:.46,fog:0xdccab4,fogD:.00034,cloud:.32,snow:0,exp:.62,sat:1.12,gain:[1.04,1,.95],lift:[.012,.004,0],stars:0,lamps:0},
  storm:{name:'Snowing',el:30,az:190,zen:0x8a95a6,hor:0xc8d1db,haze:0xcfd7e0,sun:0xe6ebf2,sunI:1.0,sky:0xc4cedb,gnd:0xbcc4cf,hemiI:1.3,fog:0xc7cfd9,fogD:.0016,cloud:.94,snow:.55,exp:.68,sat:.9,gain:[.98,1,1.02],lift:[.02,.02,.03],stars:0,lamps:0},
  night:{name:'Floodlit night',el:34,az:-30,zen:0x03060f,hor:0x111b2f,haze:0x16203a,sun:0x9fb4ff,sunI:.6,sky:0x2a3a62,gnd:0x141a26,hemiI:.3,fog:0x0e1626,fogD:.0009,cloud:.16,snow:.18,exp:1.2,sat:1,gain:[1,.99,1.04],lift:[.004,.006,.02],stars:1,lamps:1}};
 let todKey='day',T=TOD.day;
@@ -513,6 +513,8 @@ function kickWindow(f){const w={x:0,z:0},Y=a=>{toWorld(f,a,0,w);return H(w.x,w.z
 function lipSpeed(f,p,v,d){const L=toWorld(f,f.lipA,0,{x:0,z:0}),n=Math.max(1,Math.ceil(d/1.5));let v2=v*v,py=p.y;
  for(let i=1;i<=n;i++){const t=i/n,x=lerp(p.x,L.x,t),z=lerp(p.z,L.z,t),y=i===n?f.lipY:H(x,z),ds=Math.hypot(x-lerp(p.x,L.x,(i-1)/n),z-lerp(p.z,L.z,(i-1)/n),y-py);v2+=2*(G9*(py-y)-(.05*G9+.0052*v2)*ds);if(v2<0)v2=0;py=y}
  return Math.sqrt(v2)}
+// popping within a ski length of a kicker's lip
+function nearLip(p){for(const f of PK.feats){if(f.type!=='kick')continue;toLocal(f,p.x,p.z,_L);if(_L.a>f.lipA-1.9&&_L.a<f.lipA+.25&&Math.abs(_L.b)<f.wr*.5+.4)return f}return null}
 // the kicker in the rider's lane ahead, if any
 function kickAhead(p){let best=null,bd=1e9;for(const f of PK.feats){if(f.type!=='kick'||!f.win)continue;toLocal(f,p.x,p.z,_L);const d=f.lipA-_L.a;if(d<1||d>70||Math.abs(_L.b)>f.wr*.5+2)continue;if(d<bd){bd=d;best=f}}return best?{f:best,d:bd}:null}
 // ---------------- height query ----------------
@@ -585,6 +587,22 @@ const PARKS=[
    kicker(500,0,'XL',{name:'Dub Deck',table:19});
    kicker(640,0,'MEGA',{name:'Last Call',table:20});
    PK.finishS=790}},
+ {id:'forest',name:'Forest Line',tag:'Woodland rail park',blurb:'A narrow line through the pines in falling snow. Rail after rail with jumps in between, built for linking long lines.',tod:'storm',len:860,
+  segs:[[22,4],[16,24],[80,12],[240,12.5],[220,12],[180,12.5],[90,6],[200,3]],width:[[-80,13],[-30,15],[20,22],[830,22],[880,28],[1200,40]],curve:[[-80,0],[120,0],[260,-14],[420,6],[600,-10],[800,0],[1200,0]],micro:.7,
+  build(){
+   rideOn(30,-7,{kind:'box',len:10,name:'Wide box',col:0x2fd17a});popRail(26,7,{h:.7,len:11,name:'Down rail'});
+   kicker(92,0,'M');
+   deckRail(150,-7,{h:1.1,len:7,kind:'box',name:'Flat-down box',col:0xffd23f});rideOn(156,8,{kind:'rail',len:12,clr:.45,name:'Ride-on rail'});
+   kicker(222,-3,'L',{name:'Pine Gap'});
+   rideOn(290,-8,{kind:'tube',len:12,clr:.6,arc:.7,name:'Rainbow tube',col:0xff5a1f});deckRail(286,8,{h:1.2,len:6.5,land:30,kink:5,name:'Kinked rail'});
+   rollers(342,0,3,.9,8.5,8);
+   kicker(410,0,'L',{name:'The Clearing'});
+   popRail(474,-7,{h:.8,len:14,name:'Long down rail'});rideOn(478,7,{kind:'box',len:12,clr:.5,name:'Long box',col:0x1e5bff});
+   kicker(540,-4,'XL',{name:'Big Pine'});
+   deckRail(612,0,{h:1.15,len:8,name:'Flat-down rail'});
+   rideOn(668,-8,{kind:'box',len:10,arc:.8,clr:.5,name:'Rainbow box',col:0xf27fb2});popRail(664,8,{h:.75,len:12,kind:'tube',name:'Down tube',col:0x2fd17a});
+   kicker(730,0,'L',{name:'Last Run'});
+   PK.finishS=830}},
  {id:'bigair',name:'Big Air',tag:'One huge jump',blurb:'A scaffold inrun and the biggest kicker on the mountain. Learn a trick here, then go bigger.',tod:'golden',len:260,
   segs:[[30,3],[70,32],[26,10],[44,10],[60,31],[70,7],[200,2]],width:[[-80,9],[-12,10],[10,18],[200,26],[300,40]],curve:[[-80,0],[300,0]],micro:.4,
   build(){kicker(50,0,'MEGA',{name:'Big Air',table:22,land:37,wl:22,wt:13,tabAbs:0,trR:30});PK.finishS=215;PK.def.tower=1}},
@@ -996,7 +1014,7 @@ function stepGround(I,ev){const p=PH.pos,v=PH.vel,n=Hn(p.x,p.z,PH.n),dir=PH.dir;
  if(PH.butter){const b=PH.butter;b.t+=DT;const h=headingOf(dir);b.rot+=wrapA(h-b.last);b.last=h;if(!I.butter||b.t>1.5){ev.butterOff=b;PH.butter=null;PH.butterCool=1;if(b.t>.25){v.addScaledVector(n,1.4+Math.min(b.t,1)*1.4);PH.popped=true;ev.pop=.5}}}
  // pop: hold to load (and wind up with A/D), release to jump
  if(I.pop&&!PH.butter){PH.load=Math.min(1,PH.load+DT*2.3);PH.wind=clamp(PH.wind+I.steer*DT*2.4,-1,1);if(!I.steer)PH.wind=damp(PH.wind,PH.wind,1,DT)}
- if(I.popRel&&PH.load>0){const k=.35+PH.load*.65;v.addScaledVector(n,1.2+k*2.5);ev.pop=k;PH.popped=true;PH.spinIn=PH.wind;PH.load=0}
+ if(I.popRel&&PH.load>0){const k=.35+PH.load*.65,perf=nearLip(p)&&PH.load>.5;if(perf){v.addScaledVector(n,.9);ev.perfect=1;PH.perfect=1}v.addScaledVector(n,1.2+k*2.5);ev.pop=k;PH.popped=true;PH.spinIn=PH.wind;PH.load=0}
  if(!I.pop&&!I.popRel){PH.load=Math.max(0,PH.load-DT*4);PH.wind=damp(PH.wind,0,4,DT)}
  // move, then follow the snow or leave it
  p.addScaledVector(v,DT);const h=H(p.x,p.z),n2=Hn(p.x,p.z,_n3),gap=p.y-h;
@@ -1024,11 +1042,13 @@ function takeoff(ev){const p=PH.pos,n=PH.n;
  featH(p.x,p.z);PH.lastFeat=FH.f;PH.landPred=null;PH.vpPrev=null;ev.takeoff=1}
 // ---------------- air ----------------
 const SPIN_MAX=7.6,FLIP_MAX=6.4,ROLL_MAX=5.6;
+// after letting go: keep turning to the next half spin (or full flip) and stop on it, slowing only as much as needed
+function settle(x,v,tgt){const e=tgt-x,ae=Math.abs(e);if(ae<1e-3)return 0;const s=Math.sign(e),sp=Math.min(Math.max(Math.abs(v)*(Math.sign(v)===s?1:0),2.2),Math.sqrt(2*22*ae));return Math.min(sp,ae/DT)*s}
 function stepAir(I,ev){const v=PH.vel,c=PH.com;PH.airT+=DT;
  v.addScaledVector(_g,DT);v.multiplyScalar(1-.0011*v.length()*DT);c.addScaledVector(v,DT);
  // late pop off the lip (coyote time) and loading in the air
  if(PH.coyote>0){PH.coyote-=DT;if(I.pop){PH.load=Math.min(1,PH.load+DT*2.3);PH.wind=clamp(PH.wind+I.steer*DT*2.4,-1,1)}
-  if(I.popRel&&PH.load>0){const k=.35+PH.load*.65;v.addScaledVector(_u.set(0,1,0).applyQuaternion(PH.qBase),1.3+k*2.4);ev.pop=k;PH.load=0;PH.phiV-=PH.wind*5.2;PH.wind=0;PH.coyote=0}}
+  if(I.popRel&&PH.load>0){const k=.35+PH.load*.65;if(PH.airT<.06&&PH.load>.5&&PH.lastFeat&&PH.lastFeat.type==='kick'){v.addScaledVector(_u.set(0,1,0).applyQuaternion(PH.qBase),.9);ev.perfect=1;PH.perfect=1}v.addScaledVector(_u.set(0,1,0).applyQuaternion(PH.qBase),1.3+k*2.4);ev.pop=k;PH.load=0;PH.phiV-=PH.wind*5.2;PH.wind=0;PH.coyote=0}}
  else PH.load=Math.max(0,PH.load-DT*3);
  // rotation inputs
  const spinIn=I.steer,flipIn=I.back-I.fwd,rollIn=(I.rollR?1:0)-(I.rollL?1:0),rodeo=I.rodeo;let rot=false;
@@ -1037,12 +1057,12 @@ function stepAir(I,ev){const v=PH.vel,c=PH.com;PH.airT+=DT;
  if(!PH.flipKind){if(flipIn>.3&&!rodeo)PH.flipKind='back';else if(flipIn<-.3&&!rodeo)PH.flipKind='front';else if(rodeo)PH.flipKind=flipIn<-.3?'misty':'rodeo';else if(rollIn&&!spinIn&&Math.abs(PH.phiV)<1.5)PH.flipKind='roll'}
  // spin (yaw about the body frame's up)
  if(spinIn){const tilted=PH.flipKind&&!PH.corked&&PH.flipKind!=='roll'&&Math.abs(PH.psi)>.5;PH.phiV=damp(PH.phiV,-spinIn*SPIN_MAX*(tilted?.35:1)*(PH.grab>.5?1.08:1),6,DT);PH.spinT=PH.airT;rot=true}
- else{const tgt=(PH.phiV>.8?Math.ceil(PH.phi/PI-.08):PH.phiV<-.8?Math.floor(PH.phi/PI+.08):Math.round(PH.phi/PI))*PI,e=tgt-PH.phi;PH.phiV=damp(PH.phiV,clamp(e*5.5,-Math.abs(PH.phiV)-1.2,Math.abs(PH.phiV)+1.2),7,DT)}
+ else{const tgt=(PH.phiV>.8?Math.ceil(PH.phi/PI-.12):PH.phiV<-.8?Math.floor(PH.phi/PI+.12):Math.round(PH.phi/PI))*PI;PH.phiV=settle(PH.phi,PH.phiV,tgt)}
  // flips (back/front about the lateral axis, rodeo/misty about a diagonal, roll about the forward axis)
  const fk=PH.flipKind;let fIn=0;if(fk==='back'||fk==='rodeo')fIn=flipIn>.3||rodeo?1:0;else if(fk==='front'||fk==='misty')fIn=flipIn<-.3||(rodeo&&flipIn<-.3)?-1:0;else if(fk==='roll')fIn=rollIn;
  PH.beta=fk==='roll'?PI/2*Math.sign(rollIn||PH.psiV||1):fk==='rodeo'||fk==='misty'?PI/4*Math.sign(PH.phiV||spinIn||1):0;
  if(fk&&fIn){PH.psiV=damp(PH.psiV,fIn*(fk==='roll'?ROLL_MAX:FLIP_MAX),5,DT);rot=true}
- else{const tgt=(PH.psiV>.8?Math.ceil(PH.psi/TAU-.1):PH.psiV<-.8?Math.floor(PH.psi/TAU+.1):Math.round(PH.psi/TAU))*TAU,e=tgt-PH.psi;PH.psiV=damp(PH.psiV,clamp(e*5,-Math.abs(PH.psiV)-1,Math.abs(PH.psiV)+1),7,DT)}
+ else{const tgt=(PH.psiV>.8?Math.ceil(PH.psi/TAU-.1):PH.psiV<-.8?Math.floor(PH.psi/TAU+.1):Math.round(PH.psi/TAU))*TAU;PH.psiV=settle(PH.psi,PH.psiV,tgt)}
  // flatspin: an air roll held while spinning lays the body over, then it comes back
  if(rollIn&&fk!=='roll'&&Math.abs(PH.phiV)>2){PH.tilt=damp(PH.tilt,rollIn*1.15,4,DT);rot=true}else PH.tilt=damp(PH.tilt,0,4.5,DT);PH.tiltMax=Math.max(PH.tiltMax,Math.abs(PH.tilt));
  if(rot)PH.rotInT=PH.airT;
@@ -1085,12 +1105,12 @@ function land(ev,n){const v=PH.vel,q=PH.q;PH.pos.copy(PH.com).addScaledVector(n,
  const trickTilt=_v.set(0,1,0).applyQuaternion(tq).angleTo(UP),baseErr=_l.set(0,1,0).applyQuaternion(PH.qBase).angleTo(n);
  const eT=trickTilt+baseErr*.35,flipErr=Math.abs(wrapA(PH.psi)),deg=180/PI;
  let quality='clean';if(eY*deg>58||eT*deg>62||vn>16.5)quality='crash';else if(eY*deg>24||eT*deg>30||vn>11.5)quality='sketchy';
- ev.land={quality,phi0:PH.phi0||0,eY:eY*deg,eT:eT*deg,vn,sw,air:PH.airT,maxH:PH.maxH,phi:PH.phi,phi0:PH.phi0||0,psi:PH.psi,beta:PH.beta,tilt:PH.tiltMax,corked:PH.corked,kind:PH.flipKind,toSw:PH.takeoffSw,grabs:Object.assign({},PH.grabHeld),grabOrder:PH.grabOrder.slice(),butter:PH.butterAir,feat:PH.lastFeat,spd};
+ ev.land={quality,perfect:PH.perfect||0,phi0:PH.phi0||0,eY:eY*deg,eT:eT*deg,vn,sw,air:PH.airT,maxH:PH.maxH,phi:PH.phi,phi0:PH.phi0||0,psi:PH.psi,beta:PH.beta,tilt:PH.tiltMax,corked:PH.corked,kind:PH.flipKind,toSw:PH.takeoffSw,grabs:Object.assign({},PH.grabHeld),grabOrder:PH.grabOrder.slice(),butter:PH.butterAir,feat:PH.lastFeat,spd};
  if(quality==='crash'){startCrash(ev,vn);return}
  // the skis settle along the travel direction (forward or switch)
  Ft.copy(F).addScaledVector(n,-F.dot(n));if(Ft.lengthSq()<1e-4)Ft.copy(vt);Ft.normalize();PH.dir.copy(Ft);PH.sw=sw;
  const loss=Math.max(0,vn-3)*.18+(quality==='sketchy'?.12*spd:0);v.addScaledVector(n,-v.dot(n));const l=v.length();if(l>1e-3)v.multiplyScalar(Math.max(0,l-loss)/l);
- PH.ground=true;PH.airT=0;PH.phi=PH.psi=PH.phiV=PH.psiV=PH.tilt=0;PH.impact=clamp(vn/10,0,1)+.15;PH.sketch=quality==='sketchy'?1:0;PH.landT=0;PH.popped=false;PH.load=0;
+ PH.ground=true;PH.airT=0;PH.perfect=0;PH.phi=PH.psi=PH.phiV=PH.psiV=PH.tilt=0;PH.impact=clamp(vn/10,0,1)+.15;PH.sketch=quality==='sketchy'?1:0;PH.landT=0;PH.popped=false;PH.load=0;
  if(PH.butterAir&&quality==='clean'){PH.butter={t:0,tail:false,rot:0,yaw0:headingOf(PH.dir),last:headingOf(PH.dir)}}
  basisQ(PH.dir,n,PH.q)}
 // ---------------- rails ----------------
@@ -1154,8 +1174,8 @@ function airTrick(L){// from a landing event
  let m=1;if(L.toSw||L.sw)m*=1.25;if(off)m*=1.3;
  const dir=L.phi<0?'R':'L',key=[spin,flips,L.kind,dir,L.toSw?1:0].join('|');const rep=(spin||flips)?repeatFactor(key):1;
  rot*=m*rep;gr*=m*rep;let land=0,q=1;if(L.quality==='clean'){land=150;q=1.15}else q=.75;
- const pts=(rot+gr+air)*q+land;const big=spin>=720||flips>=1;
- return{name,pts:Math.round(pts),parts:{tricks:rot*q,grabs:gr*q,landings:air*q+land},spin,flips,off,grabs,rep,key,big,quality:L.quality,link:L.air>.9||spin>=180||flips>0||gb>0}}
+ const stomp=L.quality==='clean'&&L.eY<7&&L.eT<9&&L.air>.6,bonus=(stomp?250:0)+(L.perfect?150:0);land+=bonus;const pts=(rot+gr+air)*q+land;const big=spin>=720||flips>=1;
+ return{stomp,perfect:!!L.perfect,name,pts:Math.round(pts),parts:{tricks:rot*q,grabs:gr*q,landings:air*q+land},spin,flips,off,grabs,rep,key,big,quality:L.quality,link:L.air>.9||spin>=180||flips>0||gb>0}}
 function railTrick(R,outSpin){const r=R.r,slide=Math.abs(R.slot%2)===1?'Slide':'Zero Spin',onDeg=Math.round(Math.abs(R.on.phi)/(PI/2))*90;
  let name='';if(R.on.air&&onDeg>=180)name+=onDeg+' On ';else if(R.sw)name+='Switch ';name+=slide;if(R.swaps)name+=R.swaps>1?' to Double Swap':' to Swap';
  const out=Math.round(Math.abs(outSpin||0)/(PI/2))*90;if(out>=180)name+=' '+out+' Out';name+=' on the '+r.name.toLowerCase();
@@ -1180,7 +1200,7 @@ function trickEvents(ev){const run=TK.run;if(!run)return;
   if(railPend){const rt=railTrick(railPend,L.phi-(L.phi0||0));railPend=null;lineAdd(rt);if(L.quality==='clean')run.clean++;return}
   const tr=airTrick(L);if(L.quality==='clean')run.clean++;
   if(tr.link)lineAdd(tr);
-  if(L.quality==='sketchy')HUD.flash('Sketchy landing','warn')}
+  if(L.quality==='sketchy')HUD.flash('Sketchy landing','warn');else if(tr.link&&tr.stomp)HUD.flash(tr.perfect?'Perfect pop, stomped it':'Stomped it','good');else if(tr.link&&tr.perfect)HUD.flash('Perfect pop','good')}
  if(ev.railOn&&railPend){lineAdd(railTrick(railPend,0));railPend=null}
  if(ev.railOff){railPend=ev.railOff.R}
  if(ev.butterOff&&ev.butterOff.t>.4){lineAdd(butterTrick(ev.butterOff))}
