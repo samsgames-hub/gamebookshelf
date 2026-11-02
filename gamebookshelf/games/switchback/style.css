@@ -149,7 +149,9 @@ input[type=range]{accent-color:var(--signal);width:100%}
 #touch .pedal{width:min(19vw,98px);height:min(26vw,140px)}#touch .gas{background:rgba(63,207,106,.25)}
 #touch .sm{width:min(19vw,98px);height:52px;font-size:18px}
 body.touch .hud-tr{top:12px}body.touch #map{bottom:auto;top:110px;width:150px;height:116px;left:12px}
-body.touch .speedo{bottom:auto;top:96px;right:16px;width:180px}body.touch #spd{font-size:62px}
+body.touch .speedo{bottom:auto;top:8px;right:auto;left:50%;transform:translateX(-50%);width:200px}body.touch #spd{font-size:46px}
+body.touch .spd{justify-content:center}body.touch .gearrow{display:none}body.touch .nitro{margin-top:4px}
+body.touch #count{top:24%}body.touch #wrong{top:31%}body.touch #msg{top:40%}
 
 /* ---------- small screens ---------- */
 @media (max-width:820px){
@@ -158,5 +160,12 @@ body.touch .speedo{bottom:auto;top:96px;right:16px;width:180px}body.touch #spd{f
  .foot{position:static;margin-top:20px}
  #pos{font-size:56px}.lapbox div{font-size:34px}.trow b{font-size:22px}
  #map{width:150px;height:116px}.speedo{width:180px}#spd{font-size:66px}#msg{font-size:38px}
+}
+/* ---------- short landscape screens (phones on their side) ---------- */
+@media (max-height:520px){
+ .side,.wide{padding-top:16px;padding-bottom:14px}
+ .title{font-size:40px;margin-bottom:6px}.tag{display:none}.foot{display:none}
+ .stack{gap:4px}.stack button{font-size:19px;padding:6px 14px}.stack button.big{font-size:22px;padding:8px 14px}
+ .tcard p{display:none}.tcard img{height:64px;width:auto;margin:0 auto 6px}
 }
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
