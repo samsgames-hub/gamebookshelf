@@ -45,7 +45,8 @@
  <label>Master volume <input type="range" min="0" max="10" id="sMaster"></label>
  <label>Music <input type="range" min="0" max="10" id="sMusic"></label>
  <label>Sound effects <input type="range" min="0" max="10" id="sSfx"></label>
- <label>Graphics <select id="sQ"><option value="0">Low (faster)</option><option value="1">Medium</option><option value="2">High</option></select></label>
+ <label>Graphics <select id="sQ"><option value="a">Auto (matches your PC)</option><option value="0">Low (fastest)</option><option value="1">Medium</option><option value="2">High</option></select></label>
+ <p class="qinfo" id="sQinfo"></p>
  <label>Time of day <select id="sTod"><option value="random">Surprise me</option><option value="dawn">Dawn</option><option value="day">Bluebird day</option><option value="golden">Golden hour</option><option value="storm">Snowstorm</option><option value="dusk">Blue hour</option></select></label>
  <label>Speed in <select id="sUnits"><option value="kmh">km/h</option><option value="mph">mph</option></select></label>
  <label class="chk"><input type="checkbox" id="sShake"> Camera shake</label>
@@ -71,5 +72,7 @@ window.addEventListener('error',function(e){var b=document.getElementById('err')
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" onerror="var b=document.getElementById('err');b.className='';b.textContent='Couldn’t load the 3D engine. Check your internet connection and reload the page.'"></script>
 <script src="game.js"></script>
+<!-- visitor counter: no cookies, no personal data -->
+<script data-goatcounter="https://gamebookshelf.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
 </body>
 </html>

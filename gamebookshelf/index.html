@@ -233,5 +233,7 @@ document.addEventListener('keydown',e=>{if(!document.body.classList.contains('op
 document.querySelectorAll('#hero img, #grid img').forEach(img=>{img.addEventListener('error',()=>{const g=GAMES.find(x=>img.getAttribute('src')===x.hero||img.getAttribute('src')===x.tile);if(g&&img.parentNode)img.outerHTML=genArt(g)})});
 show(0);
 </script>
+<!-- visitor counter: no cookies, no personal data -->
+<script data-goatcounter="https://gamebookshelf.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
 </body>
 </html>

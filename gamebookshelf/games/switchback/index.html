@@ -95,7 +95,8 @@
  <label class="field"><span>Master volume</span><input type="range" id="sMaster" min="0" max="10" step="1"></label>
  <label class="field"><span>Music</span><input type="range" id="sMusic" min="0" max="10" step="1"></label>
  <label class="field"><span>Sound effects</span><input type="range" id="sSfx" min="0" max="10" step="1"></label>
- <label class="field"><span>Graphics</span><select id="sQ"><option value="0">Low (faster)</option><option value="1">Medium</option><option value="2">High</option></select></label>
+ <label class="field"><span>Graphics</span><select id="sQ"><option value="a">Auto (matches your PC)</option><option value="0">Low (fastest)</option><option value="1">Medium</option><option value="2">High</option></select></label>
+ <p class="qinfo" id="sQinfo"></p>
  <label class="field"><span>Speed in</span><select id="sUnits"><option value="kmh">km/h</option><option value="mph">mph</option></select></label>
  <label class="check"><input type="checkbox" id="sAssist"><span>Steering help when the car slides</span></label>
  <label class="check"><input type="checkbox" id="sShake"><span>Camera shake</span></label>
@@ -139,5 +140,7 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" onerror="var b=document.getElementById('err');b.className='';b.textContent='Couldn’t load the 3D engine. Check your internet connection and reload the page.'"></script>
 <script src="game.js"></script>
+<!-- visitor counter: no cookies, no personal data -->
+<script data-goatcounter="https://gamebookshelf.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
 </body>
 </html>

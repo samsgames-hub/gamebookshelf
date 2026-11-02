@@ -31,6 +31,7 @@ button{font:inherit;color:inherit}
 .panel p{color:#cdd8e6;margin:0 0 14px}
 .ph{display:flex;align-items:center;gap:18px;flex-wrap:wrap;margin-bottom:16px}.ph h2{margin:0}
 .foot{display:flex;gap:10px;justify-content:flex-end;margin-top:20px}.foot .btn{text-align:center;min-width:140px}
+.qinfo{margin:6px 0 4px;font-size:13px;opacity:.75;line-height:1.4}
 label{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:10px 0;border-bottom:1px solid var(--line);font-weight:600}
 label.chk{justify-content:flex-start}
 input[type=range]{width:52%;accent-color:var(--orange)}

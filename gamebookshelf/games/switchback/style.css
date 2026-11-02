@@ -83,6 +83,7 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid 
 .field{display:grid;grid-template-columns:130px 1fr;align-items:center;gap:14px;margin-bottom:14px;font-size:16px}
 .field select{font:inherit;color:var(--chalk);background:var(--ink2);border:1px solid var(--line);border-radius:4px;padding:6px 8px}
 input[type=range]{accent-color:var(--signal);width:100%}
+.qinfo{margin:-6px 0 14px 144px;color:var(--mist);font-size:14px;line-height:1.4}
 .check{display:flex;gap:10px;align-items:center;margin:12px 0;font-size:16px}.check input{width:18px;height:18px;accent-color:var(--signal)}
 .keys{border-collapse:collapse;width:100%;font-size:16px}
 .keys th{text-align:left;font-weight:600;padding:7px 14px 7px 0;white-space:nowrap;color:var(--chalk);vertical-align:top}
