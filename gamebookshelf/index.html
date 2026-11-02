@@ -100,7 +100,7 @@ dt{color:var(--muted)}dd{margin:0}
 dd ul{margin:0;padding:0;list-style:none;display:grid;gap:8px}
 kbd{display:inline-block;min-width:52px;text-align:center;font:600 13px var(--ui);padding:2px 8px;border-radius:6px;background:var(--s2);border:1px solid var(--line);margin-right:10px}
 .note{margin:16px 0 0;color:var(--muted);font-size:15px}
-footer{max-width:1280px;margin:0 auto;padding:0 32px 40px;color:var(--muted);font-size:14px}
+footer{max-width:1280px;margin:0 auto;padding:0 32px 40px;color:var(--muted);font-size:14px}#visits{margin-top:6px;font-variant-numeric:tabular-nums}#visits b{color:var(--text);font-weight:600}
 #foot{border-top:1px solid var(--line);padding-top:22px}
 .dots{display:none;position:absolute;z-index:3;left:18px;bottom:18px;gap:8px}
 .dots button{width:32px;height:20px;padding:8px 0;border:0;border-radius:2px;background-color:rgba(255,255,255,.25);background-clip:content-box;cursor:pointer}
@@ -137,7 +137,7 @@ footer{max-width:1280px;margin:0 auto;padding:0 32px 40px;color:var(--muted);fon
     <li><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10.5l4 4 8-9" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>Every game is free. No accounts, no ads.</li>
   </ul>
 </div></section>
-<footer><div id="foot"></div></footer>
+<footer><div id="foot"></div><div id="visits" hidden></div></footer>
 <div class="scrim" id="scrim"></div>
 <aside class="drawer" id="drawer" role="dialog" aria-modal="true" aria-label="Game details"></aside>
 <script>
@@ -238,5 +238,9 @@ show(0);
 </script>
 <!-- visitor counter: no cookies, no personal data -->
 <script data-goatcounter="https://gamebookshelf.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
+<script>
+// public visit total from GoatCounter; stays hidden if it can't load
+fetch('https://gamebookshelf.goatcounter.com/counter/TOTAL.json').then(r=>r.ok?r.json():null).then(d=>{if(!d||!d.count)return;const e=document.getElementById('visits');e.innerHTML='<b></b> visits so far';e.firstChild.textContent=d.count;e.hidden=false}).catch(()=>{});
+</script>
 </body>
 </html>
