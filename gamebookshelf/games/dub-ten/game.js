@@ -273,15 +273,20 @@ const FT=HDR?THREE.HalfFloatType:THREE.UnsignedByteType;
 // aerial perspective: a long exponential tail instead of the squared fog, so far ridges stay readable
 THREE.ShaderChunk.fog_fragment=THREE.ShaderChunk.fog_fragment.replace('float fogFactor = 1.0 - exp( - fogDensity * fogDensity * fogDepth * fogDepth );','float fogFactor = 1.0 - exp( - pow( fogDensity * fogDepth, 1.25 ) );');
 const scene=new THREE.Scene();scene.fog=new THREE.FogExp2(0xbfd2e6,.0004);
-const cam=new THREE.PerspectiveCamera(62,1,.2,9000);scene.add(cam);
+const cam=new THREE.PerspectiveCamera(62,1,.3,5200);scene.add(cam);
 const SH={
 quadV:'varying vec2 vUv;void main(){vUv=uv;gl_Position=vec4(position.xy,0.,1.);}',
 bright:'uniform sampler2D t;uniform float th;varying vec2 vUv;void main(){vec3 c=min(texture2D(t,vUv).rgb,vec3(30.));float l=max(max(c.r,c.g),c.b);gl_FragColor=vec4(c*max(l-th,0.)/max(l,1e-4),1.);}',
 down:'uniform sampler2D t;uniform vec2 px;varying vec2 vUv;void main(){vec4 s=texture2D(t,vUv)*4.;s+=texture2D(t,vUv-px);s+=texture2D(t,vUv+px);s+=texture2D(t,vUv+vec2(px.x,-px.y));s+=texture2D(t,vUv+vec2(-px.x,px.y));gl_FragColor=s*.125;}',
 up:'uniform sampler2D t;uniform sampler2D tAdd;uniform vec2 px;uniform float k;varying vec2 vUv;void main(){vec4 s=texture2D(t,vUv+vec2(-px.x*2.,0.));s+=texture2D(t,vUv+vec2(-px.x,px.y))*2.;s+=texture2D(t,vUv+vec2(0.,px.y*2.));s+=texture2D(t,vUv+vec2(px.x,px.y))*2.;s+=texture2D(t,vUv+vec2(px.x*2.,0.));s+=texture2D(t,vUv+vec2(px.x,-px.y))*2.;s+=texture2D(t,vUv+vec2(0.,-px.y*2.));s+=texture2D(t,vUv+vec2(-px.x,-px.y))*2.;gl_FragColor=s/12.+texture2D(tAdd,vUv)*k;}',
-comp:`uniform sampler2D tScene;uniform sampler2D tBloom;uniform float bloom;uniform float exposure;uniform float vig;uniform float speed;uniform float fade;uniform float white;uniform float sat;uniform vec3 lift;uniform vec3 gain;varying vec2 vUv;
+comp:`uniform sampler2D tScene;uniform vec2 rpx;uniform float aa;uniform sampler2D tBloom;uniform float bloom;uniform float exposure;uniform float vig;uniform float speed;uniform float fade;uniform float white;uniform float sat;uniform vec3 lift;uniform vec3 gain;varying vec2 vUv;
 vec3 aces(vec3 x){return clamp((x*(2.51*x+.03))/(x*(2.43*x+.59)+.14),0.,1.);}
-void main(){vec2 dc=vUv-.5;float r2=dot(dc,dc);vec3 col=texture2D(tScene,vUv).rgb;
+vec3 fxaa(vec2 uv){vec3 c=texture2D(tScene,uv).rgb;if(aa<.5)return c;vec3 L=vec3(.299,.587,.114);
+ float lc=dot(min(c,vec3(4.)),L),ln=dot(min(texture2D(tScene,uv+vec2(0.,-rpx.y)).rgb,vec3(4.)),L),ls=dot(min(texture2D(tScene,uv+vec2(0.,rpx.y)).rgb,vec3(4.)),L),le=dot(min(texture2D(tScene,uv+vec2(rpx.x,0.)).rgb,vec3(4.)),L),lw=dot(min(texture2D(tScene,uv+vec2(-rpx.x,0.)).rgb,vec3(4.)),L);
+ float mn=min(lc,min(min(ln,ls),min(le,lw))),mx=max(lc,max(max(ln,ls),max(le,lw)));if(mx-mn<max(.04,mx*.12))return c;
+ vec2 d=vec2(-((ln+ls)-(le+lw)),((ln+le)-(ls+lw)));float rd=1./(min(abs(d.x),abs(d.y))+max((ln+ls+le+lw)*.03,.002));d=clamp(d*rd,vec2(-6.),vec2(6.))*rpx;
+ vec3 a=.5*(texture2D(tScene,uv-d*.17).rgb+texture2D(tScene,uv+d*.17).rgb),b=a*.5+.25*(texture2D(tScene,uv-d*.5).rgb+texture2D(tScene,uv+d*.5).rgb);float lb=dot(min(b,vec3(4.)),L);return(lb<mn||lb>mx)?a:b;}
+void main(){vec2 dc=vUv-.5;float r2=dot(dc,dc);vec3 col=fxaa(vUv);
  if(speed>.01){vec2 dir=dc*speed*.05*smoothstep(.02,.25,r2);vec3 acc=col;for(int i=1;i<8;i++){float f=float(i)/7.;acc+=texture2D(tScene,vUv-dir*f).rgb;}col=acc/8.;}
  col+=texture2D(tBloom,vUv).rgb*bloom;col*=exposure;col=aces(col);float l=dot(col,vec3(.299,.587,.114));col=mix(vec3(l),col,sat);
  col=pow(col,vec3(1./2.2));col=col*gain+lift*(1.-col);col*=1.-vig*r2*1.4;col=mix(col,vec3(1.),white);col*=1.-fade;gl_FragColor=vec4(col,1.);}`,
@@ -304,15 +309,16 @@ const quadCam=new THREE.OrthographicCamera(-1,1,1,-1,0,1),quadScene=new THREE.Sc
 const SM=(f,u)=>new THREE.ShaderMaterial({uniforms:u,vertexShader:SH.quadV,fragmentShader:f,depthTest:false,depthWrite:false});
 const black=new THREE.DataTexture(new Uint8Array([0,0,0,255]),1,1,THREE.RGBAFormat);black.needsUpdate=true;
 const PP={bright:SM(SH.bright,{t:{value:null},th:{value:1}}),down:SM(SH.down,{t:{value:null},px:{value:new THREE.Vector2()}}),up:SM(SH.up,{t:{value:null},tAdd:{value:null},px:{value:new THREE.Vector2()},k:{value:1}}),
- comp:SM(SH.comp,{tScene:{value:null},tBloom:{value:black},bloom:{value:.1},exposure:{value:.75},vig:{value:.5},speed:{value:0},fade:{value:0},white:{value:0},sat:{value:1.05},lift:{value:new THREE.Vector3()},gain:{value:new THREE.Vector3(1,1,1)}}),rt:null,mips:[],ups:[]};
+ comp:SM(SH.comp,{rpx:{value:new THREE.Vector2(1,1)},aa:{value:0},tScene:{value:null},tBloom:{value:black},bloom:{value:.1},exposure:{value:.75},vig:{value:.5},speed:{value:0},fade:{value:0},white:{value:0},sat:{value:1.05},lift:{value:new THREE.Vector3()},gain:{value:new THREE.Vector3(1,1,1)}}),rt:null,mips:[],ups:[]};
 const rtOpt=d=>({minFilter:THREE.LinearFilter,magFilter:THREE.LinearFilter,format:THREE.RGBAFormat,type:FT,depthBuffer:!!d,stencilBuffer:false});
 let PART=null;
 function setupPost(){const q=save.set.q,base=q===0?1:Math.min(devicePixelRatio,q===2?1.75:1.25),cpr=Math.max(.35,base*PERF.scale),pr=cpr;
  const w=Math.max(2,innerWidth*pr|0),h=Math.max(2,innerHeight*pr|0);ren.setPixelRatio(cpr);ren.setSize(innerWidth,innerHeight,false);ren.domElement.style.width='100%';ren.domElement.style.height='100%';
  if(PP.rt)PP.rt.dispose();PP.mips.forEach(r=>r.dispose());PP.ups.forEach(r=>r.dispose());PP.mips=[];PP.ups=[];
  if(isGL2&&q>0&&THREE.WebGLMultisampleRenderTarget){PP.rt=new THREE.WebGLMultisampleRenderTarget(w,h,rtOpt(1));PP.rt.samples=q===2?4:2}else PP.rt=new THREE.WebGLRenderTarget(w,h,rtOpt(1));
+ if(isGL2){PP.rt.depthTexture=new THREE.DepthTexture(w,h,THREE.UnsignedIntType)}
  if(q>0){let bw=w>>1,bh=h>>1;const n=q===2?6:5;for(let i=0;i<n;i++){PP.mips.push(new THREE.WebGLRenderTarget(Math.max(1,bw),Math.max(1,bh),rtOpt(0)));if(i>0)PP.ups.push(new THREE.WebGLRenderTarget(Math.max(1,bw),Math.max(1,bh),rtOpt(0)));bw>>=1;bh>>=1}}
- cam.aspect=innerWidth/innerHeight;cam.updateProjectionMatrix();PP.comp.uniforms.tBloom.value=black;
+ cam.aspect=innerWidth/innerHeight;cam.updateProjectionMatrix();PP.comp.uniforms.tBloom.value=black;PP.comp.uniforms.rpx.value.set(1/w,1/h);PP.comp.uniforms.aa.value=q<2?1:0;
  ren.shadowMap.enabled=true;sun.castShadow=true;const sz=q===2?2048:1024;sun.shadow.mapSize.set(sz,sz);if(sun.shadow.map){sun.shadow.map.dispose();sun.shadow.map=null}
  if(PART)PART.forEach(p=>p.mat.uniforms.scale.value=h/(2*Math.tan(cam.fov*Math.PI/360)))}
 function pass(mat,target){quad.material=mat;ren.setRenderTarget(target);ren.render(quadScene,quadCam)}
@@ -335,14 +341,14 @@ function gpuTier(){let s='';try{const gl=ren.getContext(),x=gl.getExtension('WEB
  else t=1;
  if(touch)t=Math.min(t,0);if(cores<=2||mem<=2)t=Math.min(t,0);else if(cores<=4&&mem<=4)t=Math.min(t,1);
  return t}
-const LAD_AUTO=[[2,1],[2,.85],[1,.85],[1,.72],[0,.72],[0,.6],[0,.5]];
+const LAD_AUTO=[[2,1],[2,.85],[1,1],[1,.85],[0,1],[0,.85],[0,.72],[0,.6],[0,.5]];
 const LAD_FIX={2:[[2,1],[2,.85],[2,.72],[2,.6],[2,.5]],1:[[1,1],[1,.85],[1,.72],[1,.6],[1,.5]],0:[[0,.75],[0,.65],[0,.55],[0,.5]]};
 function perfInit(first){if(first){PERF.tier=gpuTier();
   // cheaper shadow filtering on modest chips: four taps instead of sixteen
   if(PERF.tier<2){const C=THREE.ShaderChunk,src=C.shadowmap_pars_fragment,a=src.indexOf('#if defined( SHADOWMAP_TYPE_PCF )\n'),b=src.indexOf('#elif defined( SHADOWMAP_TYPE_PCF_SOFT )',a);
    if(a>=0&&b>a){C.shadowmap_pars_fragment=src.slice(0,a)+'#if defined( SHADOWMAP_TYPE_PCF )\n vec2 tS=vec2(.7*shadowRadius)/shadowMapSize;\n shadow=(texture2DCompare(shadowMap,shadowCoord.xy+vec2(-tS.x,-tS.y),shadowCoord.z)+texture2DCompare(shadowMap,shadowCoord.xy+vec2(tS.x,-tS.y),shadowCoord.z)+texture2DCompare(shadowMap,shadowCoord.xy+vec2(-tS.x,tS.y),shadowCoord.z)+texture2DCompare(shadowMap,shadowCoord.xy+vec2(tS.x,tS.y),shadowCoord.z))*.25;\n'+src.slice(b);ren.shadowMap.type=THREE.PCFShadowMap}}}
  PERF.probe=null;PERF.fails={};PERF.floorUntil=0;PERF.floorWait=45e3;
- if(save.set.qa!==false&&save.set.qa!==0){PERF.ladder=LAD_AUTO;const t=PERF.tier;PERF.lvl=t>=2?0:t===1?2:t===0?4:6;PERF.top=t>=2?0:t===1?1:t===0?3:4}
+ if(save.set.qa!==false&&save.set.qa!==0){PERF.ladder=LAD_AUTO;const t=PERF.tier;PERF.lvl=t>=2?0:t===1?2:t===0?5:7;PERF.top=t>=2?0:t===1?1:t===0?3:5}
  else{PERF.ladder=LAD_FIX[save.set.q]||LAD_FIX[1];PERF.lvl=0;PERF.top=0}
  const L=PERF.ladder[PERF.lvl];save.set.q=L[0];PERF.scale=L[1];PERF.cool=2;PERF.bad=PERF.good=0}
 function perfSet(i){i=clamp(i,0,PERF.ladder.length-1);const L=PERF.ladder[i],qc=save.set.q!==L[0];PERF.lvl=i;save.set.q=L[0];PERF.scale=L[1];setupPost();if(PERF.hook)PERF.hook(qc);PERF.cool=1.5;PERF.bad=PERF.good=0}
@@ -640,7 +646,8 @@ function std(p,env){const m=new THREE.MeshStandardMaterial(p);if(env!==false)env
 // ---------------- terrain chunks (base snow, no features) ----------------
 function terrainH(x,z){featH(x,z);return baseH(x,z)+microH(x,z)*FH.m*(PK.def.micro??1)}
 function uSamples(W,fine){const u=[0];let a=0;const ins=W+18;while(a<ins){a+=fine;u.push(a)}let st=2;while(a<260){a+=st;u.push(a);st=Math.min(st*1.22,14)}const out=[];for(let i=u.length-1;i>0;i--)out.push(-u[i]);return out.concat(u)}
-function buildChunk(s0,s1,fine){let W=0;for(let s=s0;s<=s1;s+=5)W=Math.max(W,halfW(s));const U=uSamples(W,fine),nu=U.length,ns=Math.max(2,Math.round((s1-s0)/fine)+1),N=nu*ns;
+function buildChunk(s0,s1,fine){// one lateral sampling for every chunk, so neighbouring chunks share their seam vertices (no cracks)
+ let W=0;for(let s=PK.S0;s<=PK.len+240;s+=5)W=Math.max(W,halfW(s));const U=uSamples(W,fine),nu=U.length,ns=Math.max(2,Math.round((s1-s0)/fine)+1),N=nu*ns;
  const P=new Float32Array(N*3),Nr=new Float32Array(N*3),C=new Float32Array(N*3),UV=new Float32Array(N*2),Gm=new Float32Array(N),I=[];const e=.6;
  for(let j=0;j<ns;j++){const s=s0+(s1-s0)*j/(ns-1),c=cxS(s),w=halfW(s);for(let i=0;i<nu;i++){const k=j*nu+i,u=U[i],x=c+u,z=-s,y=terrainH(x,z);
   P[k*3]=x;P[k*3+1]=y;P[k*3+2]=z;const hx=terrainH(x+e,z)-terrainH(x-e,z),hz=terrainH(x,z+e)-terrainH(x,z-e),l=Math.hypot(hx,2*e,hz);Nr[k*3]=-hx/l;Nr[k*3+1]=2*e/l;Nr[k*3+2]=-hz/l;
@@ -697,22 +704,77 @@ function buildRails(grp){const posts=[];
  if(posts.length){const pg=new THREE.CylinderGeometry(.045,.055,1,8);pg.translate(0,.5,0);const im=new THREE.InstancedMesh(pg,MAT.steelDark,posts.length),M=new THREE.Matrix4();
   posts.forEach((p,i)=>{M.makeScale(1,Math.max(.05,p[3]),1);M.setPosition(p[0],p[1],p[2]);im.setMatrixAt(i,M)});im.castShadow=true;grp.add(im)}}
 // ---------------- trees ----------------
-function treeGeo(lod){const P=[],C=[],I=[];let vi=0;const add=(x,y,z,c)=>{P.push(x,y,z);C.push(c[0],c[1],c[2]);return vi++};
- const dark=[.06,.12,.085],mid=[.09,.17,.11],snow=[.86,.9,.95],bark=[.22,.16,.11];
- // each tier: a cone of needles with a snowy cap on its upper face
- const cone=(y0,y1,r,seg,snowy)=>{const c=add(0,y1,0,snowy?snow:mid),ring=[];for(let i=0;i<seg;i++){const a=i/seg*TAU+(y0*.7),rr=r*(.85+.3*((i*7)%3)/2);ring.push(add(Math.cos(a)*rr,y0+(i%2)*.25,Math.sin(a)*rr,i%2?dark:mid))}
-  for(let i=0;i<seg;i++)I.push(c,ring[(i+1)%seg],ring[i]);
-  if(snowy){const sr=[];for(let i=0;i<seg;i++){const a=i/seg*TAU+(y0*.7)+.2;sr.push(add(Math.cos(a)*r*.62,y0+(y1-y0)*.38,Math.sin(a)*r*.62,snow))}for(let i=0;i<seg;i++)I.push(c,sr[(i+1)%seg],sr[i])}};
- if(lod){cone(.4,10,2.7,5,1)}else{const t0=add(-.18,0,0,bark),t1=add(.18,0,0,bark),t2=add(0,0,.18,bark),t3=add(0,2,0,bark);I.push(t0,t3,t1,t1,t3,t2,t2,t3,t0);
-  cone(1.2,5.6,2.7,7,0);cone(3.7,8.4,2,7,1);cone(6.3,10.8,1.25,6,1)}
- const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(P,3));g.setAttribute('color',new THREE.Float32BufferAttribute(C,3));g.setIndex(I);g.computeVertexNormals();return g}
-function buildTrees(grp){const r=mulberry(PK.seed*7+3),geo=treeGeo(0),far=treeGeo(1),CL=70,lift=PK.def.liftU,thin=PERF.tier<1?.7:1;
- const mk=(g,M)=>{const im=new THREE.InstancedMesh(g,MAT.tree,M.length),m=new THREE.Matrix4(),q=new THREE.Quaternion(),e=new THREE.Euler();M.forEach((t,i)=>{e.set(0,t[4],0);q.setFromEuler(e);m.compose(new THREE.Vector3(t[0],t[1],t[2]),q,new THREE.Vector3(t[3],t[3]*(.9+.2*((i*13)%7)/7),t[3]));im.setMatrixAt(i,m)});return im};
- for(let s0=PK.S0;s0<PK.len+220;s0+=CL){const Mn=[],Mf=[];for(let s=s0;s<s0+CL;s+=3){const W=halfW(s),c=cxS(s);for(const sd of[-1,1]){let u=W+5+r()*3;while(u<W+150){const dens=(u<W+14?.75:u<W+50?.42:.2)*thin;
-    if(r()<dens){const x=c+sd*u+(r()-.5)*2,z=-s+(r()-.5)*2.4;const uu=x-c;if(!(lift!==undefined&&Math.abs(uu-lift)<9)){const sc=.75+r()*.6,t=[x,terrainH(x,z)-.3,z,sc,r()*TAU];(u<W+38?Mn:Mf).push(t)}}u+=2.4+r()*4+(u-W)*.05}}}
-  // trees near the run get the detailed model up close; the outer forest is always the simple one
-  const c={s:s0+CL/2};if(Mn.length){c.near=mk(geo,Mn);c.near.castShadow=save.set.q>1;c.nearFar=mk(far,Mn);c.nearFar.visible=false;grp.add(c.near,c.nearFar)}if(Mf.length){c.far=mk(far,Mf);grp.add(c.far)}WORLD.treeChunks.push(c)}}
-function updateTreeLOD(cs){const R=PERF.tier<1?150:PERF.tier<2?240:340;for(const c of WORLD.treeChunks){if(!c.near)continue;const d=Math.abs(c.s-cs);c.near.visible=d<R;c.nearFar.visible=d>=R}}
+function branchAtlas(){const W=1024,H=512;const c=document.createElement('canvas');c.width=W;c.height=H;const x=c.getContext('2d');const r=mulberry(4242);
+ const greens=['#14301f','#1a3a25','#21452c','#2a5233','#183424','#0f2618'];
+ for(let tile=0;tile<4;tile++){const ox=(tile%2)*512,oy=(tile>>1)*256,snowy=[.75,.45,.9,.25][tile];x.save();x.translate(ox,oy);x.beginPath();x.rect(0,0,512,256);x.clip();
+  const droop=r()*30+10,stem=t=>[8+t*490,128+Math.sin(t*1.4)*droop*t-10*t];
+  const twigs=[];for(let t=0;t<1;t+=.045+r()*.02){const [sx,sy]=stem(t);for(const sd of[-1,1]){const len=(1-t*.75)*(70+r()*40),a=sd*(.55+r()*.45)+(r()-.5)*.2;twigs.push([sx,sy,a,len,t])}}
+  // needles: many short dark strokes along stem + twigs
+  const needles=(x0,y0,ang,len,dens)=>{const n=Math.floor(len*dens);for(let i=0;i<n;i++){const t=i/n,px=x0+Math.cos(ang)*len*t,py=y0+Math.sin(ang)*len*t;for(const sd of[-1,1]){const na=ang+sd*(.9+r()*.5),nl=7+r()*7*(1-t*.5);x.strokeStyle=greens[(r()*greens.length)|0];x.globalAlpha=.85+r()*.15;x.lineWidth=1.3+r()*1.2;x.beginPath();x.moveTo(px,py);x.lineTo(px+Math.cos(na)*nl,py+Math.sin(na)*nl);x.stroke()}}};
+  x.lineCap='round';
+  for(const [sx,sy,a,len] of twigs){x.strokeStyle='#3b2d22';x.lineWidth=2;x.globalAlpha=1;x.beginPath();x.moveTo(sx,sy);x.lineTo(sx+Math.cos(a)*len,sy+Math.sin(a)*len);x.stroke()}
+  x.strokeStyle='#4a3627';x.lineWidth=5;x.beginPath();for(let t=0;t<=1;t+=.05){const [px,py]=stem(t);t?x.lineTo(px,py):x.moveTo(px,py)}x.stroke();
+  for(const [sx,sy,a,len] of twigs)needles(sx,sy,a,len,1.3);
+  for(let t=0;t<1;t+=.01){const [px,py]=stem(t);needles(px,py,-1.2,10,1.2)}
+  // snow sitting on the upper side of the bough
+  x.globalAlpha=1;for(let i=0;i<260*snowy;i++){const tw=twigs[(r()*twigs.length)|0],t=r(),px=tw[0]+Math.cos(tw[2])*tw[3]*t,py=tw[1]+Math.sin(tw[2])*tw[3]*t-4,rad=(5+r()*11)*(1-tw[4]*.5);
+   const g=x.createRadialGradient(px,py-rad*.3,rad*.1,px,py,rad);g.addColorStop(0,'rgba(255,255,255,1)');g.addColorStop(.7,'rgba(226,236,248,.95)');g.addColorStop(1,'rgba(200,215,235,0)');x.fillStyle=g;x.beginPath();x.ellipse(px,py,rad*1.3,rad*.75,tw[2]*.3,0,TAU);x.fill()}
+  x.restore()}
+ const t=new THREE.CanvasTexture(c);t.encoding=THREE.sRGBEncoding;t.anisotropy=4;return t}
+function cardTreeGeo(variant){const P=[],N=[],UV=[],Cc=[],I=[],r=mulberry(variant*977+13);let vi=0;const H=10;
+ const tiles=[[0,.5],[.5,.5],[0,0],[.5,0]],snowT=variant===1?[1,3]:[0,2];
+ const quad=(p0,p1,p2,p3,tile,shade0,shade1,center)=>{const [u0,v0]=tiles[tile];const pts=[p0,p1,p2,p3],uvs=[[u0,v0],[u0+.5,v0],[u0+.5,v0+.5],[u0,v0+.5]],sh=[shade0,shade1,shade1,shade0];
+  for(let i=0;i<4;i++){const p=pts[i];P.push(p[0],p[1],p[2]);let nx=p[0]-center[0],ny=(p[1]-center[1])*.5+1.3,nz=p[2]-center[2];const l=Math.hypot(nx,ny,nz)||1;N.push(nx/l,ny/l,nz/l);UV.push(uvs[i][0],uvs[i][1]);Cc.push(sh[i],sh[i],sh[i])}
+  I.push(vi,vi+1,vi+2,vi,vi+2,vi+3);vi+=4};
+ // trunk
+ const ts=8;for(let i=0;i<ts;i++){const a=i/ts*TAU,b=(i+1)/ts*TAU,r0=.24,r1=.05,c0=[.23,.17,.12];
+  const q=[[Math.cos(a)*r0,0,Math.sin(a)*r0],[Math.cos(b)*r0,0,Math.sin(b)*r0],[Math.cos(b)*r1,H*.95,Math.sin(b)*r1],[Math.cos(a)*r1,H*.95,Math.sin(a)*r1]];
+  for(let k=0;k<4;k++){P.push(...q[k]);const ang=k===1||k===2?b:a;N.push(Math.cos(ang),0,Math.sin(ang));UV.push(.99,.99);Cc.push(c0[0]*1.6,c0[1]*1.6,c0[2]*1.6)}I.push(vi,vi+2,vi+1,vi,vi+3,vi+2);vi+=4}
+ const tiers=variant===1?12:15,per=variant===1?5:6;let rot=r()*TAU;
+ for(let k=0;k<tiers;k++){const f=k/(tiers-1),y=H*(.1+.84*f),L=(variant===1?H*.26:H*.3)*Math.pow(1-f,variant===1?.9:1.05)+.35,droop=L*(.32-f*.15),w=L*.42;
+  rot+=2.39996;const yc=y-L*.3;
+  for(let b=0;b<per;b++){const a=rot+b/per*TAU+(r()-.5)*.4,ca=Math.cos(a),sa=Math.sin(a),px=-sa,pz=ca;const tile=snowT[(r()*2)|0];
+   const base=[ca*.1,y,sa*.1],tip=[ca*L,y-droop,sa*L],sh0=.42+.25*f,sh1=.85+.15*f;
+   for(const tilt of[.42,-.25]){const ux=px*w*.5,uy=tilt*w,uz=pz*w*.5;
+    quad([base[0]-ux,base[1]-uy*.3,base[2]-uz],[tip[0]-ux,tip[1]-uy,tip[2]-uz],[tip[0]+ux,tip[1]+uy,tip[2]+uz],[base[0]+ux,base[1]+uy*.3,base[2]+uz],tile,sh0,sh1,[0,yc,0])}}}
+ // spire
+ for(let i=0;i<3;i++){const a=i/3*PI,ca=Math.cos(a)*.55,sa=Math.sin(a)*.55;quad([-ca,H*.86,-sa],[ca,H*.86,sa],[ca*.2,H*1.03,sa*.2],[-ca*.2,H*1.03,-sa*.2],snowT[0],.7,.9,[0,H*.9,0])}
+ const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(P,3));g.setAttribute('normal',new THREE.Float32BufferAttribute(N,3));g.setAttribute('uv',new THREE.Float32BufferAttribute(UV,2));g.setAttribute('color',new THREE.Float32BufferAttribute(Cc,3));g.setIndex(I);g.computeBoundingSphere();return g}
+function treeMats(atlas){const m=new THREE.MeshStandardMaterial({map:atlas,alphaTest:.45,side:THREE.DoubleSide,vertexColors:true,roughness:.92,metalness:0,envMapIntensity:.45});
+ m.userData.u={time:{value:0}};
+ const wind=sh=>{Object.assign(sh.uniforms,m.userData.u);sh.vertexShader=sh.vertexShader.replace('#include <common>','#include <common>\nuniform float time;').replace('#include <begin_vertex>',`#include <begin_vertex>
+   #ifdef USE_INSTANCING
+   vec3 ip=vec3(instanceMatrix[3][0],0.,instanceMatrix[3][2]);float sw=sin(time*1.1+ip.x*.13+ip.z*.11)*.0016*transformed.y*transformed.y;transformed.x+=sw;transformed.z+=sw*.6;
+   #endif`)};
+ m.onBeforeCompile=wind;m.customProgramCacheKey=()=>'treecard';
+ const d=new THREE.MeshDepthMaterial({depthPacking:THREE.RGBADepthPacking,map:atlas,alphaTest:.45,side:THREE.DoubleSide});return{m,d}}
+// render a near tree from the side into a texture, used as a camera-facing card far away
+function bakeImpostor(geo,mat){const W=256,Hh=512,rt=new THREE.WebGLRenderTarget(W,Hh,{format:THREE.RGBAFormat,type:THREE.UnsignedByteType,minFilter:THREE.LinearMipmapLinearFilter,magFilter:THREE.LinearFilter,generateMipmaps:true});
+ const sc=new THREE.Scene();const mesh=new THREE.Mesh(geo,mat);sc.add(mesh);sc.add(new THREE.HemisphereLight(0xe8f0ff,0xa0aabb,1.6));const dl=new THREE.DirectionalLight(0xffffff,1.9);dl.position.set(3,8,6);sc.add(dl);
+ const oc=new THREE.OrthographicCamera(-3.6,3.6,10.6,-.6,.1,50);oc.position.set(0,5,20);oc.lookAt(0,5,0);
+ const prevT=ren.getRenderTarget(),pc=new THREE.Color();ren.getClearColor(pc);const pa=ren.getClearAlpha();ren.setClearColor(0x2d4433,0);ren.setRenderTarget(rt);ren.clear();ren.render(sc,oc);ren.setRenderTarget(prevT);ren.setClearColor(pc,pa);
+ const t=rt.texture;t.encoding=THREE.LinearEncoding;return t}
+function impostorMat(tex){const m=new THREE.MeshStandardMaterial({map:tex,color:new THREE.Color(.78,.9,.8),alphaTest:.3,roughness:.95,metalness:0,envMapIntensity:.3,side:THREE.DoubleSide});
+ m.onBeforeCompile=sh=>{sh.vertexShader=sh.vertexShader.replace('#include <beginnormal_vertex>',`#include <beginnormal_vertex>
+   #ifdef USE_INSTANCING
+   vec3 ipn=vec3(instanceMatrix[3][0],0.,instanceMatrix[3][2]);vec3 tcn=cameraPosition-ipn;float angn=atan(tcn.x,tcn.z);float cn=cos(angn),snn=sin(angn);objectNormal=vec3(objectNormal.x*cn+objectNormal.z*snn,objectNormal.y,-objectNormal.x*snn+objectNormal.z*cn);
+   #endif`).replace('#include <begin_vertex>',`#include <begin_vertex>
+   #ifdef USE_INSTANCING
+   transformed=vec3(transformed.x*cn+transformed.z*snn,transformed.y,-transformed.x*snn+transformed.z*cn);
+   #endif`)};
+ m.customProgramCacheKey=()=>'impostor';return m}
+function impostorGeo(){const g=new THREE.PlaneGeometry(7.2,11.2);g.translate(0,5,0);const n=g.attributes.normal;for(let i=0;i<n.count;i++)n.setXYZ(i,0,.45,.89);return g}
+// trees: the row along the run edge uses needle-card spruces when the camera is near; everything else is a baked camera-facing card
+function buildTrees(grp){const r=mulberry(PK.seed*7+3),CL=60,lift=PK.def.liftU,thin=PERF.tier<1?.75:1;
+ if(!MAT.treeCard){const atlas=branchAtlas(),TM=treeMats(atlas);MAT.treeCard=TM.m;MAT.treeDepth=TM.d;MAT.gA=cardTreeGeo(0);MAT.gB=cardTreeGeo(1);MAT.impA=impostorMat(bakeImpostor(MAT.gA,TM.m));MAT.impB=impostorMat(bakeImpostor(MAT.gB,TM.m));MAT.impG=impostorGeo();for(const[m,k]of[[MAT.treeCard,'tc'],[MAT.impA,'ia'],[MAT.impB,'ib']]){m.userData.obc=m.onBeforeCompile;m.userData.key=k;lampify(m)}}
+ const mk=(g,mat,M,card)=>{const im=new THREE.InstancedMesh(g,mat,M.length),m=new THREE.Matrix4(),q=new THREE.Quaternion(),e=new THREE.Euler();M.forEach((t,i)=>{e.set(0,card?t[4]:0,0);q.setFromEuler(e);m.compose(new THREE.Vector3(t[0],t[1],t[2]),q,new THREE.Vector3(t[3],t[3]*(.92+.16*((i*13)%7)/7),t[3]));im.setMatrixAt(i,m)});im.computeBoundingSphere&&im.computeBoundingSphere();return im};
+ for(let s0=PK.S0;s0<PK.len+220;s0+=CL){const E=[[],[]],F=[[],[]];for(let s=s0;s<s0+CL;s+=2.8){const W=halfW(s),c=cxS(s);for(const sd of[-1,1]){let u=W+4.5+r()*3;while(u<W+170){const dens=(u<W+14?.8:u<W+50?.5:.28)*thin;
+    if(r()<dens){const x=c+sd*u+(r()-.5)*2,z=-s+(r()-.5)*2.4;const uu=x-c;if(!(lift!==undefined&&Math.abs(uu-lift)<9)){const sc=.8+r()*.65,t=[x,terrainH(x,z)-.25,z,sc,r()*TAU],v=r()<.6?0:1;(u<W+15?E:F)[v].push(t)}}u+=2.2+r()*3.6+(u-W)*.05}}}
+  const c={s:s0+CL/2,edge:[],edgeImp:[],far:[]};
+  for(const v of[0,1]){if(E[v].length){const card=mk(v?MAT.gB:MAT.gA,MAT.treeCard,E[v],1);card.castShadow=save.set.q>0;card.customDepthMaterial=MAT.treeDepth;const imp=mk(MAT.impG,v?MAT.impB:MAT.impA,E[v],0);imp.visible=false;grp.add(card,imp);c.edge.push(card);c.edgeImp.push(imp)}
+   if(F[v].length){const imp=mk(MAT.impG,v?MAT.impB:MAT.impA,F[v],0);grp.add(imp);c.far.push(imp)}}
+  WORLD.treeChunks.push(c)}}
+function updateTreeLOD(cs){const R=PERF.tier<1?75:PERF.tier<2?120:170;for(const c of WORLD.treeChunks){const near=Math.abs(c.s-cs)<R;c.edge.forEach(m=>m.visible=near);c.edgeImp.forEach(m=>m.visible=!near)}}
 // ---------------- fences, floodlights, lift, start, finish ----------------
 function buildFences(grp){const V=[],UV=[],I=[];const post=[];
  for(const sd of[-1,1]){let prev=null;for(let s=-40;s<=PK.finishS+30;s+=5){const u=sd*(halfW(s)+1.6),x=cxS(s)+u,z=-s,y=terrainH(x,z);post.push([x,y,z]);
@@ -972,7 +1034,7 @@ function poseSkier(dt,t){if(!RD.ready)return;const B=RD.bones,P=POSE;
 
 // ================= PHYSICS: carving, popping, air rotation, rails, butters, landings =================
 // Fixed 120 Hz steps. On snow PH.pos is the ski bases; in the air the body's centre of mass flies and the feet hang below it.
-const G9=9.81,COM=.86,DT=1/120;
+const G9=11.2,COM=.86,DT=1/120;// a little heavier than real gravity: snappier, less floaty airs
 const PH={pos:new THREE.Vector3(),vel:new THREE.Vector3(),com:new THREE.Vector3(),n:new THREE.Vector3(0,1,0),dir:new THREE.Vector3(0,0,-1),q:new THREE.Quaternion(),
  ground:true,airT:0,offT:0,sw:false,steer:0,edge:0,brake:0,tuck:0,skid:0,load:0,wind:0,coyote:0,popped:false,
  rail:null,railCool:0,lastRail:null,butter:null,butterCool:0,crash:null,speed:0,top:0,landT:9,impact:0,sketch:0,lastFeat:null,
@@ -1041,7 +1103,7 @@ function takeoff(ev){const p=PH.pos,n=PH.n;
  PH.phiV=-PH.spinIn*5.2;PH.spinIn=0;PH.phi0=0;PH.fromRail=false;PH.wind=0;PH.takeoffSw=PH.sw;PH.grabHeld={1:0,2:0,3:0};PH.grabOrder=[];PH.grab=0;PH.butterAir=false;PH.butter=null;
  featH(p.x,p.z);PH.lastFeat=FH.f;PH.landPred=null;PH.vpPrev=null;ev.takeoff=1}
 // ---------------- air ----------------
-const SPIN_MAX=7.6,FLIP_MAX=6.4,ROLL_MAX=5.6;
+const SPIN_MAX=8.6,FLIP_MAX=7.4,ROLL_MAX=6.4;
 // after letting go: keep turning to the next half spin (or full flip) and stop on it, slowing only as much as needed
 function settle(x,v,tgt){const e=tgt-x,ae=Math.abs(e);if(ae<1e-3)return 0;const s=Math.sign(e),sp=Math.min(Math.max(Math.abs(v)*(Math.sign(v)===s?1:0),2.2),Math.sqrt(2*22*ae));return Math.min(sp,ae/DT)*s}
 function stepAir(I,ev){const v=PH.vel,c=PH.com;PH.airT+=DT;
@@ -1323,8 +1385,8 @@ function geoFrom(m,skinned){const g=new THREE.BufferGeometry();g.setAttribute('p
  g.setIndex(new THREE.BufferAttribute(m.idx,1));m.groups.forEach(([s,c,z])=>{if(c>0)g.addGroup(s,c,z)});g.computeBoundingSphere();return g}
 function onModel(n,meta,m){MOD.meta[n]=meta;MOD.geo[n]=geoFrom(m,meta.nb>1);MOD.done++;const lb=$('loadBar');if(lb)lb.style.transform=`scaleX(${MOD.done/MOD.total})`;
  if(n==='skier')buildSkier();if(n==='helmet'||n==='beanie')buildHead();if(MOD.done>=MOD.total&&G.mode==='boot'){G.mode='menu';show('menu');menuView()}}
-function pumpModels(){for(const w of MOD.workers){if(MOD.busy.has(w)||!MOD.queue.length)continue;const n=MOD.queue.shift();MOD.busy.set(w,n);w.postMessage({n,h:PERF.tier<1?1.2:1})}}
-function mainThreadModels(){if(!MOD.lib)MOD.lib=MODLIB();const step=()=>{if(!MOD.queue.length)return;const n=MOD.queue.shift();try{const spec=MOD.lib.MODELS.list[n]();if(PERF.tier<1)spec.h*=1.2;const m=MOD.lib.SDF.build(spec);onModel(n,{bones:spec.bones||null,nb:spec.nb,J:spec.J||null},m)}catch(e){console.error(e)}setTimeout(step,0)};step()}
+function pumpModels(){for(const w of MOD.workers){if(MOD.busy.has(w)||!MOD.queue.length)continue;const n=MOD.queue.shift();MOD.busy.set(w,n);w.postMessage({n,h:1})}}
+function mainThreadModels(){if(!MOD.lib)MOD.lib=MODLIB();const step=()=>{if(!MOD.queue.length)return;const n=MOD.queue.shift();try{const spec=MOD.lib.MODELS.list[n]();const m=MOD.lib.SDF.build(spec);onModel(n,{bones:spec.bones||null,nb:spec.nb,J:spec.J||null},m)}catch(e){console.error(e)}setTimeout(step,0)};step()}
 function startModels(){MOD.queue=MORDER.slice();MOD.total=MOD.queue.length;
  const src='const L=('+MODLIB.toString()+')();onmessage=e=>{const n=e.data.n;const spec=L.MODELS.list[n]();spec.h*=e.data.h||1;const m=L.SDF.build(spec);const meta={bones:spec.bones||null,nb:spec.nb,J:spec.J||null};postMessage({n:n,meta:meta,m:m},[m.pos.buffer,m.nor.buffer,m.col.buffer,m.si.buffer,m.sw.buffer,m.idx.buffer])};';
  try{const url=URL.createObjectURL(new Blob([src],{type:'text/javascript'})),nw=clamp((navigator.hardwareConcurrency||4)-1,1,3);
