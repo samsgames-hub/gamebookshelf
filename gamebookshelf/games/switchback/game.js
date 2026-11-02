@@ -120,7 +120,7 @@ up:'uniform sampler2D t;uniform sampler2D tAdd;uniform vec2 px;uniform float k;v
 comp:`uniform sampler2D tScene;uniform sampler2D tBloom;uniform float bloom;uniform float exposure;uniform float vig;uniform float speed;uniform float fade;uniform float white;uniform float sat;uniform vec3 lift;uniform vec3 gain;varying vec2 vUv;
 vec3 aces(vec3 x){return clamp((x*(2.51*x+.03))/(x*(2.43*x+.59)+.14),0.,1.);}
 void main(){vec2 dc=vUv-.5;float r2=dot(dc,dc);vec3 col=texture2D(tScene,vUv).rgb;
- if(speed>.01){vec2 dir=dc*speed*.05*smoothstep(.02,.25,r2);vec3 acc=col;for(int i=1;i<6;i++){float f=float(i)/5.;acc+=texture2D(tScene,vUv-dir*f).rgb;}col=acc/6.;}
+ if(speed>.01){vec2 dir=dc*speed*.05*smoothstep(.02,.25,r2);vec3 acc=col;for(int i=1;i<8;i++){float f=float(i)/7.;acc+=texture2D(tScene,vUv-dir*f).rgb;}col=acc/8.;}
  col+=texture2D(tBloom,vUv).rgb*bloom;col*=exposure;col=aces(col);float l=dot(col,vec3(.299,.587,.114));col=mix(vec3(l),col,sat);
  col=pow(col,vec3(1./2.2));col=col*gain+lift*(1.-col);col*=1.-vig*r2*1.4;col=mix(col,vec3(1.),white);col*=1.-fade;gl_FragColor=vec4(col,1.);}`,
 partV:'attribute float psize;attribute vec4 pcol;uniform float scale;varying vec4 vC;void main(){vC=pcol;vec4 mv=modelViewMatrix*vec4(position,1.);gl_PointSize=min(psize*scale/max(-mv.z,.05),900.);gl_Position=projectionMatrix*mv;}',
@@ -173,7 +173,7 @@ const TOD={
  golden:{name:'Golden hour',el:9,az:118,zen:0x2a5596,hor:0xffcf9e,haze:0xe9d2bb,sun:0xffb86b,sunI:3.1,sky:0x8aa3d4,gnd:0x8a7a52,hemiI:.58,fog:0xd9c6b0,fogD:.0003,cloud:.34,snow:0,exp:.64,sat:1.13,gain:[1.05,1,.94],lift:[.012,.004,0],stars:0,head:0},
  overcast:{name:'Snow cloud',el:28,az:160,zen:0x8792a3,hor:0xc5ced8,haze:0xccd4dd,sun:0xe2e8f0,sunI:1.05,sky:0xc0cbda,gnd:0xb8c0cc,hemiI:1.25,fog:0xc4ccd6,fogD:.0011,cloud:.92,snow:.35,exp:.66,sat:.9,gain:[.98,1,1.02],lift:[.02,.02,.03],stars:0,head:.4},
  dusk:{name:'Blue hour',el:-2,az:165,zen:0x0f1c3e,hor:0x5f72a8,haze:0x6b78a2,sun:0x95a8ff,sunI:.6,sky:0x51659e,gnd:0x3a4258,hemiI:.85,fog:0x56638c,fogD:.0005,cloud:.22,snow:0,exp:1.05,sat:1.02,gain:[.96,.99,1.06],lift:[0,.005,.03],stars:.8,head:1},
- night:{name:'Night',el:38,az:-40,zen:0x02050d,hor:0x0d1626,haze:0x111a2b,sun:0x9fb4ff,sunI:.32,sky:0x22304f,gnd:0x0d1018,hemiI:.55,fog:0x0b111c,fogD:.0006,cloud:.18,snow:0,exp:1.5,sat:.95,gain:[.95,.99,1.08],lift:[0,.004,.018],stars:1,head:1}};
+ night:{name:'Night',el:38,az:-40,zen:0x02050d,hor:0x0d1626,haze:0x111a2b,sun:0x9fb4ff,sunI:.32,sky:0x22304f,gnd:0x0d1018,hemiI:.55,fog:0x0b111c,fogD:.0006,cloud:.18,snow:0,exp:1.25,sat:.95,gain:[.95,.99,1.08],lift:[0,.004,.018],stars:1,head:1}};
 const TOD_KEYS=['day','golden','overcast','dusk','night'];
 let todKey='day',T=TOD.day;
 const sunVec=new THREE.Vector3();
@@ -545,7 +545,7 @@ function treeLOD(cx,cz,force){const P=PROPS;if(!force&&(cx-P.lod.x)**2+(cz-P.lod
   _e.set(0,near?rot:0,0);_q.setFromEuler(_e);_m4.compose(_v.set(x,y,z),_q,_sv.set(sc,sc,sc));t.im.setMatrixAt(n[key]++,_m4)}
  for(const k in n){T[k].im.count=n[k];T[k].im.instanceMatrix.needsUpdate=true}}
 // ---------- lake and snow banks ----------
-function buildWater(){const g=new THREE.CircleGeometry(4200,96);g.rotateX(-PI/2);const m=new THREE.MeshStandardMaterial({color:0x0b2a33,roughness:.05,metalness:.0,envMapIntensity:1.6,normalMap:TX.grassN,normalScale:new THREE.Vector2(.15,.15),transparent:false});
+function buildWater(){const g=new THREE.CircleGeometry(4200,96);g.rotateX(-PI/2);const m=new THREE.MeshStandardMaterial({color:0x061d26,roughness:.12,metalness:.0,envMapIntensity:.85,normalMap:TX.grassN,normalScale:new THREE.Vector2(.15,.15),transparent:false});
  m.userData.u={time:{value:0}};m.onBeforeCompile=sh=>{Object.assign(sh.uniforms,m.userData.u);sh.fragmentShader=sh.fragmentShader.replace('#include <alphatest_fragment>','diffuseColor.a*=1.+.007/gl_FragCoord.w;\n#include <alphatest_fragment>');sh.vertexShader=sh.vertexShader.replace('#include <uv_vertex>','#include <uv_vertex>\n#ifdef USE_UV\nvUv=(modelMatrix*vec4(position,1.)).xz*.02;\n#endif');
   sh.fragmentShader=sh.fragmentShader.replace('#include <common>','#include <common>\nuniform float time;').replace('#include <normal_fragment_maps>',`
    vec3 mapN=texture2D(normalMap,vUv+vec2(time*.004,time*.003)).xyz*2.-1.;vec3 mapN2=texture2D(normalMap,vUv*2.7-vec2(time*.006,-time*.002)).xyz*2.-1.;mapN=normalize(vec3((mapN.xy+mapN2.xy)*normalScale,1.));
@@ -657,7 +657,7 @@ const LAMPS={
   r:`tl=max(tl,rf*box(o.y,YL1-.1,YL1-.045,.005)*box(az,W1*.42,W1*.97,.01));tl=max(tl,box(p,.968,1.02,.003)*box(a,.4,.5,.006)*step(W2*.55,az));grille=max(grille,rf*box(o.y,-1.,Y1B+.07,.006));`},
  rally:{f:`grille=max(grille,ff*box(o.y,Y0T-.13,Y0T-.035,.006)*box(az,-1.,W0*.5,.01));grille=max(grille,ff*box(o.y,Y0B+.03,Y0B+.17,.006)*box(az,-1.,W0*.78,.01));
    hl=max(hl,ff*box(o.y,Y0T-.12,Y0T-.02,.006)*box(az,W0*.56,W0*.93,.01));`,
-  r:`tl=max(tl,rf*box(o.y,YL1-.17,YL1-.02,.006)*box(az,W1*.68,W1*.95,.01));tl=max(tl,box(p,.972,1.02,.003)*box(a,.38,.56,.006)*step(W2*.7,az));grille=max(grille,rf*box(o.y,-1.,Y1B+.08,.006));`},
+  r:`tl=max(tl,rf*box(o.y,YL1-.17,YL1-.02,.006)*box(az,W1*.68,W1*.95,.01));tl=max(tl,box(p,.976,1.02,.003)*box(a,.42,.52,.006)*step(W2*.74,az));grille=max(grille,rf*box(o.y,-1.,Y1B+.08,.006));`},
  muscle:{f:`float gr=ff*box(o.y,Y0B+.1,Y0T-.05,.006)*box(az,-1.,W0*.92,.01);grille=max(grille,gr);
    vec2 lc=vec2(az-W0*.74,o.y-(Y0B+Y0T+.05)*.5);hl=max(hl,ff*(1.-smoothstep(.068,.078,length(lc))));grille=max(grille,ff*box(o.y,-1.,Y0B+.06,.006));`,
   r:`tl=max(tl,rf*box(o.y,YL1-.16,YL1-.05,.006)*box(az,W1*.1,W1*.95,.01));tl=max(tl,box(p,.975,1.02,.003)*box(a,.38,.47,.006)*step(W2*.75,az));grille=max(grille,rf*box(o.y,-1.,Y1B+.07,.006));`},
@@ -1094,7 +1094,7 @@ function togglePause(){if(G.mode==='race'){G.mode='paused';show('pause');$('paus
  else if(G.mode==='paused'){G.mode='race';hideAll();if(AU.ctx)AU.ctx.resume()}}
 click('bResume',()=>togglePause());click('bRestart',()=>{if(AU.ctx)AU.ctx.resume();launch(RACE.track,RACE.mode)});click('bQuit',()=>{if(AU.ctx)AU.ctx.resume();toMenu()});
 click('bPauseSet',()=>{backTo='pause';loadSettings();show('settings')});
-function showResults(){G.mode='results';show('results');const r=RACE,fs=finalStandings(),pl=r.player,pos=fs.findIndex(e=>e.c===pl)+1;
+function showResults(){G.mode='results';show('results');H.hud.classList.add('hide');H.touch.classList.add('hide');CAMS.orbit=0;const r=RACE,fs=finalStandings(),pl=r.player,pos=fs.findIndex(e=>e.c===pl)+1;
  $('resTitle').textContent=pos===1?'Victory':ordinal(pos)+' place';$('resSub').textContent=r.track.name+', '+r.laps+' laps, '+DIFF[save.set.diff].n;
  const tb=$('resTable');tb.innerHTML='';fs.forEach((e,i)=>{const tr=document.createElement('tr');if(e.c===pl)tr.className='me';const c=e.c;
   [i+1,c.isPlayer?'You':c.ai.name,c.def.name,(e.est?'~':'')+fmtT(e.t),fmtT(c.bestLap)].forEach(v=>{const td=document.createElement('td');td.textContent=v;tr.appendChild(td)});tb.appendChild(tr)});
@@ -1175,6 +1175,11 @@ function menuCam(dt){const p=RACE.player;if(!p)return;CAMS.orbit+=dt*(viewMode==
  const cx=p.x+Math.cos(a+p.th)*d,cz=p.z+Math.sin(a+p.th)*d;CAMS.pos.set(cx,Math.max(p.y+h,terrainH(cx,cz)+.8),cz);
  const side=viewMode==='garage'?0:2.3;CAMS.look.set(p.x-Math.sin(a+p.th)*side*.0,p.y+.65,p.z);CAMS.fov=damp(CAMS.fov,viewMode==='garage'?40:46,3,dt);
  if(innerWidth>820){const dx=p.x-CAMS.pos.x,dz=p.z-CAMS.pos.z,l=Math.hypot(dx,dz)||1,k=viewMode==='garage'?1.6:2.6;CAMS.look.x-=-dz/l*k;CAMS.look.z-=dx/l*k}}
+// slow orbit around your car behind the results card
+function resultsCam(dt){const p=RACE.player;if(!p)return;CAMS.orbit+=dt*.12;const a=p.th+2.4+CAMS.orbit,d=7.8,cx=p.x+Math.cos(a)*d,cz=p.z+Math.sin(a)*d;
+ CAMS.pos.set(cx,Math.max(p.y+1.9,terrainH(cx,cz)+.9),cz);
+ CAMS.look.set(p.x+Math.cos(p.th)*1.5,p.y+.7,p.z+Math.sin(p.th)*1.5);
+ if(innerWidth>820){const dx=p.x-CAMS.pos.x,dz=p.z-CAMS.pos.z,l=Math.hypot(dx,dz)||1;CAMS.look.x+=dz/l*2.4;CAMS.look.z-=dx/l*2.4}CAMS.fov=damp(CAMS.fov,44,2,dt)}
 // ================= MAIN LOOP =================
 let last=performance.now(),FORCE=null;
 function loop(now){requestAnimationFrame(loop);const dt=Math.min(.05,(now-last)/1000);last=now;try{step(dt)}catch(e){console.error(e);$('err').className='';$('err').textContent='Something went wrong: '+e.message}}
@@ -1188,12 +1193,15 @@ function physicsTick(dt){const r=RACE,pl=r.player;const inp=FORCE||readInput(dt)
  updateRace(dt)}
 function playerReset(){const p=RACE.player;if(!p||!RACE.go||p.finished)return;respawnCar(p);HUDmsg('Back on the road',1);camSnap()}
 function step(dt){G.t+=dt;const t=G.t;
- if(G.mode==='race'||G.mode==='results'){physicsTick(dt);camFollow(dt);hudUpdate(dt)}
+ if(G.mode==='race'){physicsTick(dt);camFollow(dt);hudUpdate(dt)}
+ else if(G.mode==='results'){physicsTick(dt);resultsCam(dt)}
  else if(G.mode==='menu'){const p=RACE.player;if(p){p.thr=0;p.rpm=damp(p.rpm,950+Math.sin(t*.7)*40,3,dt)}menuCam(dt)}
  for(const c of RACE.cars){carVisual(c,dt);if(G.mode!=='paused')carFX(c,dt)}
  if(G.mode!=='paused'){SMOKE.update(dt);SPARK.update(dt);updateFlakes(t,1.2,.6)}
  headUpdate();audioUpdate(dt);
  const p=RACE.player;if(p){treeLOD(p.x,p.z,false);sun.position.set(p.x+sunVec.x*220,p.y+sunVec.y*220,p.z+sunVec.z*220);sun.target.position.set(p.x,p.y,p.z);sun.target.updateMatrixWorld()}
+ // a little radial blur at speed and under nitro
+ {let sb=0;if(p&&G.mode==='race'){const sp=Math.hypot(p.vx,p.vz);sb=clamp((sp-38)/50,0,1)*.5+(p.nitroOn?.4:0)}PP.comp.uniforms.speed.value=damp(PP.comp.uniforms.speed.value,sb,4,dt)}
  camApply(dt);sky.position.copy(cam.position);skyU.camPos.value.copy(cam.position);skyU.time.value=t;if(farMts)farMts.position.set(cam.position.x,0,cam.position.z);
  if(MAT.treeCard)MAT.treeCard.userData.u.time.value=t;if(MAT.water)MAT.water.userData.u.time.value=t;
  renderFrame()}
