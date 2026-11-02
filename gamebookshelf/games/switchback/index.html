@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>Switchback</title>
+<meta name="description" content="Race five rivals over mountain roads full of hairpins. Drift, draft and use nitro to win. Free in your browser.">
+<meta name="theme-color" content="#15171b">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Saira+Condensed:ital,wght@0,600;0,700;0,800;1,700;1,800&family=Saira+Semi+Condensed:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body class="inmenu">
+<div id="err" class="hide" role="alert"></div>
+
+<!-- ============ HUD ============ -->
+<div id="hud" class="hide">
+ <div class="hud-tl">
+  <div class="posbox"><span class="lbl">Position</span><div id="pos" data-n="/6"><span id="posN">-</span></div></div>
+  <div class="lapbox" id="lapBox"><span class="lbl">Lap</span><div><span id="lap">1</span><small id="lapN">/3</small></div></div>
+ </div>
+ <div class="hud-tr">
+  <div class="trow"><span>Lap</span><b id="tCur">0:00.00</b></div>
+  <div class="trow" id="rowBest"><span>Best</span><b id="tBest">&mdash;</b></div>
+  <div class="trow" id="rowTot"><span>Total</span><b id="tTot">0:00.00</b></div>
+ </div>
+ <canvas id="map" width="220" height="170" aria-label="Track map"></canvas>
+ <div class="speedo">
+  <div class="spd"><span id="spd">0</span><small id="unit">km/h</small></div>
+  <div class="gearrow"><span class="gear" id="gear">1</span><div class="rpm" id="rpm"><i></i></div></div>
+  <div class="nitro" id="nitroB"><span>Nitro</span><b><i id="nitroF"></i></b></div>
+ </div>
+ <div id="count" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
+ <div id="msg"></div>
+ <div id="pops"></div>
+ <div id="drift"><span>Drift</span><b id="driftN">0</b></div>
+ <div id="wrong">Wrong way</div>
+</div>
+
+<!-- ============ TOUCH ============ -->
+<div id="touch" class="hide">
+ <div class="tl"><button data-k="left" aria-label="Steer left">&#9664;</button><button data-k="right" aria-label="Steer right">&#9654;</button></div>
+ <div class="tr"><button data-k="hand" class="sm">Drift</button><button data-k="nitro" class="sm">Nitro</button><button data-k="brake" class="pedal">Brake</button><button data-k="gas" class="pedal gas">Gas</button></div>
+</div>
+
+<!-- ============ MENUS ============ -->
+<section id="menu" class="panel side">
+ <div class="hazard" aria-hidden="true"></div>
+ <h1 class="title">Switchback</h1>
+ <p class="tag">Mountain road racing. Six cars, three laps, no room on the outside.</p>
+ <nav class="stack">
+  <button id="bRace" class="big">Race</button>
+  <button id="bTT">Time trial</button>
+  <button id="bGarage">Garage</button>
+  <button id="bRec">Records</button>
+  <button id="bSet">Settings</button>
+  <button id="bHelp">How to play</button>
+ </nav>
+ <p class="foot">Keyboard, controller or touch</p>
+</section>
+
+<section id="setup" class="panel wide hide">
+ <header class="phead"><h2 id="setupTitle">Race</h2><p id="setupNote"></p></header>
+ <div id="trackList" class="tracks"></div>
+ <div class="opts" id="optRow">
+  <div class="opt"><span class="olbl">Time of day</span><div class="seg" id="optTod"></div></div>
+  <div class="opt race-only"><span class="olbl">Laps</span><div class="seg" id="optLaps"></div></div>
+  <div class="opt race-only"><span class="olbl">Rivals</span><div class="seg" id="optDiff"></div></div>
+ </div>
+ <div class="setfoot">
+  <div class="carline"><span class="olbl">Your car</span><b id="setupCar"></b><button id="setupGarage" class="link">Change car</button></div>
+  <div class="btns"><button data-back class="ghost">Back</button><button id="bGo" class="go">Start</button></div>
+ </div>
+</section>
+
+<section id="garage" class="panel side garage hide">
+ <header class="phead"><h2>Garage</h2></header>
+ <div id="carList" class="cars"></div>
+ <h3 id="cTitle"></h3>
+ <p id="cDesc" class="desc"></p>
+ <div id="cStats" class="stats"></div>
+ <div class="paintrow"><span class="olbl">Paint</span><span id="paintName"></span></div>
+ <div id="paints" class="paints"></div>
+ <div class="btns"><button id="garageBack" class="go">Done</button></div>
+</section>
+
+<section id="records" class="panel side hide">
+ <header class="phead"><h2>Records</h2><p id="recSum"></p></header>
+ <div id="recList"></div>
+ <div class="btns"><button data-back class="ghost">Back</button></div>
+</section>
+
+<section id="settings" class="panel side hide">
+ <header class="phead"><h2>Settings</h2></header>
+ <label class="field"><span>Master volume</span><input type="range" id="sMaster" min="0" max="10" step="1"></label>
+ <label class="field"><span>Music</span><input type="range" id="sMusic" min="0" max="10" step="1"></label>
+ <label class="field"><span>Sound effects</span><input type="range" id="sSfx" min="0" max="10" step="1"></label>
+ <label class="field"><span>Graphics</span><select id="sQ"><option value="0">Low (faster)</option><option value="1">Medium</option><option value="2">High</option></select></label>
+ <label class="field"><span>Speed in</span><select id="sUnits"><option value="kmh">km/h</option><option value="mph">mph</option></select></label>
+ <label class="check"><input type="checkbox" id="sAssist"><span>Steering help when the car slides</span></label>
+ <label class="check"><input type="checkbox" id="sShake"><span>Camera shake</span></label>
+ <div class="btns"><button data-back class="ghost">Back</button></div>
+</section>
+
+<section id="help" class="panel side hide">
+ <header class="phead"><h2>How to play</h2><p>Finish ahead of five rivals. Corners are where races are won: brake before the turn, then get back on the power early.</p></header>
+ <table class="keys">
+  <tr><th>W or Up</th><td>Accelerate</td></tr>
+  <tr><th>S or Down</th><td>Brake, then reverse</td></tr>
+  <tr><th>A D or Left Right</th><td>Steer</td></tr>
+  <tr><th>Space</th><td>Handbrake, to start a drift</td></tr>
+  <tr><th>Shift</th><td>Nitro</td></tr>
+  <tr><th>C</th><td>Change camera</td></tr>
+  <tr><th>R</th><td>Put the car back on the road</td></tr>
+  <tr><th>Esc</th><td>Pause</td></tr>
+ </table>
+ <p class="desc">Nitro refills when you drift, overtake or sit in another car's slipstream. On a controller: right trigger to accelerate, left trigger to brake, A for the handbrake, X for nitro.</p>
+ <div class="btns"><button data-back class="ghost">Back</button></div>
+</section>
+
+<section id="pause" class="panel side hide">
+ <header class="phead"><h2>Paused</h2><p id="pauseInfo"></p></header>
+ <nav class="stack">
+  <button id="bResume" class="big">Resume</button>
+  <button id="bRestart">Restart</button>
+  <button id="bPauseSet">Settings</button>
+  <button id="bQuit">Quit to menu</button>
+ </nav>
+</section>
+
+<section id="results" class="panel side wide2 hide">
+ <header class="phead"><h2 id="resTitle"></h2><p id="resSub"></p></header>
+ <table class="res"><thead><tr><th>Pos</th><th>Driver</th><th>Car</th><th>Time</th><th>Best lap</th></tr></thead><tbody id="resTable"></tbody></table>
+ <p id="resNotes" class="desc"></p>
+ <div class="btns"><button id="bMenu" class="ghost">Menu</button><button id="bNext" class="ghost">Next track</button><button id="bAgain" class="go">Race again</button></div>
+</section>
+
+<section id="loading" class="hide"><div class="load"><span class="olbl">Building</span><b id="loadName"></b></div></section>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" onerror="var b=document.getElementById('err');b.className='';b.textContent='Couldn’t load the 3D engine. Check your internet connection and reload the page.'"></script>
+<script src="game.js"></script>
+</body>
+</html>
