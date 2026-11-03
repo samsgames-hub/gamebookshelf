@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>Slingshot</title>
+<meta name="description" content="Orbit a planet, let go at the right moment and sling yourself to the next one. How far up can you get?">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230b0f1f'/%3E%3Ccircle cx='13' cy='18' r='6' fill='%236be3ff'/%3E%3Ccircle cx='23' cy='9' r='3' fill='%23ffe36b'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;800&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0}html,body{height:100%;overflow:hidden;background:#0b0f1f;color:#eef3ff;font-family:Unbounded,system-ui,sans-serif;-webkit-user-select:none;user-select:none;touch-action:manipulation}
+canvas{position:fixed;inset:0;width:100%;height:100%}
+#hud{position:fixed;top:max(4vh,18px);left:0;right:0;text-align:center;pointer-events:none}#score{font-size:clamp(44px,9vw,84px);font-weight:800;line-height:1}#sub{margin-top:6px;font-size:14px;font-weight:500;color:#9fb1d8}
+.panel{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);width:min(400px,calc(100% - 32px));padding:28px;border-radius:20px;background:rgba(11,15,31,.82);border:1px solid #26305a;text-align:center}
+.panel.hide{display:none}h1{font-size:44px;font-weight:800;letter-spacing:-.02em}h2{font-size:26px}.panel p{margin-top:14px;font:500 15px/1.5 system-ui,sans-serif;color:#c9d4f2}.how{color:#6be3ff!important;font-weight:700!important}
+.big{font-size:64px!important;font-weight:800!important;color:#eef3ff!important;font-family:Unbounded,sans-serif!important;line-height:1;margin-top:8px!important}
+button{margin-top:20px;font:800 16px Unbounded,sans-serif;padding:14px 26px;border:0;border-radius:12px;background:#6be3ff;color:#0b0f1f;cursor:pointer}button:focus-visible{outline:3px solid #fff;outline-offset:3px}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="hud"><div id="score">0</div><div id="sub"></div></div>
+<div id="start" class="panel"><h1>Slingshot</h1><p>You are circling a planet. Let go and you fly off in a straight line. Get caught by the next planet's pull to keep climbing. Grab stars on the way.</p><p class="how">Tap, click or press Space to let go</p><p id="bestS"></p></div>
+<div id="over" class="panel hide"><h2 id="oT">Lost in space</h2><p class="big" id="oS">0</p><p id="oB"></p><button id="again">Fly again</button></div>
+<script src="game.js"></script>
+<!-- visitor counter: no cookies, no personal data -->
+<script data-goatcounter="https://gamebookshelf.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
+</body>
+</html>
