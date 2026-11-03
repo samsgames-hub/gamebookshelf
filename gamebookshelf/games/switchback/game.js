@@ -111,7 +111,7 @@ const FT=HDR?THREE.HalfFloatType:THREE.UnsignedByteType;
 // aerial perspective: a long exponential tail instead of the squared fog, so far ridges stay readable
 THREE.ShaderChunk.fog_fragment=THREE.ShaderChunk.fog_fragment.replace('float fogFactor = 1.0 - exp( - fogDensity * fogDensity * fogDepth * fogDepth );','float fogFactor = 1.0 - exp( - pow( fogDensity * fogDepth, 1.25 ) );');
 const scene=new THREE.Scene();scene.fog=new THREE.FogExp2(0xbfd2e6,.0004);
-const cam=new THREE.PerspectiveCamera(62,1,.2,9000);scene.add(cam);
+const cam=new THREE.PerspectiveCamera(62,1,.3,9000);scene.add(cam);
 const SH={
 quadV:'varying vec2 vUv;void main(){vUv=uv;gl_Position=vec4(position.xy,0.,1.);}',
 bright:'uniform sampler2D t;uniform float th;varying vec2 vUv;void main(){vec3 c=min(texture2D(t,vUv).rgb,vec3(30.));float l=max(max(c.r,c.g),c.b);gl_FragColor=vec4(c*max(l-th,0.)/max(l,1e-4),1.);}',
@@ -149,6 +149,8 @@ function setupPost(){const q=save.set.q,base=q===0?1:Math.min(devicePixelRatio,q
  const w=Math.max(2,innerWidth*pr|0),h=Math.max(2,innerHeight*pr|0);ren.setPixelRatio(cpr);ren.setSize(innerWidth,innerHeight,false);ren.domElement.style.width='100%';ren.domElement.style.height='100%';
  if(PP.rt)PP.rt.dispose();PP.mips.forEach(r=>r.dispose());PP.ups.forEach(r=>r.dispose());PP.mips=[];PP.ups=[];
  if(isGL2&&q>0&&THREE.WebGLMultisampleRenderTarget){PP.rt=new THREE.WebGLMultisampleRenderTarget(w,h,rtOpt(1));PP.rt.samples=q===2?4:2}else PP.rt=new THREE.WebGLRenderTarget(w,h,rtOpt(1));
+ // 24-bit depth: the default 16-bit buffer z-fights on real graphics cards
+ if(isGL2)PP.rt.depthTexture=new THREE.DepthTexture(w,h,THREE.UnsignedIntType);
  if(q>0){let bw=w>>1,bh=h>>1;const n=q===2?6:5;for(let i=0;i<n;i++){PP.mips.push(new THREE.WebGLRenderTarget(Math.max(1,bw),Math.max(1,bh),rtOpt(0)));if(i>0)PP.ups.push(new THREE.WebGLRenderTarget(Math.max(1,bw),Math.max(1,bh),rtOpt(0)));bw>>=1;bh>>=1}}
  cam.aspect=innerWidth/innerHeight;cam.updateProjectionMatrix();PP.comp.uniforms.tBloom.value=black;
  ren.shadowMap.enabled=true;sun.castShadow=true;const sz=q===2?2048:1024;sun.shadow.mapSize.set(sz,sz);if(sun.shadow.map){sun.shadow.map.dispose();sun.shadow.map=null}

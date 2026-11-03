@@ -17,7 +17,7 @@ const JACKETS=[
  {id:'j6',name:'Oxblood',c:0x7a1f2b,c2:0xf0e6d8,cost:1500},{id:'j7',name:'Midnight',c:0x1b2236,c2:0x5ec8ff,cost:2200},{id:'j8',name:'Camo snow',c:0xe9ecef,c2:0x8f9aa6,cost:3000,pat:'camo'},
  {id:'j9',name:'Sunset fade',c:0xff9a3c,c2:0x7b3fd0,cost:4500,pat:'fade'},{id:'j10',name:'Gold medal',c:0xe8b53a,c2:0x1d1d1d,cost:9000}];
 const PANTS=[
- {id:'p0',name:'Charcoal',c:0x2b2f38,cost:0},{id:'p1',name:'Sand',c:0xcdb894,cost:0},{id:'p2',name:'Olive',c:0x4b5434,cost:400},{id:'p3',name:'White',c:0xeceff2,cost:800},
+ {id:'p0',name:'Charcoal',c:0x1f2229,cost:0},{id:'p1',name:'Sand',c:0xcdb894,cost:0},{id:'p2',name:'Olive',c:0x4b5434,cost:400},{id:'p3',name:'White',c:0xeceff2,cost:800},
  {id:'p4',name:'Navy',c:0x1e2a48,cost:800},{id:'p5',name:'Plaid red',c:0xa8272e,cost:1600,pat:'plaid'},{id:'p6',name:'Lilac',c:0xb7a4e8,cost:1800}];
 const HEADS=[
  {id:'h0',name:'Park helmet',kind:'helmet',c:0x15171c,cost:0},{id:'h1',name:'White helmet',kind:'helmet',c:0xf1f2f4,cost:0},{id:'h2',name:'Orange beanie',kind:'beanie',c:0xff6a1f,cost:300},
@@ -224,10 +224,10 @@ function skier(){const P=[],JK=0,AC=1,PT=2,DK=3,SK=4;
  P.push(E(add(J.hips,[0,-.1,-.005]),[.205,.09,.16],{b:0,z:JK,k:.05}));// hem flare
  P.push(E(add(J.spine,[0,.0,0]),[.19,.15,.145],{b:1,z:JK,k:.07}));
  P.push(E(add(J.chest,[0,.02,.005]),[.225,.17,.15],{b:2,z:JK,k:.07}));
- P.push(E(add(J.chest,[0,.11,0]),[.25,.08,.13],{b:2,z:AC,k:.05}));// accent yoke across the shoulders
+ P.push(E(add(J.chest,[0,.115,-.005]),[.232,.06,.142],{b:2,z:AC,k:.012}));// accent yoke across the shoulders, kept crisp
  P.push(E(add(J.chest,[0,.16,-.1]),[.15,.09,.085],{b:2,z:AC,k:.05}));// hood
  P.push(C(add(J.chest,[0,-.14,.152]),add(J.chest,[0,.15,.142]),.011,.011,{b:2,z:DK,k:.01}));// zip
- for(const s of[-1,1])P.push(E(add(J.spine,[s*.13,-.08,.12]),[.06,.05,.025],{b:1,z:AC,k:.02}));// hand pockets
+ for(const s of[-1,1])P.push(E(add(J.spine,[s*.13,-.08,.128]),[.06,.045,.022],{b:1,z:JK,k:.006}));// hand pockets
  // neck gaiter and face
  P.push(C(add(J.neck,[0,-.05,0]),add(J.head,[0,-.04,.005]),.072,.068,{b:3,z:AC,k:.04}));
  P.push(E(add(J.head,[0,-.04,.05]),[.082,.065,.07],{b:4,z:AC,k:.03}));// gaiter over the chin
@@ -235,15 +235,15 @@ function skier(){const P=[],JK=0,AC=1,PT=2,DK=3,SK=4;
  P.push(E(add(J.head,[0,.04,.1]),[.06,.04,.03],{b:4,z:SK,k:.02}));// nose/cheeks
  // arms: puffy sleeves, cuffs, gloves
  for(const n of['R','L']){const ua=n==='R'?5:8,sh=J['sh'+n],el=J['el'+n],wr=J['wr'+n],d=nrm(sub(wr,el)),sx=n==='R'?-1:1;
-  P.push(E(sh,[.09,.09,.09],{b:ua,z:AC,k:.05}));
+  P.push(E(sh,[.088,.088,.088],{b:ua,z:JK,k:.03}));
   P.push(C(sh,el,.075,.066,{b:ua,z:JK,k:.045}));P.push(C(el,wr,.064,.056,{b:ua+1,z:JK,k:.04}));
   P.push(C(add(wr,mul(d,-.03)),add(wr,mul(d,.01)),.06,.06,{b:ua+2,z:AC,k:.02}));// cuff
   const hc=add(wr,mul(d,.07));P.push(E(hc,[.05,.06,.045],{b:ua+2,z:DK,k:.025}));// glove
   P.push(E(add(hc,[-sx*.035,.0,.03]),[.02,.04,.02],{b:ua+2,z:DK,k:.02}))}// thumb
  // baggy pants over the boots, boots clipped into bindings
  for(const n of['R','L']){const lg=n==='R'?11:14,hp=J['hp'+n],kn=J['kn'+n],an=J['an'+n],to=J['to'+n],sx=n==='R'?-1:1;
-  P.push(C(hp,kn,.105,.088,{b:lg,z:PT,k:.06}));P.push(E(add(kn,[0,0,.01]),[.085,.08,.085],{b:lg+1,z:PT,k:.04}));
-  P.push(C(kn,add(an,[0,.12,0]),.088,.083,{b:lg+1,z:PT,k:.045}));P.push(E(add(an,[0,.15,0]),[.095,.06,.1],{b:lg+1,z:PT,k:.04}));// cuff bunched over the boot
+  P.push(C(hp,kn,.105,.088,{b:lg,z:PT,k:.06}));P.push(E(add(kn,[0,0,.01]),[.08,.075,.08],{b:lg+1,z:PT,k:.035}));
+  P.push(C(kn,add(an,[0,.12,0]),.082,.078,{b:lg+1,z:PT,k:.04}));P.push(E(add(an,[0,.15,0]),[.095,.06,.1],{b:lg+1,z:PT,k:.04}));// cuff bunched over the boot
   P.push(E(add(kn,[sx*.05,.1,.02]),[.035,.07,.05],{b:lg,z:PT,k:.03}));// cargo pocket
   const bc=mix(an,to,.45);P.push(B(add(bc,[0,.035,.01]),[.055,.045,.15],.035,{b:lg+2,z:DK,k:.02}));
   P.push(E(add(an,[0,.09,-.01]),[.068,.07,.085],{b:lg+2,z:DK,k:.03}))}
