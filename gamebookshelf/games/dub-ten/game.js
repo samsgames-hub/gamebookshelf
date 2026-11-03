@@ -500,6 +500,10 @@ function pipe(s,len,o){const F=o.flat||16,r=o.r||6.4,hw=o.hw||6.7,dk=o.deck||4,f
  const f=regFeat(Object.assign(fr,{type:'pipe',PB,db,a0:-6,a1:len,bw:bmax,hmax:hw,F,r,hw,dm,deckB:F/2+dm+ext,fin:o.fin||22,fn:pipeFn}));PK.pipe=f;return f}
 function pipeFn(f,a,b){if(a<=f.a0||a>=f.a1)return 0;const fi=Math.abs(b)/f.db;if(fi>=f.PB.length-1)return 0;const i=fi|0,t=fi-i,h=f.PB[i]+(f.PB[i+1]-f.PB[i])*t;
  const fade=sstep(-6,f.fin,a)*(1-sstep(f.a1-8,f.a1,a));return h*fade}
+// a natural cliff band: a long gentle rise to a ledge, then a near-vertical drop onto the steep slope below
+function cliff(s,u,h,w,rise,flat){const da=.05,L1=rise||14,L2=flat||4,L3=h/Math.tan(78*PI/180),N=Math.ceil((L1+L2+L3)/da)+2,P=new Float32Array(N),W=new Float32Array(N);
+ for(let i=0;i<N;i++){const a=i*da;P[i]=a<L1?h*(.5-.5*Math.cos(PI*a/L1)):a<L1+L2?h:Math.max(0,h-(a-L1-L2)/L3*h);W[i]=w}
+ return tableFeat('cliff',s,u,P,W,da,.55,{lipA:L1+L2,lip:h,wr:w})}
 // a snow deck with a rail or box on it: flat across the table, then down the landing (and out onto the snow when kinked)
 function deckRail(s,u,o){const f=kicker(s,u,{lip:o.h||1.1,ang:o.ang||20,table:o.len||7.5,land:o.land||29,wr:o.w||4.2,wt:o.w||4.2,wl:(o.w||4.2)+2,drop:0,lipBack:.01,knR:3,trR:10,side:1.25});
  const a0=f.lipA+.35,a1=o.kink?f.endA+(o.kink||4):f.knA+(f.landA-f.knA)*(o.down??.8);rail(s,u,o.kind||'rail',[[a0,o.clr||.48],[a1,o.clr||.48]],{name:o.name,col:o.col});return f}
@@ -609,6 +613,18 @@ const PARKS=[
    rideOn(668,-8,{kind:'box',len:10,arc:.8,clr:.5,name:'Rainbow box',col:0xf27fb2});popRail(664,8,{h:.75,len:12,kind:'tube',name:'Down tube',col:0x2fd17a});
    kicker(730,0,'L',{name:'Last Run'});
    PK.finishS=830}},
+ {id:'bowl',name:'Powder Bowl',tag:'Freeride, deep snow',blurb:'A wide open bowl of untracked powder. Drop the cliff bands, pop off natural rollers and carve big turns. Slower snow, bigger sprays.',tod:'day',len:900,powder:1,
+  segs:[[22,4],[16,24],[120,19],[200,21],[160,18],[200,20],[100,8],[200,3]],width:[[-80,14],[-30,18],[40,55],[860,55],[900,40],[1200,45]],curve:[[-80,0],[200,8],[450,-12],[700,10],[900,0],[1200,0]],micro:2.2,
+  build(){
+   rollers(70,-18,2,1.8,13,14);rollers(80,20,2,1.4,11,12);
+   cliff(150,-8,3.2,16,16,4);cliff(170,25,2.2,12,12,3);
+   kicker(260,14,'M',{name:'Wind Lip',table:3,side:.7});rollers(250,-25,3,2.2,15,16);
+   cliff(360,-15,4.4,18,18,5);cliff(380,18,3.4,14,14,4);
+   rollers(470,0,3,2.6,16,20);
+   cliff(560,10,5.2,20,20,5);kicker(560,-28,'L',{name:'Spine Lip',table:4,side:.7});
+   rollers(650,-12,2,2.2,14,18);cliff(700,22,3,14,14,4);
+   cliff(760,-6,4,18,16,4);
+   PK.finishS=870}},
  {id:'bigair',name:'Big Air',tag:'One huge jump',blurb:'A scaffold inrun and the biggest kicker on the mountain. Learn a trick here, then go bigger.',tod:'golden',len:260,
   segs:[[30,3],[70,32],[26,10],[44,10],[60,31],[70,7],[200,2]],width:[[-80,9],[-12,10],[10,18],[200,26],[300,40]],curve:[[-80,0],[300,0]],micro:.4,
   build(){kicker(50,0,'MEGA',{name:'Big Air',table:22,land:37,wl:22,wt:13,tabAbs:0,trR:30});PK.finishS=215;PK.def.tower=1}},
@@ -654,7 +670,7 @@ function buildChunk(s0,s1,fine){// one lateral sampling for every chunk, so neig
   const off=sstep(w-1,w+6,Math.abs(u)),n1=vn2(x*.06,z*.06,PK.seed+9);const v=1-off*(.05+.06*n1);
   // wind-scoured rock shows through on the steep banks
   const n2=vn2(x*.11,z*.11,PK.seed+17),rock=off*sstep(.8,.55,Nr[k*3+1]+(n2-.5)*.35)*sstep(.35,.6,n2*.7+n1*.5),rc=.3+.12*n1;
-  C[k*3]=lerp(v*.985,rc*1.05,rock);C[k*3+1]=lerp(v*.99,rc,rock);C[k*3+2]=lerp(v,rc*.95,rock);Gm[k]=(1-off)*(1-rock);UV[k*2]=x/4;UV[k*2+1]=s/4}}
+  C[k*3]=lerp(v*.985,rc*1.05,rock);C[k*3+1]=lerp(v*.99,rc,rock);C[k*3+2]=lerp(v,rc*.95,rock);Gm[k]=PK.def.powder?0:(1-off)*(1-rock);UV[k*2]=x/4;UV[k*2+1]=s/4}}
  for(let j=0;j<ns-1;j++)for(let i=0;i<nu-1;i++){const a=j*nu+i,b=a+nu;I.push(a,b,a+1,b,b+1,a+1)}
  const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(P,3));g.setAttribute('normal',new THREE.BufferAttribute(Nr,3));g.setAttribute('color',new THREE.BufferAttribute(C,3));
  g.setAttribute('uv',new THREE.BufferAttribute(UV,2));g.setAttribute('groom',new THREE.BufferAttribute(Gm,1));g.setIndex(N>65535?new THREE.Uint32BufferAttribute(I,1):new THREE.Uint16BufferAttribute(I,1));g.computeBoundingSphere();
@@ -672,7 +688,7 @@ function featMesh(f){const isPipe=f.type==='pipe',A=[],B=[];
   let dye=0;if(f.type==='kick'){const wr=f.wr*.5-.15;if(a>f.lipA-.24&&a<f.lipA-.02&&Math.abs(b)<wr)dye=1;if(a>f.knA+.3&&a<f.knA+.5&&Math.abs(b)<f.Wt[Math.min(f.Wt.length-1,(f.knA/f.da)|0)]*.5-.4)dye=1}
   else if(f.type==='wedge'){if(a>f.lipA-.2&&a<f.lipA&&Math.abs(b)<f.wr*.5-.1)dye=1}
   else if(isPipe){const d=Math.abs(b)-f.deckB;if(d>-.02&&d<.22&&a>f.fin)dye=1}
-  const sh=1-.04*vn2(w.x*.2,w.z*.2,7),wall=sstep(.93,.55,nv.y);C[k*3]=dye?.1:sh*(.985-.2*wall);C[k*3+1]=dye?.32:sh*(.99-.15*wall);C[k*3+2]=dye?.95:sh*(1-.07*wall);Gm[k]=1;UV[k*2]=b/4;UV[k*2+1]=a/4}}
+  const sh=1-.04*vn2(w.x*.2,w.z*.2,7),wall=sstep(.93,.55,nv.y);C[k*3]=dye?.1:sh*(.985-.2*wall);C[k*3+1]=dye?.32:sh*(.99-.15*wall);C[k*3+2]=dye?.95:sh*(1-.07*wall);Gm[k]=PK.def.powder?0:1;if(f.type==='cliff'&&nv.y<.45){const rc=.3+.1*vn2(w.x*.3,w.z*.3,5);C[k*3]=rc*1.05;C[k*3+1]=rc;C[k*3+2]=rc*.95}UV[k*2]=b/4;UV[k*2+1]=a/4}}
  for(let j=0;j<na-1;j++)for(let i=0;i<nb-1;i++){const a=j*nb+i,b=a+nb;I.push(a,b,a+1,b,b+1,a+1)}
  const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(P,3));g.setAttribute('normal',new THREE.BufferAttribute(Nr,3));g.setAttribute('color',new THREE.BufferAttribute(C,3));
  g.setAttribute('uv',new THREE.BufferAttribute(UV,2));g.setAttribute('groom',new THREE.BufferAttribute(Gm,1));g.setIndex(N>65535?new THREE.Uint32BufferAttribute(I,1):new THREE.Uint16BufferAttribute(I,1));g.computeBoundingSphere();
@@ -921,9 +937,9 @@ const _tp=new THREE.Vector3(),_tlat=new THREE.Vector3();
 function updateTracks(){const on=PH.ground&&!PH.crash&&!PH.rail&&PH.speed>1;_tlat.crossVectors(PH.n,PH.dir).normalize();
  for(let i=0;i<2;i++){const sd=i?-1:1;_tp.copy(PH.pos).addScaledVector(_tlat,sd*SKI_X);TRACKS[i].add(_tp,_tlat,PH.n,.045+PH.skid*.12,on)}}
 function fxGround(dt){if(!PH.ground||PH.crash||PH.rail)return;const sp=PH.speed,sk=PH.skid+PH.brake*.8,p=PH.pos;
- if(sp>3&&(sk>.12||Math.abs(PH.edge)>.5)){const n=Math.min(8,(sk*10+Math.abs(PH.edge)*2)*dt*60*.5|0)+(R()<.5?1:0);const lat=_tlat.crossVectors(PH.n,PH.dir).normalize(),sd=Math.sign(PH.edge||1);
-  spray(p.x,p.y+.05,p.z,PH.vel.x*.4+lat.x*sd*-2.5,1.4,PH.vel.z*.4+lat.z*sd*-2.5,n,1.6,.35,.7)}}
-function fxLand(k){const p=PH.pos;spray(p.x,p.y+.05,p.z,PH.vel.x*.25,1.2,PH.vel.z*.25,Math.round(18+k*30),3,.5,.9)}
+ const pw=PK.def.powder?1:0;if(sp>3&&(sk>.08||Math.abs(PH.edge)>.35||pw)){const n=Math.min(16,(sk*16+Math.abs(PH.edge)*4+pw*3+PH.brake*8)*dt*60*.5|0)+(R()<.6?1:0);const lat=_tlat.crossVectors(PH.n,PH.dir).normalize(),sd=Math.sign(PH.edge||1);
+  spray(p.x,p.y+.05,p.z,PH.vel.x*.4+lat.x*sd*-(2.5+PH.brake*3),1.6+pw,PH.vel.z*.4+lat.z*sd*-(2.5+PH.brake*3),n,1.8+pw,.42+pw*.2,.8)}}
+function fxLand(k){const p=PH.pos;spray(p.x,p.y+.05,p.z,PH.vel.x*.3,1.5,PH.vel.z*.3,Math.round(30+k*50+(PK.def.powder?40:0)),3.6,.65,1.1)}
 
 // ================= SKIER: model, skis, poles, gear, procedural animation =================
 // RD.root sits at the feet (the ski bases) and carries the body orientation; everything else is local to it.
@@ -1067,7 +1083,7 @@ function stepGround(I,ev){const p=PH.pos,v=PH.vel,n=Hn(p.x,p.z,PH.n),dir=PH.dir;
   const loss=skid*(PH.brake>.1?7:5)*DT*Math.min(1,spd/4);vt.multiplyScalar(Math.max(0,spd-loss)/spd)}
  PH.skid=damp(PH.skid,skid,10,DT);
  // friction and air drag; tucking cuts drag; butters drag a little
- const s2=vt.length(),dec=(.05+(bt?.06:0))*G9*n.y+(.0052-.0024*PH.tuck)*s2*s2+PH.brake*6.5*Math.min(1,s2/3);const ns=Math.max(0,s2-dec*DT);if(s2>1e-5)vt.multiplyScalar(ns/s2);
+ const s2=vt.length(),dec=(.05+(bt?.06:0)+(PK.def.powder?.035:0))*G9*n.y+(.0052-.0024*PH.tuck)*s2*s2+PH.brake*6.5*Math.min(1,s2/3);const ns=Math.max(0,s2-dec*DT);if(s2>1e-5)vt.multiplyScalar(ns/s2);
  if(s2<.6&&I.fwd>.2&&!bt)vt.addScaledVector(aim.copy(dir).multiplyScalar(PH.sw?-1:1),2.2*DT);// skate/pole push at a standstill
  v.copy(vt);PH.edge=damp(PH.edge,clamp(PH.steer*rate*Math.min(s2,20)/G9*.9,-1,1),9,DT);
  // butters: B presses the nose (or the tail with S); A/D spin on the snow; release rebounds
@@ -1418,10 +1434,10 @@ const _cv=new THREE.Vector3(),_ct=new THREE.Vector3(),_cd=new THREE.Vector3();
 function camChase(dt){const p=PH.crash?PH.com:PH.pos,v=PH.vel,sp=Math.hypot(v.x,v.z);let hd=sp>1.5?Math.atan2(v.x,v.z):headingOf(PH.dir)+(PH.sw?PI:0);
  if(CAMV.snap)CAMV.yaw=hd;else CAMV.yaw+=wrapA(hd-CAMV.yaw)*(1-Math.exp(-(PH.ground?4.5:2.2)*dt));
  if(!CAMV.drag){CAMV.orbit=damp(CAMV.orbit,0,2.5,dt);CAMV.orbitP=damp(CAMV.orbitP,0,2.5,dt)}
- const far=CAMV.mode===1,air=!PH.ground&&!PH.rail?1:0,d=(far?6.8:3.5+Math.min(sp,30)*.035+air*1.4)*save.set.camDist,hgt=(far?2.6:1.35+air*.6)*save.set.camH+CAMV.orbitP*d*.6,yaw=CAMV.yaw+CAMV.orbit;
+ const far=CAMV.mode===1,air=!PH.ground&&!PH.rail?1:0,d=(far?6.8:3.4+Math.min(sp,30)*.03+air*.7)*save.set.camDist,hgt=(far?2.6:1.35+air*.45)*save.set.camH+CAMV.orbitP*d*.6,yaw=CAMV.yaw+CAMV.orbit;
  _cv.set(p.x-Math.sin(yaw)*d,0,p.z-Math.cos(yaw)*d);const g=H(_cv.x,_cv.z);_cv.y=Math.max(p.y+hgt,g+.7);
  _ct.set(p.x+Math.sin(yaw)*2.2,p.y+(PH.ground?.9:.6),p.z+Math.cos(yaw)*2.2);
- if(CAMV.snap){CAMV.pos.copy(_cv);CAMV.look.copy(_ct);CAMV.snap=false}else{const k=1-Math.exp(-(air?5:9)*dt);CAMV.pos.lerp(_cv,k);CAMV.look.lerp(_ct,1-Math.exp(-14*dt))}
+ if(CAMV.snap){CAMV.pos.copy(_cv);CAMV.look.copy(_ct);CAMV.snap=false}else{const k=1-Math.exp(-(air?9:10)*dt);CAMV.pos.lerp(_cv,k);CAMV.look.lerp(_ct,1-Math.exp(-14*dt))}
  CAMV.pos.y=Math.max(CAMV.pos.y,H(CAMV.pos.x,CAMV.pos.z)+.5);
  CAMV.fov=damp(CAMV.fov,save.set.fov+Math.min(sp,40)*.35,3,dt)}
 function camApply(){cam.position.copy(CAMV.pos);if(CAMV.shake>0&&save.set.shake){cam.position.x+=(R()-.5)*CAMV.shake*.12;cam.position.y+=(R()-.5)*CAMV.shake*.12}cam.lookAt(CAMV.look);if(Math.abs(cam.fov-CAMV.fov)>.05){cam.fov=CAMV.fov;cam.updateProjectionMatrix()}}
