@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>Skyline</title>
+<meta name="description" content="Stack sliding blocks into the tallest tower you can. Drop them perfectly to keep them whole.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23182030'/%3E%3Crect x='8' y='20' width='16' height='5' fill='%23ff8a5c'/%3E%3Crect x='10' y='14' width='14' height='5' fill='%23ffb35c'/%3E%3Crect x='10' y='8' width='12' height='5' fill='%23ffd65c'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="ui">
+ <div id="score">0</div>
+ <div id="combo"></div>
+ <div id="start" class="panel"><h1>Skyline</h1><p>Drop each sliding block onto the tower. Whatever hangs over the edge falls off. Land it dead on to keep it whole.</p><p class="how">Tap, click or press Space</p><p class="best" id="bestStart"></p></div>
+ <div id="over" class="panel hide"><h2 id="overTitle">Tower down</h2><p class="big" id="overScore">0</p><p id="overBest"></p><button id="again">Build again</button></div>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="game.js"></script>
+<!-- visitor counter: no cookies, no personal data -->
+<script data-goatcounter="https://gamebookshelf.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
+</body>
+</html>

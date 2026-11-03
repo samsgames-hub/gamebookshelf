@@ -1,0 +1,15 @@
+:root{--ink:#182030;--paper:#fff6ec;--hot:#ff8a5c;--f:'Bricolage Grotesque',system-ui,sans-serif}
+*{box-sizing:border-box;margin:0}
+html,body{height:100%;overflow:hidden;background:#182030;font-family:var(--f);color:var(--paper);-webkit-user-select:none;user-select:none;touch-action:manipulation}
+canvas{position:fixed;inset:0;display:block}
+#ui{position:fixed;inset:0;pointer-events:none;display:flex;flex-direction:column;align-items:center}
+#score{margin-top:max(6vh,24px);font-size:clamp(56px,11vw,120px);font-weight:800;line-height:1;letter-spacing:-.02em;text-shadow:0 4px 24px rgba(24,32,48,.35);font-variant-numeric:tabular-nums}
+#combo{height:28px;margin-top:8px;font-size:20px;font-weight:700;opacity:0;transition:opacity .2s}#combo.on{opacity:1}
+.panel{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:min(420px,calc(100% - 32px));padding:28px;border-radius:20px;background:rgba(24,32,48,.72);text-align:center;pointer-events:auto}
+.panel.hide{display:none}
+h1{font-size:64px;font-weight:800;letter-spacing:-.03em;line-height:1}h2{font-size:30px;font-weight:800}
+.panel p{margin-top:14px;font-size:17px;line-height:1.45;color:#e7dccf}.panel .how{color:var(--hot);font-weight:700}.panel .best{font-size:15px;opacity:.75}
+.panel .big{font-size:72px;font-weight:800;color:var(--paper);margin-top:6px;line-height:1}
+button{margin-top:20px;font:700 18px var(--f);padding:14px 28px;border:0;border-radius:12px;background:var(--hot);color:var(--ink);cursor:pointer}
+button:focus-visible{outline:3px solid var(--paper);outline-offset:3px}
+body.playing #start{display:none}
