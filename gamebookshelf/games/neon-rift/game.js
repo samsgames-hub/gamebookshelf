@@ -3,7 +3,7 @@
 const $=id=>document.getElementById(id),R=Math.random,rr=(a,b)=>a+R()*(b-a),ri=n=>R()*n|0,pick=a=>a[R()*a.length|0],clamp=(v,a,b)=>v<a?a:v>b?b:v,lerp=(a,b,t)=>a+(b-a)*t,damp=(a,b,k,dt)=>a+(b-a)*(1-Math.exp(-k*dt));
 const TAU=Math.PI*2;
 // ---------------- SAVE ----------------
-const DEF={cores:0,best:0,bestWave:0,bestCombo:0,bossKills:0,runs:0,up:{hp:0,dmg:0,spd:0,xp:0,sh:0,dash:0},set:{sens:4,master:8,music:5,sfx:8,fov:85,q:2,shake:1,mute:0,bright:5}};
+const DEF={cores:0,best:0,bestWave:0,bestCombo:0,bossKills:0,runs:0,up:{hp:0,dmg:0,spd:0,xp:0,sh:0,dash:0},set:{sens:4,master:8,music:5,sfx:8,fov:85,q:2,qa:1,shake:1,mute:0,bright:5}};
 let save=JSON.parse(JSON.stringify(DEF));
 try{const s=JSON.parse(localStorage.getItem('neonrift2')||localStorage.getItem('neonrift')||'{}');if(s&&typeof s==='object'){
 for(const k of['cores','best','bestWave','bestCombo','bossKills','runs'])if(Number.isFinite(s[k]))save[k]=Math.max(0,s[k]|0);
@@ -453,7 +453,7 @@ const black=new THREE.DataTexture(new Uint8Array([0,0,0,255]),1,1,THREE.RGBAForm
 const PP={bright:SM(SH.bright,{t:{value:null},th:{value:1}}),down:SM(SH.down,{t:{value:null},px:{value:new THREE.Vector2()}}),up:SM(SH.up,{t:{value:null},tAdd:{value:null},px:{value:new THREE.Vector2()},k:{value:1}}),
 comp:SM(SH.comp,{tScene:{value:null},tBloom:{value:black},bloom:{value:.2},exposure:{value:1.05},vig:{value:.55},dmg:{value:0},low:{value:0},ca:{value:0},fade:{value:0},time:{value:0},sat:{value:1.08},tint:{value:new THREE.Vector3(1,1,1)}}),rt:null,mips:[],ups:[]};
 const rtOpt=d=>({minFilter:THREE.LinearFilter,magFilter:THREE.LinearFilter,format:THREE.RGBAFormat,type:FT,depthBuffer:!!d,stencilBuffer:false});
-function setupPost(){const q=save.set.q,cpr=q===0?1:Math.min(devicePixelRatio,q===2?1.75:1.25),pr=cpr*(q===0?.8:1);
+function setupPost(){const q=save.set.q,base=q===0?1:Math.min(devicePixelRatio,q===2?1.75:1.25),cpr=Math.max(.35,base*PERF.scale),pr=cpr;
 const w=Math.max(2,innerWidth*pr|0),h=Math.max(2,innerHeight*pr|0);ren.setPixelRatio(cpr);ren.setSize(innerWidth,innerHeight,false);ren.domElement.style.width='100%';ren.domElement.style.height='100%';
 if(PP.rt)PP.rt.dispose();PP.mips.forEach(r=>r.dispose());PP.ups.forEach(r=>r.dispose());PP.mips=[];PP.ups=[];
 if(isGL2&&q>0&&THREE.WebGLMultisampleRenderTarget){PP.rt=new THREE.WebGLMultisampleRenderTarget(w,h,rtOpt(1));PP.rt.samples=q===2?4:2}else PP.rt=new THREE.WebGLRenderTarget(w,h,rtOpt(1));
@@ -461,6 +461,40 @@ if(q>0){let bw=w>>1,bh=h>>1;const n=q===2?6:5;for(let i=0;i<n;i++){PP.mips.push(
 cam.aspect=vmCam.aspect=innerWidth/innerHeight;cam.updateProjectionMatrix();vmCam.updateProjectionMatrix();PP.comp.uniforms.tBloom.value=black;
 ren.shadowMap.enabled=q>0;sun.castShadow=q>0;sun.shadow.mapSize.set(q===2?2048:1024,q===2?2048:1024);if(sun.shadow.map){sun.shadow.map.dispose();sun.shadow.map=null}
 if(PART)PART.forEach(p=>p.mat.uniforms.scale.value=h/(2*Math.tan(cam.fov*Math.PI/360)))}
+// ================= PERFORMANCE =================
+// Auto quality: start from what the graphics chip can do, then hold the frame rate by trading resolution first and effects second.
+const PERF={tier:2,gpu:'',lvl:0,top:0,ladder:[[2,1]],ema:16.7,bad:0,good:0,cool:2,probe:null,floorUntil:0,floorWait:45e3,floorEma:0,fails:{},scale:1,hook:null};
+function gpuTier(){let s='';try{const gl=ren.getContext(),x=gl.getExtension('WEBGL_debug_renderer_info');s=String((x&&gl.getParameter(x.UNMASKED_RENDERER_WEBGL))||gl.getParameter(gl.RENDERER)||'')}catch(e){}PERF.gpu=s;
+ let touch=false;try{touch=matchMedia('(hover: none) and (pointer: coarse)').matches}catch(e){}const cores=navigator.hardwareConcurrency||4,mem=navigator.deviceMemory||8;let t;
+ if(/swiftshader|llvmpipe|softpipe|software|basic render/i.test(s))t=-1;
+ else if(/radeon(\(tm\))? r[2-7]\b|hd graphics|uhd graphics|mali|adreno|powervr|videocore|vivante|tegra|gt [1-7][0-4]0\b/i.test(s))t=0;
+ else if(/rtx|gtx ?(9[5-9]0|10[5-8]0|16[5-6]0)|radeon rx|radeon pro|arc a[57]\d\d|titan|quadro/i.test(s))t=2;
+ else if(/iris|xe graphics|arc|radeon|vega|apple|geforce|nvidia|intel/i.test(s))t=1;
+ else t=1;
+ if(touch)t=Math.min(t,0);if(cores<=2||mem<=2)t=Math.min(t,0);else if(cores<=4&&mem<=4)t=Math.min(t,1);
+ return t}
+const LAD_AUTO=[[2,1],[2,.85],[1,.85],[1,.72],[0,.72],[0,.6],[0,.5]];
+const LAD_FIX={2:[[2,1],[2,.85],[2,.72],[2,.6],[2,.5]],1:[[1,1],[1,.85],[1,.72],[1,.6],[1,.5]],0:[[0,.75],[0,.65],[0,.55],[0,.5]]};
+function perfInit(first){if(first){PERF.tier=gpuTier();
+  // cheaper shadow filtering on modest chips: four taps instead of sixteen
+  if(PERF.tier<2){const C=THREE.ShaderChunk,src=C.shadowmap_pars_fragment,a=src.indexOf('#if defined( SHADOWMAP_TYPE_PCF )\n'),b=src.indexOf('#elif defined( SHADOWMAP_TYPE_PCF_SOFT )',a);
+   if(a>=0&&b>a){C.shadowmap_pars_fragment=src.slice(0,a)+'#if defined( SHADOWMAP_TYPE_PCF )\n vec2 tS=vec2(.7*shadowRadius)/shadowMapSize;\n shadow=(texture2DCompare(shadowMap,shadowCoord.xy+vec2(-tS.x,-tS.y),shadowCoord.z)+texture2DCompare(shadowMap,shadowCoord.xy+vec2(tS.x,-tS.y),shadowCoord.z)+texture2DCompare(shadowMap,shadowCoord.xy+vec2(-tS.x,tS.y),shadowCoord.z)+texture2DCompare(shadowMap,shadowCoord.xy+vec2(tS.x,tS.y),shadowCoord.z))*.25;\n'+src.slice(b);ren.shadowMap.type=THREE.PCFShadowMap}}}
+ PERF.probe=null;PERF.fails={};PERF.floorUntil=0;PERF.floorWait=45e3;
+ if(save.set.qa!==false&&save.set.qa!==0){PERF.ladder=LAD_AUTO;const t=PERF.tier;PERF.lvl=t>=2?0:t===1?2:t===0?4:6;PERF.top=t>=2?0:t===1?1:t===0?3:4}
+ else{PERF.ladder=LAD_FIX[save.set.q]||LAD_FIX[1];PERF.lvl=0;PERF.top=0}
+ const L=PERF.ladder[PERF.lvl];save.set.q=L[0];PERF.scale=L[1];PERF.cool=2;PERF.bad=PERF.good=0}
+function perfSet(i){i=clamp(i,0,PERF.ladder.length-1);const L=PERF.ladder[i],qc=save.set.q!==L[0];PERF.lvl=i;save.set.q=L[0];PERF.scale=L[1];setupPost();if(PERF.hook)PERF.hook(qc);PERF.cool=1.5;PERF.bad=PERF.good=0}
+function perfLabel(){const n=['Low','Medium','High'][save.set.q];return n+' quality, '+Math.round(PERF.scale*100)+'% resolution'+(save.set.qa!==false&&save.set.qa!==0?' (set automatically)':'')}
+// called once per frame with the real, unclamped frame time in seconds
+function perfTick(dt){const now=performance.now();
+ if(dt>.2||document.hidden){PERF.cool=Math.max(PERF.cool,.5);return}
+ if(PERF.cool>0){PERF.cool-=dt;if(PERF.cool<=0)PERF.ema=dt*1000;return}
+ PERF.ema+=(dt*1000-PERF.ema)*.06;const P=PERF.probe;
+ // after stepping down, keep the change only if it actually helped; a capped or CPU-bound machine gains nothing from blur
+ if(P){P.t+=dt;if(P.t>2.5){PERF.probe=null;if(PERF.ema>P.prev*.88){perfSet(P.from);PERF.floorUntil=now+PERF.floorWait;PERF.floorWait=Math.min(PERF.floorWait*2,6e5);PERF.floorEma=P.prev}}return}
+ if(PERF.ema>22){PERF.bad+=dt;PERF.good=0}else{PERF.bad=Math.max(0,PERF.bad-dt);PERF.good=PERF.ema<17.6?PERF.good+dt:0}
+ if(PERF.bad>1.5&&PERF.lvl<PERF.ladder.length-1&&!(now<PERF.floorUntil&&PERF.ema<PERF.floorEma*1.3)){const from=PERF.lvl,prev=PERF.ema;PERF.fails[from]=now;perfSet(from+1);PERF.probe={from,prev,t:0}}
+ else if(PERF.good>8&&PERF.lvl>PERF.top&&now-(PERF.fails[PERF.lvl-1]||-1e9)>9e4)perfSet(PERF.lvl-1)}
 function pass(mat,target){quad.material=mat;ren.setRenderTarget(target);ren.render(quadScene,quadCam)}
 function renderFrame(showVM){ren.setRenderTarget(PP.rt);ren.clear();ren.render(scene,cam);if(showVM){ren.clearDepth();ren.render(vmScene,vmCam)}
 const U=PP.comp.uniforms;U.tScene.value=PP.rt.texture;
@@ -541,10 +575,11 @@ if(skinned){g.setAttribute('skinIndex',new THREE.Uint16BufferAttribute(m.si,4));
 g.setIndex(new THREE.BufferAttribute(m.idx,1));m.groups.forEach(([s,c,z])=>{if(c>0)g.addGroup(s,c,z)});g.computeBoundingSphere();g.computeBoundingBox();return g}
 function onModel(n,meta,m){MOD.meta[n]=meta;MOD.geo[n]=geoFrom(m,meta.nb>1);MOD.done++;const cbs=MOD.cb.filter(c=>c.n===n);MOD.cb=MOD.cb.filter(c=>c.n!==n);cbs.forEach(c=>c.f())}
 const whenModel=(n,f)=>{if(MOD.geo[n])f();else MOD.cb.push({n,f})};
-function pumpModels(){for(const w of MOD.workers){if(MOD.busy.has(w)||!MOD.queue.length)continue;const n=MOD.queue.shift();MOD.busy.set(w,n);w.postMessage(n)}}
-function mainThreadModels(){if(!MOD.lib)MOD.lib=MODLIB();const step=()=>{if(!MOD.queue.length)return;const n=MOD.queue.shift();try{const spec=MOD.lib.MODELS.list[n](),m=MOD.lib.SDF.build(spec);onModel(n,{bones:spec.bones||null,nb:spec.nb,rh:spec.rh,lh:spec.lh,muzzle:spec.muzzle,wrist:spec.wrist,J:spec.J||null},m)}catch(e){console.error(e)}setTimeout(step,0)};step()}
+const MH=n=>PERF.tier<1&&!/^(rifle|hand|arm|shotgun|railgun|launcher|voidgun|sword|gem|rocket)/.test(n)?1.45:1;
+function pumpModels(){for(const w of MOD.workers){if(MOD.busy.has(w)||!MOD.queue.length)continue;const n=MOD.queue.shift();MOD.busy.set(w,n);w.postMessage({n,h:MH(n)})}}
+function mainThreadModels(){if(!MOD.lib)MOD.lib=MODLIB();const step=()=>{if(!MOD.queue.length)return;const n=MOD.queue.shift();try{const spec=MOD.lib.MODELS.list[n]();if(MH(n)!==1)spec.h=(spec.h||.04)*MH(n);const m=MOD.lib.SDF.build(spec);onModel(n,{bones:spec.bones||null,nb:spec.nb,rh:spec.rh,lh:spec.lh,muzzle:spec.muzzle,wrist:spec.wrist,J:spec.J||null},m)}catch(e){console.error(e)}setTimeout(step,0)};step()}
 function startModels(){MOD.queue=MORDER.slice();MOD.total=MOD.queue.length;
-const src='const L=('+MODLIB.toString()+')();onmessage=e=>{const n=e.data;const spec=L.MODELS.list[n]();const m=L.SDF.build(spec);const meta={bones:spec.bones||null,nb:spec.nb,rh:spec.rh,lh:spec.lh,muzzle:spec.muzzle,wrist:spec.wrist,J:spec.J||null};postMessage({n:n,meta:meta,m:m},[m.pos.buffer,m.nor.buffer,m.col.buffer,m.si.buffer,m.sw.buffer,m.idx.buffer])};';
+const src='const L=('+MODLIB.toString()+')();onmessage=e=>{const n=e.data.n,hs=e.data.h||1;const spec=L.MODELS.list[n]();if(hs!==1)spec.h=(spec.h||.04)*hs;const m=L.SDF.build(spec);const meta={bones:spec.bones||null,nb:spec.nb,rh:spec.rh,lh:spec.lh,muzzle:spec.muzzle,wrist:spec.wrist,J:spec.J||null};postMessage({n:n,meta:meta,m:m},[m.pos.buffer,m.nor.buffer,m.col.buffer,m.si.buffer,m.sw.buffer,m.idx.buffer])};';
 try{const url=URL.createObjectURL(new Blob([src],{type:'text/javascript'})),nw=clamp((navigator.hardwareConcurrency||4)-1,1,4);
 for(let i=0;i<nw;i++){const w=new Worker(url);w.onmessage=e=>{MOD.busy.delete(w);onModel(e.data.n,e.data.meta,e.data.m);pumpModels()};
 w.onerror=ev=>{ev.preventDefault&&ev.preventDefault();const n=MOD.busy.get(w);MOD.busy.delete(w);MOD.workers=MOD.workers.filter(x=>x!==w);if(n)MOD.queue.unshift(n);try{w.terminate()}catch(e){}if(!MOD.workers.length&&!MOD.fallback){MOD.fallback=1;mainThreadModels()}else pumpModels()};MOD.workers.push(w)}
@@ -715,7 +750,8 @@ clear(){this.life.fill(0);this.size.fill(0)}}
 let PA,PS;const LP=[];const FX={tracers:[],decals:[],di:0,rings:[],sprites:[]};
 const v3=()=>new THREE.Vector3(),_v=v3(),_v2=v3(),_v3=v3(),_q=new THREE.Quaternion(),_m=new THREE.Matrix4(),_up=new THREE.Vector3(0,1,0);
 function initFX(){PA=new PSys(3000,THREE.AdditiveBlending,TX.glow);PS=new PSys(900,THREE.NormalBlending,TX.smoke);PART=[PA,PS,{mat:W.dust.material}];
-for(let i=0;i<4;i++){const l=new THREE.PointLight(0xffffff,0,12,2);scene.add(l);LP.push({l,t:0,d:1,k:0})}
+// muzzle and blast flashes: two lights instead of four on weak chips (every light is paid for on every lit pixel)
+for(let i=0;i<(PERF.tier<1?2:4);i++){const l=new THREE.PointLight(0xffffff,0,12,2);scene.add(l);LP.push({l,t:0,d:1,k:0})}
 const tg=new THREE.PlaneGeometry(1,1);for(let i=0;i<48;i++){const m=new THREE.Mesh(tg,new THREE.MeshBasicMaterial({map:TX.beam,blending:THREE.AdditiveBlending,transparent:true,depthWrite:false,side:THREE.DoubleSide}));m.matrixAutoUpdate=false;m.visible=false;m.frustumCulled=false;scene.add(m);FX.tracers.push({m,t:0,d:.1})}
 const dg=new THREE.PlaneGeometry(1,1);for(let i=0;i<70;i++){const m=new THREE.Mesh(dg,new THREE.MeshBasicMaterial({map:TX.scorch,transparent:true,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-4,opacity:.9}));m.visible=false;scene.add(m);FX.decals.push(m)}
 const rg=new THREE.RingGeometry(.85,1,64);for(let i=0;i<8;i++){const m=new THREE.Mesh(rg,new THREE.MeshBasicMaterial({color:0xffffff,blending:THREE.AdditiveBlending,transparent:true,depthWrite:false,side:THREE.DoubleSide}));m.rotation.x=-Math.PI/2;m.visible=false;scene.add(m);FX.rings.push({m,t:0,d:1,r:1})}}
@@ -1248,12 +1284,12 @@ function upgUI(){$('upCores').textContent=save.cores.toLocaleString();$('upList'
 $('upList').querySelectorAll('.upc').forEach(b=>b.onclick=()=>{const k=b.dataset.k,u=UPG.find(x=>x[0]===k),l=save.up[k],cost=Math.round(12*Math.pow(1.45,l));if(l<(u[3]||10)&&save.cores>=cost){save.cores-=cost;save.up[k]++;store();play('pickup');upgUI()}else play('empty')})}
 function recUI(){$('recList').innerHTML=[['BEST SCORE',save.best.toLocaleString()],['HIGHEST WAVE',save.bestWave],['BEST COMBO','x'+save.bestCombo],['BOSSES FELLED',save.bossKills],['RUNS',save.runs],['RIFT CORES',save.cores.toLocaleString()]].map(r=>`<div><span>${r[0]}</span><b>${r[1]}</b></div>`).join('')}
 let setFrom='menu';
-function setUI(){const s=save.set;for(const k of['master','music','sfx','sens','fov','bright']){const el=$('s_'+k);el.value=s[k];$('v_'+k).textContent=s[k]}$('s_q').value=s.q;$('s_shake').checked=!!s.shake;$('s_mute').checked=!!s.mute}
+function setUI(){const s=save.set;for(const k of['master','music','sfx','sens','fov','bright']){const el=$('s_'+k);el.value=s[k];$('v_'+k).textContent=s[k]}$('s_q').value=s.qa!==false&&s.qa!==0?'a':String(s.q);$('qinfo').textContent=perfLabel();$('s_shake').checked=!!s.shake;$('s_mute').checked=!!s.mute}
 function bindUI(){$('bPlay').onclick=()=>{if(!$('bPlay').disabled)startGame()};$('bUpg').onclick=()=>{upgUI();show('upg');play('click')};$('bRec').onclick=()=>{recUI();show('rec');play('click')};$('bSet').onclick=()=>{setFrom='menu';setUI();show('set');play('click')};
 document.querySelectorAll('.back').forEach(b=>b.onclick=()=>{play('click');show(b.closest('#set')&&setFrom==='pause'?'pause':'menu')});
 $('bResume').onclick=resume;$('bSet2').onclick=()=>{setFrom='pause';setUI();show('set')};$('bQuit').onclick=toMenu;$('bAgain').onclick=startGame;$('bMenu').onclick=toMenu;
 for(const k of['master','music','sfx','sens','fov','bright'])$('s_'+k).oninput=e=>{save.set[k]=+e.target.value;$('v_'+k).textContent=save.set[k];if(k==='fov'){cam.fov=save.set.fov;cam.updateProjectionMatrix()}setVol();store()};
-$('s_q').onchange=e=>{save.set.q=+e.target.value;store();setupPost();scene.traverse(o=>{if(o.material)(Array.isArray(o.material)?o.material:[o.material]).forEach(m=>m.needsUpdate=true)})};
+$('s_q').onchange=e=>{const v=e.target.value;if(v==='a')save.set.qa=1;else{save.set.qa=0;save.set.q=+v}perfInit(false);store();setupPost();$('qinfo').textContent=perfLabel();scene.traverse(o=>{if(o.material)(Array.isArray(o.material)?o.material:[o.material]).forEach(m=>m.needsUpdate=true)})};
 $('s_shake').onchange=e=>{save.set.shake=e.target.checked?1:0;store()};$('s_mute').onchange=e=>{save.set.mute=e.target.checked?1:0;setVol();store()};
 document.querySelectorAll('button').forEach(b=>b.addEventListener('mouseenter',()=>play('click')));
 addEventListener('keydown',e=>{keys[e.code]=1;if(e.code==='Space'||e.code.startsWith('Arrow'))e.preventDefault();
@@ -1287,7 +1323,7 @@ W.gens.forEach((g,i)=>g.coil.forEach((c,k)=>{const v=.5+.5*Math.sin(t*4-k*.9+i);
 flick-=dt;if(flick<=0){flick=rr(3,9);const s=pick(W.signs);if(s){s.material.opacity=.15;setTimeout(()=>s.material.opacity=1,60+R()*120);setTimeout(()=>s.material.opacity=.3,220);setTimeout(()=>s.material.opacity=1,300)}}
 const dp=W.dust.geometry.attributes.position;for(let i=0;i<dp.count;i++){let y=dp.array[3*i+1]+dt*.12;if(y>HT)y=0;dp.array[3*i+1]=y;dp.array[3*i]+=Math.sin(t*.3+i)*dt*.05}dp.needsUpdate=true;
 for(const d of W.doors){d.open-=dt;d.t=damp(d.t,d.open>0?1:0,3,dt);d.L.position.x=-1.3-d.t*2.5;d.R.position.x=1.3+d.t*2.5;d.lamp.material.color.set(d.open>0?0xff2a1a:0x33ff66).multiplyScalar(4)}}
-function loop(now){requestAnimationFrame(loop);const rdt=Math.min(.05,(now-last)/1000||.016);last=now;
+function loop(now){requestAnimationFrame(loop);const raw=(now-last)/1000||.016,rdt=Math.min(.05,raw);last=now;perfTick(raw);
 if(G.slow>0){G.slow-=rdt;G.ts=damp(G.ts,.22,10,rdt)}else G.ts=damp(G.ts,1,3,rdt);const dt=rdt*G.ts,playing=G.mode==='play';
 const t=performance.now()/1000;worldAnim(rdt,t);
 if(playing){G.time+=dt;updP(dt);updSpawns(dt);for(const e of EN.slice())if(!e.dead)updE(e,dt);updEB(dt);updPR(dt);updTel(dt);updWaves(dt);updGems(dt);updPU(dt);updEvt(dt);G.frz-=dt;
@@ -1303,7 +1339,8 @@ G.dmgFX=Math.max(0,(G.dmgFX||0)-rdt*1.6);const U=PP.comp.uniforms;U.time.value=t
 U.sat.value=G.mode==='dead'?.25:G.frz>0&&playing?.7:1.08;U.tint.value.set(G.frz>0&&playing?.85:1,G.frz>0&&playing?.95:1,G.frz>0&&playing?1.2:1);
 if(playing||G.mode==='levelup'||G.mode==='pause')hudUpdate(playing?rdt:0);document.body.classList.toggle('aim',playing&&!isTouch);
 renderFrame(showVM)}
-function init(){hudInit();buildWorld();initFX();setupPost();layout();setTheme(0);bindUI();show('menu');startModels();requestAnimationFrame(loop)}
+function init(){perfInit(true);PERF.hook=qc=>{if(qc)scene.traverse(o=>{if(o.material)(Array.isArray(o.material)?o.material:[o.material]).forEach(m=>m.needsUpdate=true)});const e=document.getElementById('qinfo');if(e)e.textContent=perfLabel()};hudInit();buildWorld();initFX();setupPost();layout();setTheme(0);bindUI();show('menu');startModels();requestAnimationFrame(loop);
+window.__NR={G,P,EN,MOD,ren,scene,cam,sun,save,renderFrame,setupPost,newRun,spawnE,updateVM,PERF,perfSet,perfInit}}
 try{init()}catch(e){console.error(e);const el=document.getElementById('err');if(el){el.style.display='block';el.textContent='Startup error: '+e.message}}
 })();
 

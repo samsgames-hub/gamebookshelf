@@ -99,7 +99,7 @@ kbd{font:600 11px var(--f);border:1px solid rgba(255,255,255,.25);padding:1px 6p
 .stats{display:grid;grid-template-columns:repeat(3,minmax(150px,220px));gap:10px}.stats div{padding:12px 16px;background:rgba(5,12,20,.6);border:1px solid var(--c2)}.stats span{display:block;font:600 11px var(--f);letter-spacing:.3em;color:var(--dim)}.stats b{font:500 38px/1.1 var(--n)}
 #deadCores{font:500 40px var(--n);color:#c9a0ff}#deadCores small{font:600 14px var(--f);letter-spacing:.3em}#deadCores .nb{font:700 14px var(--f);letter-spacing:.4em;color:var(--amb);animation:blink 1s infinite}
 #dead{background:radial-gradient(circle at 30% 50%,rgba(60,0,8,.75),rgba(2,2,4,.9))}
-.form{display:grid;gap:12px;max-width:560px}.form label{display:grid;grid-template-columns:200px 1fr 40px;align-items:center;gap:14px;font:600 15px var(--f);letter-spacing:.14em}
+.form{display:grid;gap:12px;max-width:560px}.qinfo{margin:-4px 0 4px 214px;font:500 13px var(--f);letter-spacing:.04em;opacity:.7}.form label{display:grid;grid-template-columns:200px 1fr 40px;align-items:center;gap:14px;font:600 15px var(--f);letter-spacing:.14em}
 .form label.chk{grid-template-columns:200px auto}.form output{font:500 22px var(--n);color:var(--c)}
 input[type=range]{-webkit-appearance:none;appearance:none;height:3px;background:rgba(95,242,255,.25);outline:0}input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:20px;background:var(--c);clip-path:polygon(50% 0,100% 30%,100% 100%,0 100%,0 30%);cursor:pointer}
 input[type=range]::-moz-range-thumb{width:14px;height:20px;background:var(--c);border:0;border-radius:0}
