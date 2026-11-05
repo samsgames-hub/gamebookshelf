@@ -41,7 +41,7 @@
     const get = p => p.split('/').reduce((o, k) => o == null ? undefined : o[k], tree);
     const set = (p, v) => { const ks = p.split('/'); let o = tree; for (let i = 0; i < ks.length - 1; i++) { if (o[ks[i]] == null || typeof o[ks[i]] !== 'object') o[ks[i]] = {}; o = o[ks[i]]; } if (v == null) delete o[ks[ks.length - 1]]; else o[ks[ks.length - 1]] = JSON.parse(JSON.stringify(v)); };
     const fire = (p, isNew) => { for (const w of W) if (p === w.p || p.startsWith(w.p + '/') || w.p.startsWith(p + '/')) w.cb(get(w.p) === undefined ? null : JSON.parse(JSON.stringify(get(w.p)))); if (isNew) for (const a of A) { const par = p.slice(0, p.lastIndexOf('/')); if (par === a.p) a.cb(p.slice(par.length + 1), get(p)); } };
-    const apply = (m) => { if (m.op === 'put') { set(m.p, m.v); fire(m.p, false); } else if (m.op === 'push') { set(m.p, m.v); fire(m.p, true); } else if (m.op === 'upd') { for (const k in m.v) set(m.p + '/' + k, m.v[k]); fire(m.p, false); } else if (m.op === 'tree') { Object.assign(tree, m.t); } else if (m.op === 'hello') ch.postMessage({ op: 'tree', t: tree }); };
+    const apply = (m) => { if (m.op === 'put') { set(m.p, m.v); fire(m.p, false); } else if (m.op === 'push') { set(m.p, m.v); fire(m.p, true); } else if (m.op === 'upd') { for (const k in m.v) set(m.p + '/' + k, m.v[k]); fire(m.p, false); } else if (m.op === 'tree') { Object.assign(tree, m.t); for (const w of W) { const v = get(w.p); w.cb(v === undefined ? null : JSON.parse(JSON.stringify(v))); } } else if (m.op === 'hello') ch.postMessage({ op: 'tree', t: tree }); };
     ch.onmessage = e => apply(e.data);
     ch.postMessage({ op: 'hello' });
     addEventListener('pagehide', () => { for (const p of dc) ch.postMessage({ op: 'put', p, v: null }); });
@@ -84,7 +84,7 @@
       } catch (e) { B = null; this.err = 'The online room server can’t be reached right now.'; return false; }
     },
     path(s) { return 'nr/' + this.code + (s ? '/' + s : ''); },
-    async create(name) {
+    async create(name, pub) {
       if (!await this.init()) return false;
       this.me = this.uid(); this.name = name;
       let code = '';
@@ -93,6 +93,8 @@
       await B.remove(this.path());
       await B.put(this.path('m'), { h: this.me, t: Date.now(), st: 'lobby', n: MAXP });
       await B.onDc(this.path());
+      this.pub = !!pub;
+      if (this.pub) { await B.put('nr/LIST/' + code, { h: name, n: 1, st: 'lobby', t: Date.now() }); await B.onDc('nr/LIST/' + code); clearInterval(this.hb); this.hb = setInterval(() => { if (this.on && this.isHost && this.pub) B.update('nr/LIST/' + this.code, { t: Date.now() }); }, 30000); }
       await this._enter();
       return true;
     },
@@ -111,10 +113,10 @@
       return true;
     },
     async _enter() {
-      this.on = true; this.started = false; this.players = {}; this.states = {};
+      this.on = true; this.started = false; this.run = undefined; this.players = {}; this.states = {};
       await B.put(this.path('p/' + this.me), { n: this.name, j: Date.now() });
-      unsub.push(B.watch(this.path('p'), v => { this.players = v || {}; this.emit('players', this.players); }));
-      unsub.push(B.watch(this.path('m'), v => { if (!v) { if (this.on) { this.emit('closed', this.isHost ? '' : 'The host left the room.'); this.leave(true); } return; } this.meta = v; if (v.st === 'play' && !this.started) { this.started = true; this.emit('started', v); } }));
+      unsub.push(B.watch(this.path('p'), v => { this.players = v || {}; if (this.isHost && this.pub) B.update('nr/LIST/' + this.code, { n: Object.keys(this.players).length, t: Date.now() }); this.emit('players', this.players); }));
+      unsub.push(B.watch(this.path('m'), v => { if (!v) { if (this.on) { this.emit('closed', this.isHost ? '' : 'The host left the room.'); this.leave(true); } return; } this.meta = v; if (v.st === 'play' && v.run !== this.run) { this.run = v.run; this.started = true; this.emit('started', v); } }));
       unsub.push(B.watch(this.path('s'), v => { this.states = v || {}; this.emit('states', this.states); }));
       if (this.isHost) unsub.push(B.added(this.path('c'), (k, v) => { B.removeKey(this.path('c'), k); (v.b || []).forEach(m => this.emit('cev', m, v.f)); }));
       else {
@@ -122,7 +124,8 @@
         unsub.push(B.watch(this.path('h'), v => { if (v) this.emit('snap', v); }));
       }
     },
-    start(info) { if (!this.isHost) return; B.update(this.path('m'), Object.assign({ st: 'play' }, info || {})); },
+    start(info) { if (!this.isHost) return; this.runN = (this.runN || 0) + 1; this.run = this.runN; B.update(this.path('m'), Object.assign({ st: 'play', run: this.runN }, info || {})); if (this.pub) B.update('nr/LIST/' + this.code, { st: 'play', t: Date.now() }); },
+    listWatch(cb) { if (!B) return () => { }; return B.watch('nr/LIST', v => cb(v || {})); },
     setMeta(info) { if (this.isHost) B.update(this.path('m'), info); },
     // batched sends; flush() runs from the game loop
     ev(m) { if (this.on && this.isHost) evQ.push(m); },
@@ -139,6 +142,7 @@
     count() { return Object.keys(this.players).length || 1; },
     leave(fromClose) {
       const was = this.on; this.on = false; this.started = false; unsub.forEach(f => { try { f(); } catch (e) { } }); unsub = []; evQ = []; cevQ = []; myEvKeys = [];
+      if (B && was && this.isHost && this.pub) { B.remove('nr/LIST/' + this.code); B.cancelDc('nr/LIST/' + this.code); } clearInterval(this.hb); this.pub = false; this.runN = 0;
       if (B && was && !fromClose) { if (this.isHost) { B.remove(this.path()); B.cancelDc(this.path()); } else { B.remove(this.path('p/' + this.me)); B.remove(this.path('s/' + this.me)); } }
       this.code = ''; this.players = {}; this.states = {};
     },

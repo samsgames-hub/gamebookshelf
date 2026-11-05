@@ -179,3 +179,11 @@ body.aim #gl{cursor:none}body.aim #lockHint.on~*{cursor:default}
 @media (max-height:640px){#team{top:auto;bottom:200px;left:auto;right:18px;width:170px}}
 #online{overflow-y:auto;justify-content:safe center}#online nav.row button{min-width:230px;white-space:nowrap}
 @media (max-height:640px){#online{gap:8px;padding:3vh 6vw}#onCodeBig{font-size:60px}#online h2{font-size:40px}.onote{display:none}}
+
+/* ---- revive, open rooms ---- */
+#rev{left:50%;top:60%;transform:translateX(-50%);text-align:center;width:260px}#rev b{display:block;font:700 14px var(--f);letter-spacing:.3em;color:#7dffb0;text-shadow:0 0 10px rgba(125,255,176,.5)}
+#rev i{display:block;height:6px;background:rgba(255,255,255,.12);margin:6px 0 4px}#rev u{display:block;height:100%;width:0;background:#7dffb0;box-shadow:0 0 10px #7dffb0;text-decoration:none}#rev span{font:600 11px var(--f);letter-spacing:.3em;color:var(--dim)}
+.onck{display:flex;align-items:center;gap:10px;font:700 12px var(--f);letter-spacing:.2em;color:var(--dim);pointer-events:auto;cursor:pointer}.onck input{width:18px;height:18px;accent-color:var(--c)}
+#onRooms{display:grid;gap:6px;max-width:520px;max-height:260px;overflow-y:auto}#onRooms .rm{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 12px;background:rgba(5,12,20,.6);border:1px solid var(--c2)}
+#onRooms .rm b{display:block;font:700 15px var(--f);letter-spacing:.12em}#onRooms .rm span{font:600 11px var(--f);letter-spacing:.2em;color:var(--dim)}#onRooms .rm button{min-width:0;padding:8px 18px;font-size:14px}
+#onRooms .dim{font:500 13px var(--f);color:var(--dim);letter-spacing:.04em}#bAgain:disabled{opacity:.55;cursor:default}

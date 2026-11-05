@@ -38,6 +38,7 @@
   </div>
   <div id="pus"></div>
   <div id="team" class="hide"></div>
+  <div id="rev" class="hide"><b>REVIVING</b><i><u></u></i><span>STAY CLOSE</span></div>
   <div id="face" class="pnl t0"><canvas id="faceC" width="40" height="48"></canvas></div>
   <div id="xpw"><span id="lvl">LV 1</span><div class="bar xp"><u id="xpB"></u></div></div>
   <div id="banner"><b id="banT"></b><span id="banS"></span></div>
@@ -72,13 +73,15 @@
 <div id="online" class="scr hide"><div class="kick">CO-OP · UP TO 4 PLAYERS</div><h2>PLAY ONLINE</h2>
   <div id="onJoin" class="onbox">
     <label class="onl">CALLSIGN<input id="onName" maxlength="14" placeholder="YOUR NAME" autocomplete="off"></label>
+    <label class="onck"><input type="checkbox" id="onPub" checked> LIST MY ROOM SO ANYONE CAN JOIN</label>
     <nav class="row"><button id="onCreate">CREATE ROOM</button></nav>
     <div class="onj"><input id="onCode" maxlength="4" placeholder="CODE" autocomplete="off"><button id="onJoinB">JOIN</button></div>
+    <div class="sub">OPEN ROOMS</div><div id="onRooms"><div class="dim">Looking for rooms…</div></div>
   </div>
   <div id="onLobby" class="onbox hide"><div class="sub">ROOM CODE</div><div id="onCodeBig">----</div><button id="onCopy" class="small">COPY INVITE LINK</button><div id="onPlayers"></div>
     <nav class="row"><button id="onStart">START MISSION</button><button id="onLeave">LEAVE ROOM</button></nav></div>
   <div class="sub" id="onMsg"></div>
-  <p class="onote">Fight through the rooms together. Gold and XP drop for everyone, each player shops at the Armory, and if you go down you redeploy in the next room. Enemies get tougher with more players.</p>
+  <p class="onote">Fight through the rooms together. Gold and XP drop for everyone, each player shops at the Armory, and if you go down a teammate can revive you by standing next to you, or you redeploy in the next room. Enemies get tougher with more players.</p>
   <button class="back" id="onBack">BACK</button></div>
 <div id="dead" class="scr hide"><div class="kick red">SIGNAL LOST</div><h1 class="red">YOU DIED</h1><div id="deadStats" class="stats"></div><div id="deadCores"></div><nav class="row"><button id="bAgain">PLAY AGAIN</button><button id="bMenu">MAIN MENU</button></nav></div>
 <div id="err"></div>
