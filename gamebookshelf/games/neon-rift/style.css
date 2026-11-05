@@ -127,3 +127,34 @@ body.aim #gl{cursor:none}body.aim #lockHint.on~*{cursor:default}
 #face.god{border-color:var(--gold,#ffd85a);box-shadow:0 0 26px rgba(255,216,90,.6),inset 0 0 12px #000}#face.hit{filter:brightness(1.6) saturate(1.4)}
 @keyframes facepulse{to{box-shadow:0 0 28px rgba(255,40,60,.75),inset 0 0 12px #000}}
 @media (max-width:820px){#face{transform:translateX(-50%) scale(.75);transform-origin:bottom center}#pus{bottom:120px}}
+
+/* ---- gold, locked slots ---- */
+#gold{display:flex;justify-content:flex-end;align-items:center;gap:8px;margin-bottom:6px;transition:transform .12s}#gold i{width:16px;height:16px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff3b0,#ffc23a 45%,#a86a00);box-shadow:0 0 10px rgba(255,194,58,.7)}
+#gold b{font:500 30px/1 var(--n);color:#ffd36a;text-shadow:0 0 12px rgba(255,190,60,.5)}#gold.pop{transform:scale(1.12)}
+.slot em{position:absolute;inset:0;display:flex;align-items:flex-end;justify-content:center;font:700 10px var(--f);font-style:normal;letter-spacing:.08em;color:#ffd36a;padding-bottom:1px}
+.slot.lock{opacity:.55;border-style:dashed}.slot.lock svg{fill:rgba(220,240,255,.18)}.slot.lock::after{content:'';position:absolute;top:3px;right:4px;width:7px;height:6px;border:1.5px solid #ffd36a;border-radius:1px;box-shadow:0 -4px 0 -1.5px transparent}
+.slot.lock::before{content:'';position:absolute;top:-1px;right:5.5px;width:4px;height:5px;border:1.5px solid #ffd36a;border-bottom:0;border-radius:3px 3px 0 0}
+/* ---- exit waypoint ---- */
+#wp{left:0;top:0;display:none;text-align:center;padding:4px 10px 3px;border:1px solid #7dffb0;background:rgba(5,20,12,.55);animation:wpp 1s infinite alternate}#wp b{display:block;font:700 12px var(--f);letter-spacing:.4em;color:#7dffb0}#wp span{font:500 18px/1 var(--n);color:#fff}
+@keyframes wpp{to{box-shadow:0 0 18px rgba(125,255,176,.6)}}
+/* ---- rifle scope ---- */
+#scope{inset:0;opacity:0;pointer-events:none;background:radial-gradient(circle at 50% 50%,transparent 0,transparent 36vmin,rgba(0,0,0,.92) 36.6vmin,#000 38vmin)}
+#scope .lens{position:absolute;left:50%;top:50%;width:73vmin;height:73vmin;margin:-36.5vmin 0 0 -36.5vmin;border-radius:50%;box-shadow:inset 0 0 6vmin rgba(0,0,0,.85),inset 0 0 1px 2px rgba(40,60,70,.9);background:radial-gradient(circle at 38% 34%,rgba(140,230,255,.07),transparent 45%),radial-gradient(circle,transparent 60%,rgba(20,60,80,.18))}
+#scope i{position:absolute;background:rgba(10,14,16,.95)}#scope i.h{left:calc(50% - 36vmin);width:72vmin;top:50%;height:2px;margin-top:-1px;-webkit-mask:linear-gradient(90deg,#000 0 44%,transparent 44% 56%,#000 56%);mask:linear-gradient(90deg,#000 0 44%,transparent 44% 56%,#000 56%)}
+#scope i.v{top:calc(50% - 36vmin);height:72vmin;left:50%;width:2px;margin-left:-1px;-webkit-mask:linear-gradient(#000 0 44%,transparent 44% 56%,#000 56%);mask:linear-gradient(#000 0 44%,transparent 44% 56%,#000 56%)}
+#scope .mils{position:absolute;left:50%;top:50%;width:30vmin;height:30vmin;margin:-15vmin 0 0 -15vmin;background:radial-gradient(circle,rgba(10,14,16,.95) 1.6px,transparent 2.2px) center/5vmin 100% repeat-x,radial-gradient(circle,rgba(10,14,16,.95) 1.6px,transparent 2.2px) center/100% 5vmin repeat-y;-webkit-mask:linear-gradient(90deg,transparent 47%,#000 47% 53%,transparent 53%),linear-gradient(transparent 47%,#000 47% 53%,transparent 53%);mask:linear-gradient(90deg,transparent 47%,#000 47% 53%,transparent 53%),linear-gradient(transparent 47%,#000 47% 53%,transparent 53%)}
+#scope b{position:absolute;left:50%;top:50%;width:4px;height:4px;margin:-2px 0 0 -2px;border-radius:50%;background:#ff3d4f;box-shadow:0 0 6px #ff3d4f}
+#scope span{position:absolute;left:calc(50% + 24vmin);top:calc(50% + 24vmin);font:600 13px var(--f);letter-spacing:.2em;color:rgba(95,242,255,.7)}
+#boss .pb{display:none}#boss.stag #bossS{color:#7dffb0}
+/* ---- armory ---- */
+#shop{background:radial-gradient(circle at 30% 40%,rgba(34,24,6,.9),rgba(2,4,8,.97));overflow-y:auto;justify-content:safe center}#shop .kick{color:#ffd36a}#shop .sub b{color:#ffd36a}
+#shopGuns{display:grid;grid-template-columns:repeat(auto-fill,minmax(205px,1fr));gap:10px;max-width:1120px}
+.gun{display:flex;flex-direction:column;gap:4px;min-width:0;padding:12px 14px;border:1px solid rgba(255,211,106,.25);border-left:3px solid #ffd36a;letter-spacing:.08em;background:rgba(10,10,6,.6);text-align:left}
+.gun svg{width:84px;height:30px;fill:#eaf7ff}.gun b{font:700 16px var(--f);letter-spacing:.16em}.gun span{font:500 13px var(--f);color:var(--dim);letter-spacing:.03em;min-height:2.4em}.gun .st{display:flex;gap:10px;font:600 11px var(--f);color:var(--dim);letter-spacing:.14em}.gun .st i{font-style:normal}
+.gun em{font:600 17px var(--n);font-style:normal;color:#ffd36a;letter-spacing:.1em}.gun.poor{opacity:.6}.gun.poor em{color:#8a7a5a}.gun.own{border-left-color:#7dffb0}.gun.own em{color:#7dffb0}.gun.sup{border-left-color:#5ff2ff}
+.gun:hover:not(.own){padding-left:14px;border-color:#ffd36a;background:rgba(40,30,8,.7)}
+#shopNext em{font-style:normal}
+.tb.scp{right:calc(4vw + 100px);bottom:calc(24vh + 30px);width:60px;height:60px;font-size:11px}
+@media (max-width:760px){#shopGuns{grid-template-columns:repeat(2,1fr)}.gun span{display:none}.gun svg{width:60px;height:22px}#shop{padding:3vh 4vw;gap:8px;overflow:auto;justify-content:flex-start}}
+@media (max-height:760px){#shop{gap:8px;padding:3vh 6vw}#shop h2{font-size:44px}.gun{padding:8px 12px;gap:2px}.gun span{min-height:0;font-size:12px}.gun svg{width:64px;height:22px}#shopGuns{grid-template-columns:repeat(auto-fill,minmax(180px,1fr))}#shop nav{margin-top:4px}}
+@media (max-height:560px){.gun span{display:none}.gun .st{display:none}}

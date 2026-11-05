@@ -8,6 +8,8 @@
 <body>
 <div id="hud" class="hide">
   <div id="dd"></div>
+  <div id="scope"><div class="lens"></div><i class="h"></i><i class="v"></i><div class="mils"></div><b></b><span>3.0×</span></div>
+  <div id="wp"><b>EXIT</b><span id="wpD">0m</span></div>
   <div id="xh"><i class="t"></i><i class="b"></i><i class="l"></i><i class="r"></i><b></b><div id="chg"></div><div class="ring"></div></div>
   <div id="hm"><i></i><i></i><i></i><i></i></div>
   <div id="nums"></div>
@@ -28,6 +30,7 @@
     <div id="dash"><span class="lbl">DASH</span><span id="dashP"></span></div>
   </div>
   <div id="br" class="pnl">
+    <div id="gold"><i></i><b id="goldN">0</b></div>
     <div id="wName">PULSE RIFLE</div>
     <div id="ammoRow"><b id="ammo">0</b><span id="magN">/ 0</span></div>
     <div class="bar am"><u id="rlB"></u></div>
@@ -41,11 +44,11 @@
 </div>
 
 <div id="menu" class="scr">
-  <div class="brand"><div class="kick">ENTER THE RIFT</div><h1>NEON<span>RIFT</span></h1><p>Fight through the Rift. Grow stronger. Fell the great enemies.</p></div>
+  <div class="brand"><div class="kick">ENTER THE RIFT</div><h1>NEON<span>RIFT</span></h1><p>Clear each room, loot gold, arm up at the Armory between doors — and breach the boss vaults.</p></div>
   <nav><button id="bPlay" disabled>LOADING…</button><button id="bUpg">UPGRADES</button><button id="bRec">RECORDS</button><button id="bSet">SETTINGS</button></nav>
   <div id="load"><span id="loadT">SCULPTING ASSETS</span><i><u id="loadB"></u></i></div>
   <div id="cores">◆ <b id="coreN">0</b> RIFT CORES</div>
-  <div class="foot"><span><kbd>WASD</kbd> move</span><span><kbd>MOUSE</kbd> aim / fire</span><span><kbd>SHIFT</kbd> dash · hold to sprint</span><span><kbd>SPACE</kbd> jump</span><span><kbd>R</kbd> reload</span><span><kbd>1-5</kbd> / wheel weapons</span><span><kbd>ESC</kbd> pause</span></div>
+  <div class="foot"><span><kbd>WASD</kbd> move</span><span><kbd>MOUSE</kbd> aim / fire</span><span><kbd>SHIFT</kbd> dash · hold to sprint</span><span><kbd>SPACE</kbd> jump</span><span><kbd>R</kbd> reload</span><span><kbd>RMB</kbd> scope (rifle)</span><span><kbd>1-5</kbd> / wheel weapons</span><span><kbd>ESC</kbd> pause</span></div>
 </div>
 <div id="upg" class="scr hide"><div class="kick">PERMANENT</div><h2>UPGRADES</h2><div class="sub">◆ <b id="upCores">0</b> RIFT CORES — earned every run</div><div id="upList" class="grid"></div><button class="back">BACK</button></div>
 <div id="rec" class="scr hide"><div class="kick">SERVICE</div><h2>RECORDS</h2><div id="recList" class="stats"></div><button class="back">BACK</button></div>
@@ -64,6 +67,7 @@
   </div><button class="back">BACK</button></div>
 <div id="pause" class="scr hide"><div class="kick">SIMULATION HALTED</div><h2>PAUSED</h2><nav><button id="bResume">RESUME</button><button id="bSet2">SETTINGS</button><button id="bQuit">QUIT TO MENU</button></nav></div>
 <div id="lvlup" class="scr hide"><div class="kick">POWER SURGE</div><h2 id="lvlN">LEVEL 2</h2><div id="cards"></div><div class="sub">Choose an upgrade — click or press 1 / 2 / 3</div></div>
+<div id="shop" class="scr hide"><div class="kick">TRANSIT LOCK</div><h2>ARMORY</h2><div class="sub">◉ <b id="shopGold">0</b> GOLD — looted from fallen enemies</div><div id="shopGuns"></div><div class="sub" id="shopNext"></div><nav><button id="bGo">ENTER NEXT ROOM ▸</button></nav><div class="sub" style="font-size:12px">Click to buy · ENTER or E to continue</div></div>
 <div id="dead" class="scr hide"><div class="kick red">SIGNAL LOST</div><h1 class="red">YOU DIED</h1><div id="deadStats" class="stats"></div><div id="deadCores"></div><nav class="row"><button id="bAgain">PLAY AGAIN</button><button id="bMenu">MAIN MENU</button></nav></div>
 <div id="err"></div>
 <script>window.onerror=function(m,s,l){var e=document.getElementById('err');e.style.display='block';e.textContent='ERROR: '+m+' ('+String(s||'').split('/').pop()+':'+l+')'};</script>

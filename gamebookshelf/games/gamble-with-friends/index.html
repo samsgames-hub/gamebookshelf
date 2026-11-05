@@ -177,7 +177,7 @@ async function enter(c){
  if(!rs.exists){err("No room with that code.");return}
  code=c;room=rs.data();
  var pd=db.doc("rooms/"+c+"/players/"+uid),ps=await pd.get();
- me=Object.assign({gold:5,pu:[],ll:0,st:0,rs:0,pr:0},ps.exists?ps.data():{bank:1000,msg:"joined",t:Date.now()});
+ me=Object.assign({gold:5,pu:[],ll:0,st:0,rs:0,pr:0},ps.exists?ps.data():{bank:1000,msg:"joined",t:Date.now()});me.pu=(me.pu||[]).filter(function(id){return PU[id]});
  me.name=nameVal();await pd.set(Object.assign({},me));
  PL[uid]=me;open_();
  unsubs.push(db.doc("rooms/"+c).onSnapshot(function(s){if(s.exists){room=s.data();top_()}},function(){}));
@@ -223,7 +223,7 @@ function top_(){
  else if(st=="won")s.innerHTML='<button class="b" onclick="nextStage()">Go to stage '+(sg+1)+'</button>';
  else s.innerHTML="";
  $("banner").innerHTML=st=="won"?'<div class="banner">🎉 Stage '+sg+' cleared with '+t.toLocaleString()+' chips. Shop, then move on.</div>':st=="lost"?'<div class="banner l">⏰ Run over at stage '+sg+'. The team finished at '+t.toLocaleString()+' of '+G.toLocaleString()+'.</div>':"";
- pups();shop(st);
+ if(betList()[0]!==betS||(!hold&&!allin&&bet!==betList()[betI]))bets();pups();shop(st);
  if(tab=="po"&&!hold&&(room.round?room.round.n:0)!=shownRound&&st=="play")drawPO();
  if(!hold&&st+(me.bank<10)!=lastLock)game();
 }
@@ -243,8 +243,13 @@ function sync(g,net,m){
  var snap=Object.assign({},me);
  q=q.then(function(){return db.doc("rooms/"+code+"/players/"+uid).set(snap)}).catch(function(){});
 }
+/* bet chips scale with your net worth: 10/50/100/500 up to 2,000 chips, then ×2, ×5, ×10 … */
+var betI=1,betS=0;
+function betList(){var b=me.bank||0,s=1;if(b>2000){var r=b/1000,p=Math.pow(10,Math.floor(Math.log10(r))),m=r/p;s=(m>=5?5:m>=2?2:1)*p}return[10,50,100,500].map(function(x){return x*s})}
+function chipTxt(n){return n>=1e6?(n/1e6)+"M":n>=1e4?(n/1e3)+"K":String(n)}
 function bets(){
- $("bets").innerHTML='<span class="betlabel">Bet</span>'+[10,50,100,500].map(function(b){return '<button class="cb c'+b+(b==bet&&!allin?' on':'')+'" onclick="bet='+b+';allin=false;bets()" aria-label="Bet '+b+'">'+b+'</button>'}).join("")+'<button class="cb call'+(allin?' on':'')+'" onclick="allin=true;bets()">All in</button> <span id="hint" class="err"></span>';
+ var L=betList(),C=[10,50,100,500];betS=L[0];if(!allin&&!hold)bet=L[betI];
+ $("bets").innerHTML='<span class="betlabel">Bet</span>'+L.map(function(b,i){return '<button class="cb c'+C[i]+(i==betI&&!allin?' on':'')+'" onclick="betI='+i+';allin=false;bets()" aria-label="Bet '+b+'">'+chipTxt(b)+'</button>'}).join("")+'<button class="cb call'+(allin?' on':'')+'" onclick="allin=true;bets()">All in</button> <span id="hint" class="err"></span>';
 }
 function hint(m){var h=$("hint");if(h)h.textContent=m||""}
 document.querySelectorAll(".tab").forEach(function(t){t.onclick=function(){
@@ -450,12 +455,12 @@ var PU={totem:{e:"🗿",n:"Totem",d:"Use it to reverse your last loss.",p:6,use:
  dd:{e:"🎟️",n:"Double Down",d:"Use it before a round: your next win pays double profit.",p:6,use:1},
  wind:{e:"💨",n:"Second Wind",d:"Go broke once and get 100 chips back. Used up when it triggers.",p:6},
  voucher:{e:"🧾",n:"Chip Voucher",d:"Use it for 150 chips right away.",p:5,use:1},
- crystal:{e:"🔮",n:"Crystal Ball",d:"See the house’s hole cards in Hold’em before you bet.",p:6},
  pockets:{e:"🎒",n:"Deep Pockets",d:"Carry 2 more power-ups (it takes one slot itself).",p:5},
  candle:{e:"🕯️",n:"Lucky Candle",d:"Slots: two of a kind returns your whole bet.",p:5},
  magnet:{e:"🧲",n:"Magnet Pegs",d:"Plinko: the middle slot pays 1× instead of 0.4×.",p:5},
  squad:{e:"🧯",n:"Bomb Squad",d:"Mines: only 2 mines instead of 3.",p:6}};
 function pups(){
+ me.pu=(me.pu||[]).filter(function(id){return PU[id]});
  var h=(me.pu||[]).map(function(id){var p=PU[id];return p.use?'<button class="pu" title="'+p.d+'" onclick="useP(\''+id+'\')">'+p.e+' '+p.n+' <small>use</small></button>':'<span class="pu" title="'+p.d+'">'+p.e+' '+p.n+'</span>'}).join(" ");
  $("pups").innerHTML='<span class="betlabel">Power-ups</span>'+(h||'<span style="color:var(--mute)">none yet</span>')+(me.ex?' <span class="pu">🎟️ Double Down armed</span>':'')+'<span class="gold">🪙 '+me.gold+' gold</span>';
 }
@@ -498,7 +503,7 @@ function drawPO(){
  if(!R){g.innerHTML='<div class="msg">Nobody has dealt yet.</div><div class="row" style="justify-content:center"><button class="b" onclick="dealR()">Deal the table</button></div>';return}
  var h=deal2(),played=me.pr>=R.n,m="Everyone shares the board and the house hand. Beat the house to win 1.9×.";
  if(played){var a=best(h.mine.concat(h.board)),c=best(h.house.concat(h.board)),k=cmp(a,c);m=(k>0?"You win: "+HN[a[0]]+" beats "+HN[c[0]]:k<0?"House wins: "+HN[c[0]]+" beats "+HN[a[0]]:"Push: both have "+HN[a[0]])+"."}
- g.innerHTML='<div>Round '+R.n+', shared board</div><div class="row">'+h.board.map(function(c){return chp(c)}).join("")+'</div><div>House</div><div class="row">'+(played||has("crystal")?h.house.map(function(c){return chp(c)}).join(""):chp([2,0],1)+chp([2,0],1))+'</div><div>Your hole cards</div><div class="row">'+h.mine.map(function(c){return chp(c)}).join("")+'</div><div class="msg">'+m+'</div><div class="row" style="justify-content:center">'+(played?'<button class="b" onclick="dealR()">Deal next hand</button>':'<button class="b" onclick="ppl()">Play hand</button>')+'</div>';
+ g.innerHTML='<div>Round '+R.n+', shared board</div><div class="row">'+h.board.map(function(c){return chp(c)}).join("")+'</div><div>House</div><div class="row">'+(played?h.house.map(function(c){return chp(c)}).join(""):chp([2,0],1)+chp([2,0],1))+'</div><div>Your hole cards</div><div class="row">'+h.mine.map(function(c){return chp(c)}).join("")+'</div><div class="msg">'+m+'</div><div class="row" style="justify-content:center">'+(played?'<button class="b" onclick="dealR()">Deal next hand</button>':'<button class="b" onclick="ppl()">Play hand</button>')+'</div>';
 }
 function dealR(){
  var rd={n:(room.round?room.round.n:0)+1,seed:Math.floor(Math.random()*2e9)};room.round=rd;
@@ -531,8 +536,8 @@ function copyInvite(){
 }
 
 /* Boss stages */
-var MODS=[{n:"Jammed slots",d:"the slot machine is out of order",slots:1},{n:"Short fuse",d:"the clock is 30% shorter",fuse:1},{n:"Penny pinchers",d:"bets are capped at 100 chips",cap:100},{n:"Crooked house",d:"lost bets cost 10% extra",tax:1}];
-function boss(){var s=room.stage||1;return s%3==0?MODS[(s/3-1)%4]:null}
+var MODS=[{n:"Jammed slots",d:"the slot machine is out of order",slots:1},{n:"Short fuse",d:"the clock is 30% shorter",fuse:1},{n:"Crooked house",d:"lost bets cost 10% extra",tax:1}];
+function boss(){var s=room.stage||1;return s%3==0?MODS[(s/3-1)%MODS.length]:null}
 function react(e){me.em=e;sync(null,0,me.msg||"playing")}
 /* Mines */
 var mn=null;
