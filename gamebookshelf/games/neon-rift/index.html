@@ -37,6 +37,7 @@
     <div id="slots"></div>
   </div>
   <div id="pus"></div>
+  <div id="team" class="hide"></div>
   <div id="face" class="pnl t0"><canvas id="faceC" width="40" height="48"></canvas></div>
   <div id="xpw"><span id="lvl">LV 1</span><div class="bar xp"><u id="xpB"></u></div></div>
   <div id="banner"><b id="banT"></b><span id="banS"></span></div>
@@ -45,7 +46,7 @@
 
 <div id="menu" class="scr">
   <div class="brand"><div class="kick">ENTER THE RIFT</div><h1>NEON<span>RIFT</span></h1><p>Clear each room, loot gold, arm up at the Armory between doors — and breach the boss vaults.</p></div>
-  <nav><button id="bPlay" disabled>LOADING…</button><button id="bUpg">UPGRADES</button><button id="bRec">RECORDS</button><button id="bSet">SETTINGS</button></nav>
+  <nav><button id="bPlay" disabled>LOADING…</button><button id="bOnline">PLAY ONLINE</button><button id="bUpg">UPGRADES</button><button id="bRec">RECORDS</button><button id="bSet">SETTINGS</button></nav>
   <div id="load"><span id="loadT">SCULPTING ASSETS</span><i><u id="loadB"></u></i></div>
   <div id="cores">◆ <b id="coreN">0</b> RIFT CORES</div>
   <div class="foot"><span><kbd>WASD</kbd> move</span><span><kbd>MOUSE</kbd> aim / fire</span><span><kbd>SHIFT</kbd> dash · hold to sprint</span><span><kbd>SPACE</kbd> jump</span><span><kbd>R</kbd> reload</span><span><kbd>RMB</kbd> scope (rifle)</span><span><kbd>1-5</kbd> / wheel weapons</span><span><kbd>ESC</kbd> pause</span></div>
@@ -68,11 +69,25 @@
 <div id="pause" class="scr hide"><div class="kick">SIMULATION HALTED</div><h2>PAUSED</h2><nav><button id="bResume">RESUME</button><button id="bSet2">SETTINGS</button><button id="bQuit">QUIT TO MENU</button></nav></div>
 <div id="lvlup" class="scr hide"><div class="kick">POWER SURGE</div><h2 id="lvlN">LEVEL 2</h2><div id="cards"></div><div class="sub">Choose an upgrade — click or press 1 / 2 / 3</div></div>
 <div id="shop" class="scr hide"><div class="kick">TRANSIT LOCK</div><h2>ARMORY</h2><div class="sub">◉ <b id="shopGold">0</b> GOLD — looted from fallen enemies</div><div id="shopGuns"></div><div class="sub" id="shopNext"></div><nav><button id="bGo">ENTER NEXT ROOM ▸</button></nav><div class="sub" style="font-size:12px">Click to buy · ENTER or E to continue</div></div>
+<div id="online" class="scr hide"><div class="kick">CO-OP · UP TO 4 PLAYERS</div><h2>PLAY ONLINE</h2>
+  <div id="onJoin" class="onbox">
+    <label class="onl">CALLSIGN<input id="onName" maxlength="14" placeholder="YOUR NAME" autocomplete="off"></label>
+    <nav class="row"><button id="onCreate">CREATE ROOM</button></nav>
+    <div class="onj"><input id="onCode" maxlength="4" placeholder="CODE" autocomplete="off"><button id="onJoinB">JOIN</button></div>
+  </div>
+  <div id="onLobby" class="onbox hide"><div class="sub">ROOM CODE</div><div id="onCodeBig">----</div><button id="onCopy" class="small">COPY INVITE LINK</button><div id="onPlayers"></div>
+    <nav class="row"><button id="onStart">START MISSION</button><button id="onLeave">LEAVE ROOM</button></nav></div>
+  <div class="sub" id="onMsg"></div>
+  <p class="onote">Fight through the rooms together. Gold and XP drop for everyone, each player shops at the Armory, and if you go down you redeploy in the next room. Enemies get tougher with more players.</p>
+  <button class="back" id="onBack">BACK</button></div>
 <div id="dead" class="scr hide"><div class="kick red">SIGNAL LOST</div><h1 class="red">YOU DIED</h1><div id="deadStats" class="stats"></div><div id="deadCores"></div><nav class="row"><button id="bAgain">PLAY AGAIN</button><button id="bMenu">MAIN MENU</button></nav></div>
 <div id="err"></div>
 <script>window.onerror=function(m,s,l){var e=document.getElementById('err');e.style.display='block';e.textContent='ERROR: '+m+' ('+String(s||'').split('/').pop()+':'+l+')'};</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>if(!window.THREE){var e=document.getElementById('err');e.style.display='block';e.textContent='Three.js failed to load (CDN blocked or offline).'}</script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script src="net.js"></script>
 <script src="game.js"></script>
 <!-- visitor counter: no cookies, no personal data -->
 <script data-goatcounter="https://gamebookshelf.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
