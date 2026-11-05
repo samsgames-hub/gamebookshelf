@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>Ridgeline</title>
+<meta name="description" content="Off-road hill climbing with real suspension physics. Push a 4x4 as far as the fuel goes across forests, canyons, glaciers and a quarry at night. Free in your browser.">
+<meta name="theme-color" content="#14110e">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body class="inmenu">
+<canvas id="cv" aria-label="Game view"></canvas>
+<div id="err" class="hide" role="alert"></div>
+
+<!-- ============ HUD ============ -->
+<div id="hud" class="hide">
+ <div class="fuel" id="fuelBox"><span class="lbl">Fuel</span><div class="fbar"><i id="fuelF"></i></div></div>
+ <div class="dist"><b id="dist">0 m</b><small id="distSub">Best 0 m</small><div class="camp"><i id="campF"></i></div></div>
+ <div class="cash"><b id="cash">$0</b><small>this run</small></div>
+ <button id="bHudPause" class="ico" aria-label="Pause">&#10074;&#10074;</button>
+ <div class="gauge"><canvas id="gaugeC" width="260" height="150"></canvas><div class="gtxt"><b id="spd">0</b><small>km/h</small></div><span id="range" class="range">HIGH</span></div>
+ <div id="pops"></div>
+ <div id="warn" class="hide">Low fuel</div>
+</div>
+<div id="touch" class="hide">
+ <button id="tBrake" class="pedal" aria-label="Brake and reverse"><span>Brake</span></button>
+ <button id="tRange" class="small" aria-label="Toggle low range">Low<br>range</button>
+ <button id="tGas" class="pedal gas" aria-label="Gas"><span>Gas</span></button>
+</div>
+<div id="coach" class="hide"></div>
+<div id="banner" class="hide"><h2 id="banT"></h2><p id="banS"></p></div>
+
+<!-- ============ MENUS ============ -->
+<section id="menu" class="panel side">
+ <a class="back" href="../../">&larr; Game Bookshelf</a>
+ <h1 class="title">Ridge<span>line</span></h1>
+ <p class="tag">Off-road hill climbing. One tank of fuel, real suspension, and the trail only gets worse.</p>
+ <nav class="stack">
+  <button id="bDrive" class="big">Drive</button>
+  <button id="bRegion">Choose a trail</button>
+  <button id="bGarage">Garage</button>
+  <div class="row2"><button id="bSet">Settings</button><button id="bHelp">How to play</button></div>
+ </nav>
+ <p class="foot"><b id="mCash">$0</b> &middot; <span id="mInfo"></span></p>
+</section>
+
+<section id="regions" class="panel wide hide">
+ <header class="phead"><h2>Trails</h2><p>Every trail is the same each run, so you can learn it. Base camps every 1,000 m pay a bonus.</p></header>
+ <div id="regionList" class="cards"></div>
+ <div class="btns"><button data-back class="ghost">Back</button></div>
+</section>
+
+<section id="garage" class="panel wide hide">
+ <header class="phead"><h2>Garage</h2><p>Upgrades belong to each vehicle. <b id="gCash"></b></p></header>
+ <div class="garage">
+  <div class="vehpick" id="vehList"></div>
+  <div class="vehview">
+   <canvas id="vehC" width="900" height="380"></canvas>
+   <div class="vehinfo"><h3 id="vName"></h3><p id="vDesc"></p></div>
+   <div class="ups" id="upList"></div>
+   <div class="vbtn"><button id="vBuy" class="go"></button></div>
+  </div>
+ </div>
+ <div class="btns"><button data-back class="ghost">Back</button><button id="gDrive" class="go">Drive</button></div>
+</section>
+
+<section id="settings" class="panel side hide">
+ <header class="phead"><h2>Settings</h2></header>
+ <label class="sl">Master volume<input type="range" min="0" max="1" step="0.05" id="sMaster"></label>
+ <label class="sl">Music<input type="range" min="0" max="1" step="0.05" id="sMusic"></label>
+ <label class="sl">Sound effects and engine<input type="range" min="0" max="1" step="0.05" id="sSfx"></label>
+ <label class="ck"><input type="checkbox" id="sMute"> Mute everything <small>(M)</small></label>
+ <label class="ck"><input type="checkbox" id="sShake"> Screen shake</label>
+ <label class="ck"><input type="checkbox" id="sLow"> Low quality mode <small>(for slower computers)</small></label>
+ <label class="ck"><input type="checkbox" id="sMph"> Show speed in mph</label>
+ <button id="sReset" class="link danger">Reset all progress</button>
+ <div class="btns"><button data-back class="ghost">Done</button></div>
+</section>
+
+<section id="help" class="panel wide hide">
+ <header class="phead"><h2>How to play</h2></header>
+ <div class="help2">
+  <div>
+   <h3>Controls</h3>
+   <table class="keys"><tbody>
+    <tr><td>&rarr; or D</td><td>gas</td></tr>
+    <tr><td>&larr; or A</td><td>brake, then reverse</td></tr>
+    <tr><td>Shift or L</td><td>switch between high and low range</td></tr>
+    <tr><td>R</td><td>end the run</td></tr>
+    <tr><td>Esc or P</td><td>pause</td></tr>
+    <tr><td>M</td><td>mute</td></tr>
+   </tbody></table>
+   <p class="desc">On a phone, hold the Gas and Brake pedals at the bottom of the screen.</p>
+  </div>
+  <div>
+   <h3>Driving</h3>
+   <p class="desc">Drive as far as you can before the fuel runs out. Grab red jerrycans to fill up. If the cab hits the ground, the run is over.</p>
+   <p class="desc">Gas pushes the nose up and brake pulls it down, on the ground and in the air. Ease off near the top of steep climbs so you don't tip over backwards.</p>
+   <p class="desc"><b>Low range</b> doubles the pulling power and caps your speed. Use it to crawl up rock ledges, then switch back.</p>
+   <p class="desc">Air time, flips, supply caches and base camps pay extra cash. Spend it in the garage.</p>
+  </div>
+ </div>
+ <div class="btns"><button data-back class="ghost">Back</button></div>
+</section>
+
+<section id="pause" class="panel side hide">
+ <header class="phead"><h2>Paused</h2><p id="pauseInfo"></p></header>
+ <nav class="stack">
+  <button id="pResume" class="big">Resume</button>
+  <button id="pRestart">Restart run</button>
+  <button id="pSet">Settings</button>
+  <button id="pHelp">How to play</button>
+  <button id="pQuit">End run</button>
+ </nav>
+</section>
+
+<section id="over" class="panel side hide">
+ <header class="phead"><h2 id="oTitle"></h2><p id="oSub"></p></header>
+ <div class="bigdist" id="oDist"></div>
+ <table class="kv"><tbody id="oKV"></tbody></table>
+ <div class="btns"><button id="oMenu" class="ghost">Menu</button><button id="oGarage" class="ghost">Garage</button><button id="oAgain" class="go">Drive again</button></div>
+</section>
+
+<script src="game.js"></script>
+<!-- visitor counter: no cookies, no personal data -->
+<script data-goatcounter="https://gamebookshelf.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
+</body>
+</html>

@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>Firebase</title>
+<meta name="description" content="Military tower defense. Dig in machine guns, anti-tank guns, mortars, flak and snipers, call in artillery and gun runs, and hold the firebase against armored columns. Free in your browser.">
+<meta name="theme-color" content="#11140f">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Saira+Stencil+One&family=Chakra+Petch:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body class="inmenu">
+<canvas id="cv" aria-label="Battlefield"></canvas>
+<div id="err" class="hide" role="alert"></div>
+
+<!-- ============ HUD ============ -->
+<div id="hud" class="hide">
+ <div class="top">
+  <div class="stat" title="Base integrity"><i class="ic shield"></i><b id="hLives">20</b></div>
+  <div class="stat cash" title="Supply"><i class="ic money"></i><b id="hCash">0</b></div>
+  <div class="stat"><span class="lbl">Wave</span><b id="hWave">0/25</b></div>
+  <div class="grow"></div>
+  <button id="bNext" class="next">Start wave</button>
+  <button id="bSpeed" class="sq" title="Game speed (F)">1&times;</button>
+  <button id="bPause" class="sq" aria-label="Pause">&#10074;&#10074;</button>
+ </div>
+ <div class="bar" id="bar"></div>
+ <div id="sel" class="hide">
+  <div class="shead"><canvas id="selIcon" width="96" height="96"></canvas><div><h3 id="sName"></h3><p id="sRank"></p></div><button id="sClose" class="x" aria-label="Close">&times;</button></div>
+  <table class="st"><tbody id="sStats"></tbody></table>
+  <span class="olbl">Target</span>
+  <div class="seg" id="sTarget"><button data-v="first">First</button><button data-v="last">Last</button><button data-v="strong">Strong</button><button data-v="close">Close</button></div>
+  <div class="sbtn"><button id="sUp" class="go"></button><button id="sSell" class="ghost"></button></div>
+ </div>
+ <div id="wavePrev"></div>
+</div>
+<div id="toast" aria-live="polite"></div>
+<div id="coach" class="hide"></div>
+<div id="banner" class="hide"><h2 id="banT"></h2><p id="banS"></p></div>
+<div id="flash"></div>
+
+<!-- ============ MENUS ============ -->
+<section id="menu" class="panel side">
+ <a class="back" href="../../">&larr; Game Bookshelf</a>
+ <h1 class="title">Firebase</h1>
+ <p class="tag">Dig in, hold the road, and don't let the armor through the gate.</p>
+ <nav class="stack">
+  <button id="bPlay" class="big">Deploy</button>
+  <button id="bMaps">Operations</button>
+  <button id="bCmd">Command <small id="cmdStars"></small></button>
+  <div class="row2"><button id="bSet">Settings</button><button id="bHelp">How to play</button></div>
+ </nav>
+ <p class="foot" id="mFoot"></p>
+</section>
+
+<section id="maps" class="panel wide hide">
+ <header class="phead"><h2>Operations</h2><p>Clear an operation on Regular to open the next one, plus Veteran and Endless for that map.</p></header>
+ <div id="mapList" class="cards"></div>
+ <div class="btns"><button data-back class="ghost">Back</button></div>
+</section>
+
+<section id="cmd" class="panel wide hide">
+ <header class="phead"><h2>Command</h2><p>Spend stars earned in operations on permanent doctrine. <b id="cmdLeft"></b></p></header>
+ <div id="perkList" class="perks"></div>
+ <div class="btns"><button id="cmdReset" class="ghost">Refund all</button><button data-back class="ghost">Back</button></div>
+</section>
+
+<section id="settings" class="panel side hide">
+ <header class="phead"><h2>Settings</h2></header>
+ <label class="sl">Master volume<input type="range" min="0" max="1" step="0.05" id="sMaster"></label>
+ <label class="sl">Music<input type="range" min="0" max="1" step="0.05" id="sMusic"></label>
+ <label class="sl">Sound effects<input type="range" min="0" max="1" step="0.05" id="sSfx"></label>
+ <label class="ck"><input type="checkbox" id="sMute"> Mute everything <small>(M)</small></label>
+ <label class="ck"><input type="checkbox" id="sShake"> Screen shake on explosions</label>
+ <label class="ck"><input type="checkbox" id="sLow"> Low quality mode <small>(fewer effects)</small></label>
+ <label class="ck"><input type="checkbox" id="sAuto"> Start the next wave automatically</label>
+ <button id="sReset" class="link danger">Reset all progress</button>
+ <div class="btns"><button data-back class="ghost">Done</button></div>
+</section>
+
+<section id="help" class="panel wide hide">
+ <header class="phead"><h2>Field manual</h2></header>
+ <div class="help2">
+  <div>
+   <h3>Controls</h3>
+   <table class="keys"><tbody>
+    <tr><td>1 &ndash; 5</td><td>pick a defense, click a free tile to build (hold Shift to keep building)</td></tr>
+    <tr><td>Click a defense</td><td>upgrade, sell or change its target</td></tr>
+    <tr><td>Q</td><td>artillery barrage, then click where</td></tr>
+    <tr><td>E</td><td>gun run along the road, then click where</td></tr>
+    <tr><td>Space</td><td>start or call the next wave early for bonus supply</td></tr>
+    <tr><td>F</td><td>change game speed</td></tr>
+    <tr><td>Esc / P</td><td>cancel, pause</td></tr>
+   </tbody></table>
+  </div>
+  <div>
+   <h3>Know your enemy</h3>
+   <p class="desc"><b>Infantry</b> fall fast to machine guns and snipers. <b>Medics</b> heal soldiers around them.</p>
+   <p class="desc"><b>Jeeps, APCs and tanks</b> shrug off bullets. Anti-tank guns and mortars crack armor. APCs drop a squad when destroyed.</p>
+   <p class="desc"><b>Helicopters and drones</b> fly straight at the base and ignore the road. Only flak, and a little machine gun and sniper fire, can reach them.</p>
+   <p class="desc">Defenses get promoted as they rack up kills and hit harder with every rank.</p>
+  </div>
+ </div>
+ <div class="btns"><button data-back class="ghost">Back</button></div>
+</section>
+
+<section id="pause" class="panel side hide">
+ <header class="phead"><h2>Paused</h2><p id="pauseInfo"></p></header>
+ <nav class="stack">
+  <button id="pResume" class="big">Resume</button>
+  <button id="pRestart">Restart operation</button>
+  <button id="pSet">Settings</button>
+  <button id="pHelp">Field manual</button>
+  <button id="pQuit">Quit to menu</button>
+ </nav>
+</section>
+
+<section id="end" class="panel side hide">
+ <header class="phead"><h2 id="eTitle"></h2><p id="eSub"></p></header>
+ <div id="eStars" class="stars"></div>
+ <table class="kv"><tbody id="eKV"></tbody></table>
+ <div class="btns"><button id="eMenu" class="ghost">Menu</button><button id="eAlt" class="ghost hide"></button><button id="eAgain" class="go">Retry</button></div>
+</section>
+
+<script src="game.js"></script>
+<!-- visitor counter: no cookies, no personal data -->
+<script data-goatcounter="https://gamebookshelf.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
+</body>
+</html>

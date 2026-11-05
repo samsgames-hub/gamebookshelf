@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>Corner Pocket</title>
+<meta name="description" content="Realistic 8-ball and 9-ball pool. Work your way up the ladder of a late-night pool hall, buy better cues and race the clock in Speed Pool. Free in your browser.">
+<meta name="theme-color" content="#0d0a07">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow+Semi+Condensed:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body class="inmenu">
+<canvas id="cv" aria-label="Pool table"></canvas>
+<div id="err" class="hide" role="alert"></div>
+
+<!-- ============ HUD ============ -->
+<div id="hud" class="hide">
+ <div class="plates">
+  <div class="plate" id="pl0"><div class="mono" id="m0">P1</div><div class="pinfo"><b id="n0">You</b><div class="grp" id="g0"></div></div></div>
+  <div class="score" id="scoreBox"><b id="sc">0 &ndash; 0</b><small id="race">Race to 2</small></div>
+  <div class="plate r" id="pl1"><div class="pinfo"><b id="n1">Rival</b><div class="grp" id="g1"></div></div><div class="mono" id="m1">P2</div></div>
+ </div>
+ <div class="speedbox hide" id="speedBox"><b id="timer">0:00.0</b><small id="left">15 balls left</small></div>
+ <button id="bHudPause" class="ico" aria-label="Pause">&#10074;&#10074;</button>
+ <div id="spinW" title="Spin: click or drag on the ball"><canvas id="spinC" width="150" height="150"></canvas><span>Spin</span></div>
+ <div id="powerW"><div class="track" id="powTrack"><i id="powFill"></i><b id="powKnob"></b></div><span>Power</span></div>
+ <div id="fine"><button id="fL" aria-label="Aim left">&#9664;</button><button id="fR" aria-label="Aim right">&#9654;</button></div>
+ <div id="practiceBar" class="hide"><button id="bRe8">New 8-ball rack</button><button id="bRe9">New 9-ball rack</button></div>
+</div>
+<div id="toast" aria-live="polite"></div>
+<div id="coach" class="hide"></div>
+<div id="banner" class="hide"><h2 id="banT"></h2><p id="banS"></p></div>
+
+<!-- ============ MENUS ============ -->
+<section id="menu" class="panel side">
+ <a class="back" href="../../">&larr; Game Bookshelf</a>
+ <h1 class="title">Corner <span>Pocket</span></h1>
+ <p class="tag">Late-night pool. Eight players stand between you and the house champion.</p>
+ <nav class="stack">
+  <button id="bCareer" class="big">Career</button>
+  <button id="bQuick">Quick match</button>
+  <button id="bSpeed">Speed Pool</button>
+  <button id="bPractice">Practice</button>
+  <button id="bShop">Pro Shop</button>
+  <div class="row2"><button id="bSet">Settings</button><button id="bHelp">How to play</button></div>
+ </nav>
+ <p class="foot"><span id="money">$0</span> &middot; <span id="menuRec"></span></p>
+</section>
+
+<section id="career" class="panel wide hide">
+ <header class="phead"><h2>The Ladder</h2><p>Beat each player to earn their prize and a shot at the next. Win money to spend in the Pro Shop.</p></header>
+ <div id="ladder" class="ladder"></div>
+ <div class="btns"><button data-back class="ghost">Back</button></div>
+</section>
+
+<section id="quick" class="panel side hide">
+ <header class="phead"><h2>Quick match</h2></header>
+ <span class="olbl">Game</span>
+ <div class="seg" id="qGame"><button data-v="8" class="on">8-ball</button><button data-v="9">9-ball</button></div>
+ <span class="olbl">Opponent</span>
+ <div class="seg col" id="qOpp"></div>
+ <span class="olbl">Match length</span>
+ <div class="seg" id="qRace"><button data-v="1">1 frame</button><button data-v="2" class="on">Race to 2</button><button data-v="3">Race to 3</button></div>
+ <div class="btns"><button data-back class="ghost">Back</button><button id="qGo" class="go">Rack 'em</button></div>
+</section>
+
+<section id="intro" class="panel side hide">
+ <header class="phead"><h2 id="inName"></h2><p id="inNick"></p></header>
+ <div class="introcard"><div class="mono big" id="inMono"></div><p id="inBio"></p></div>
+ <table class="kv"><tbody id="inKV"></tbody></table>
+ <div class="btns"><button data-back class="ghost">Back</button><button id="inGo" class="go">Play</button></div>
+</section>
+
+<section id="shop" class="panel wide hide">
+ <header class="phead"><h2>Pro Shop</h2><p>Better cues show a longer aim line and put more power and spin on the ball. <b id="shopMoney"></b></p></header>
+ <div class="seg" id="shopTab"><button data-v="cues" class="on">Cues</button><button data-v="cloth">Cloth</button></div>
+ <div id="shopList" class="shoplist"></div>
+ <div class="btns"><button data-back class="ghost">Back</button></div>
+</section>
+
+<section id="settings" class="panel side hide">
+ <header class="phead"><h2>Settings</h2></header>
+ <label class="sl">Master volume<input type="range" min="0" max="1" step="0.05" id="sMaster"></label>
+ <label class="sl">Music<input type="range" min="0" max="1" step="0.05" id="sMusic"></label>
+ <label class="sl">Sound effects<input type="range" min="0" max="1" step="0.05" id="sSfx"></label>
+ <label class="ck"><input type="checkbox" id="sMute"> Mute everything <small>(M)</small></label>
+ <label class="ck"><input type="checkbox" id="sShake"> Screen shake on big hits</label>
+ <label class="ck"><input type="checkbox" id="sLow"> Low quality mode <small>(for slower computers)</small></label>
+ <button id="sReset" class="link danger">Reset all progress</button>
+ <div class="btns"><button data-back class="ghost">Done</button></div>
+</section>
+
+<section id="help" class="panel wide hide">
+ <header class="phead"><h2>How to play</h2></header>
+ <div class="help2">
+  <div>
+   <h3>Shooting</h3>
+   <table class="keys"><tbody>
+    <tr><td>Mouse</td><td>aim the cue at where you point</td></tr>
+    <tr><td>Hold left button, pull back</td><td>set power, let go to shoot</td></tr>
+    <tr><td>Mouse wheel, A D, &larr; &rarr;</td><td>fine aim (hold Shift for tiny steps)</td></tr>
+    <tr><td>Space</td><td>hold to charge power, let go to shoot</td></tr>
+    <tr><td>&uarr; &darr; Q E</td><td>follow / draw and left / right spin</td></tr>
+    <tr><td>X</td><td>center the cue tip again</td></tr>
+    <tr><td>Esc or P</td><td>pause</td></tr>
+   </tbody></table>
+   <p class="desc">On a phone: drag on the table to aim, use the arrows for fine aim, pull the power bar down and let go. Tap the spin ball to put english on the shot.</p>
+  </div>
+  <div>
+   <h3>8-ball</h3>
+   <p class="desc">The table is open after the break. The first ball you sink after the break makes that group yours: solids (1&ndash;7) or stripes (9&ndash;15). Clear your group, then sink the 8 to win. Sink the 8 early and you lose the frame.</p>
+   <h3>9-ball</h3>
+   <p class="desc">Always hit the lowest numbered ball first. Anything that drops on a legal shot counts, so sinking the 9 at any time on a legal shot wins.</p>
+   <h3>Fouls</h3>
+   <p class="desc">Scratching (the cue ball drops), hitting the wrong ball first, or hitting nothing into a cushion after contact gives your opponent ball in hand: they can place the cue ball anywhere.</p>
+  </div>
+ </div>
+ <div class="btns"><button data-back class="ghost">Back</button></div>
+</section>
+
+<section id="pause" class="panel side hide">
+ <header class="phead"><h2>Paused</h2><p id="pauseInfo"></p></header>
+ <nav class="stack">
+  <button id="pResume" class="big">Resume</button>
+  <button id="pRestart">Restart match</button>
+  <button id="pSet">Settings</button>
+  <button id="pHelp">How to play</button>
+  <button id="pQuit">Quit to menu</button>
+ </nav>
+</section>
+
+<section id="result" class="panel side hide">
+ <header class="phead"><h2 id="rTitle"></h2><p id="rSub"></p></header>
+ <div id="rPrize" class="prize hide"></div>
+ <table class="kv"><tbody id="rKV"></tbody></table>
+ <div class="btns"><button id="rMenu" class="ghost">Menu</button><button id="rAlt" class="ghost hide"></button><button id="rAgain" class="go">Play again</button></div>
+</section>
+
+<script src="game.js"></script>
+<!-- visitor counter: no cookies, no personal data -->
+<script data-goatcounter="https://gamebookshelf.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
+</body>
+</html>
