@@ -22,18 +22,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      # one-off: clear a Pages deployment that got stuck "in progress" on 2026-11-05
-      - name: Cancel stuck Pages deployment
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          D=repos/${{ github.repository }}/pages/deployments/5654f48f9fc51ba59e87b95931b91fe3ba5925ee
-          gh api $D || true
-          gh api -X POST $D/cancel -i || true
-          for i in $(seq 1 30); do
-            st=$(gh api $D --jq .status 2>/dev/null || echo unknown); echo "stuck deployment status: $st"
-            case "$st" in deployment_in_progress|updating_pages|deployment_queued|syncing_files|building_artifact) sleep 10;; *) break;; esac
-          done
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
