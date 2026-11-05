@@ -205,3 +205,16 @@ body.aim #gl{cursor:none}body.aim #lockHint.on~*{cursor:default}
 .tb.png{left:50%;transform:translateX(-50%);top:66px;width:52px;height:40px;border-radius:8px;font-size:11px}
 @media (max-width:760px){#bstats{top:auto;bottom:160px;right:8px;width:260px}}
 #xtBtns button{white-space:nowrap;min-width:290px}#dead,#xt{overflow-y:auto;justify-content:safe center}
+
+/* ---- ping wheel, ping types, leaderboard ---- */
+#pwheel{left:50%;top:50%;width:280px;height:280px;margin:-140px 0 0 -140px;border-radius:50%;background:radial-gradient(circle,rgba(5,12,20,.2) 0 22%,rgba(5,12,20,.72) 23% 70%,transparent 71%);pointer-events:none}
+#pwheel div{position:absolute;font:700 13px var(--f);letter-spacing:.2em;color:var(--dim);transform:translate(-50%,-50%);transition:.12s;white-space:nowrap;text-shadow:0 1px 3px #000}
+#pwheel [data-t=go]{left:50%;top:18%}#pwheel [data-t=enemy]{left:82%;top:50%}#pwheel [data-t=help]{left:50%;top:82%}#pwheel [data-t=danger]{left:18%;top:50%}
+#pwheel div.on{color:#fff;transform:translate(-50%,-50%) scale(1.2)}#pwheel [data-t=go].on{color:var(--c)}#pwheel [data-t=enemy].on{color:var(--red)}#pwheel [data-t=help].on{color:#7dffb0}#pwheel [data-t=danger].on{color:var(--amb)}
+#pwheel i{position:absolute;left:50%;top:50%;width:8px;height:8px;margin:-4px;border-radius:50%;background:var(--c)}
+.ping.help i{border-color:#7dffb0;box-shadow:0 0 10px #7dffb0}.ping.help b{color:#7dffb0}.ping.danger i{border-color:var(--amb);box-shadow:0 0 10px var(--amb)}.ping.danger b{color:var(--amb)}
+#lbBox{display:flex;flex-direction:column;gap:8px;margin:6px 0 10px}#lbBox input{pointer-events:auto;font:600 18px var(--f);letter-spacing:.14em;color:var(--w);background:rgba(5,12,20,.7);border:1px solid var(--c2);padding:8px 12px;outline:0;width:220px;text-transform:uppercase}
+#lbBox .onj button{min-width:170px}.lbl{display:grid;gap:4px;max-width:520px}
+.lbr{display:grid;grid-template-columns:44px 1fr 92px 110px;align-items:center;padding:6px 12px;background:rgba(5,12,20,.55);border-left:2px solid var(--c2);font:600 14px var(--f);letter-spacing:.1em}
+.lbr em{font-style:normal;color:var(--amb)}.lbr span{color:var(--c);text-align:right}.lbr small{color:var(--dim);text-align:right}.lbr.me{border-left-color:var(--c);background:rgba(20,60,80,.5)}.lbl .dim{font:500 13px var(--f);color:var(--dim)}
+#rec{overflow-y:auto;justify-content:safe center}

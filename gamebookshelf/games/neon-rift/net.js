@@ -142,6 +142,8 @@
       while (myEvKeys.length && now - myEvKeys[0][1] > 20000) B.removeKey(this.path('e'), myEvKeys.shift()[0]);
     },
     kick(id) { if (!this.isHost || id === this.me) return; B.update(this.path('m/ban'), { [id]: 1 }); B.remove(this.path('p/' + id)); B.remove(this.path('s/' + id)); },
+    async lbGet() { if (!await this.init()) return null; try { const v = await B.get('nr/TOPS') || {}; return Object.entries(v).map(([id, e]) => Object.assign({ id }, e)).filter(e => e && e.w > 0).sort((a, b) => b.w - a.w || (b.s || 0) - (a.s || 0)).slice(0, 10); } catch (e) { return null; } },
+    async lbSubmit(name, w, s) { if (!await this.init()) return false; try { const p = 'nr/TOPS/' + this.uid(), cur = await B.get(p); if (cur && (cur.w > w || (cur.w === w && (cur.s || 0) >= s))) { if (cur.n !== name) await B.update(p, { n: name }); return 'kept'; } await B.put(p, { n: name, w, s, t: Date.now() }); return 'new'; } catch (e) { return false; } },
     count() { return Object.keys(this.players).length || 1; },
     leave(fromClose) {
       const was = this.on; this.on = false; this.started = false; unsub.forEach(f => { try { f(); } catch (e) { } }); unsub = []; evQ = []; cevQ = []; myEvKeys = [];

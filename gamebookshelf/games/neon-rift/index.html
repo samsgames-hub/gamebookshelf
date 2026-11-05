@@ -39,6 +39,7 @@
   <div id="pus"></div>
   <div id="team" class="hide"></div>
   <div id="pings"></div>
+  <div id="pwheel" class="hide"><div data-t="go">GO HERE</div><div data-t="enemy">ENEMY</div><div data-t="help">NEED HELP</div><div data-t="danger">WATCH OUT</div><i></i></div>
   <div id="bstats" class="hide"></div>
   <div id="rev" class="hide"><b>REVIVING</b><i><u></u></i><span>STAY CLOSE</span></div>
   <div id="face" class="pnl t0"><canvas id="faceC" width="40" height="48"></canvas></div>
@@ -52,10 +53,10 @@
   <nav><button id="bPlay" disabled>LOADING…</button><button id="bOnline">PLAY ONLINE</button><button id="bUpg">UPGRADES</button><button id="bRec">RECORDS</button><button id="bSet">SETTINGS</button></nav>
   <div id="load"><span id="loadT">SCULPTING ASSETS</span><i><u id="loadB"></u></i></div>
   <div id="cores">◆ <b id="coreN">0</b> RIFT CORES</div>
-  <div class="foot"><span><kbd>WASD</kbd> move</span><span><kbd>MOUSE</kbd> aim / fire</span><span><kbd>SHIFT</kbd> dash · hold to sprint</span><span><kbd>SPACE</kbd> jump</span><span><kbd>R</kbd> reload</span><span><kbd>T</kbd> / middle click ping</span><span><kbd>RMB</kbd> scope (rifle)</span><span><kbd>1-5</kbd> / wheel weapons</span><span><kbd>ESC</kbd> pause</span></div>
+  <div class="foot"><span><kbd>WASD</kbd> move</span><span><kbd>MOUSE</kbd> aim / fire</span><span><kbd>SHIFT</kbd> dash · hold to sprint</span><span><kbd>SPACE</kbd> jump</span><span><kbd>R</kbd> reload</span><span><kbd>T</kbd> ping · hold + move for ping wheel</span><span><kbd>RMB</kbd> scope (rifle)</span><span><kbd>1-5</kbd> / wheel weapons</span><span><kbd>ESC</kbd> pause</span></div>
 </div>
 <div id="upg" class="scr hide"><div class="kick">PERMANENT</div><h2>UPGRADES</h2><div class="sub">◆ <b id="upCores">0</b> RIFT CORES — earned every run</div><div id="upList" class="grid"></div><button class="back">BACK</button></div>
-<div id="rec" class="scr hide"><div class="kick">SERVICE</div><h2>RECORDS</h2><div id="recList" class="stats"></div><button class="back">BACK</button></div>
+<div id="rec" class="scr hide"><div class="kick">SERVICE</div><h2>RECORDS</h2><div id="recList" class="stats"></div><div class="sub">ENDLESS LEADERBOARD · DEEPEST WAVE</div><div id="lbList" class="lbl"></div><button class="back">BACK</button></div>
 <div id="set" class="scr hide"><div class="kick">SYSTEM</div><h2>SETTINGS</h2>
   <div class="form">
     <label>Master Volume<input id="s_master" type="range" min="0" max="10"><output id="v_master"></output></label>
@@ -90,7 +91,7 @@
   <div class="xtc"><div>EXTRACT NOW</div><b id="xtBonus">+0</b><span>RIFT CORES · DOUBLE PAYOUT + 250 BONUS</span></div>
   <nav class="row" id="xtBtns"><button id="xtPod">LAUNCH ESCAPE POD</button><button id="xtEnd">KEEP FIGHTING · ENDLESS</button></nav>
   <div class="sub hide" id="xtWait">The host is choosing for the team…</div></div>
-<div id="dead" class="scr hide"><div class="kick red" id="dKick">SIGNAL LOST</div><h1 class="red" id="dTitle">YOU DIED</h1><div id="deadStats" class="stats"></div><div id="deadCores"></div><nav class="row"><button id="bAgain">PLAY AGAIN</button><button id="bMenu">MAIN MENU</button></nav></div>
+<div id="dead" class="scr hide"><div class="kick red" id="dKick">SIGNAL LOST</div><h1 class="red" id="dTitle">YOU DIED</h1><div id="deadStats" class="stats"></div><div id="deadCores"></div><div id="lbBox" class="hide"><div class="sub">ENDLESS LEADERBOARD</div><div class="onj"><input id="lbName" maxlength="14" placeholder="CALLSIGN" autocomplete="off"><button id="lbSend">SUBMIT RUN</button></div><div id="lbRes" class="lbl"></div></div><nav class="row"><button id="bAgain">PLAY AGAIN</button><button id="bMenu">MAIN MENU</button></nav></div>
 <div id="err"></div>
 <script>window.onerror=function(m,s,l){var e=document.getElementById('err');e.style.display='block';e.textContent='ERROR: '+m+' ('+String(s||'').split('/').pop()+':'+l+')'};</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
