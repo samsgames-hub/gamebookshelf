@@ -69,7 +69,7 @@
     handlers: {},
     listen(t, f) { (this.handlers[t] = this.handlers[t] || []).push(f); },
     emit(t, ...a) { (this.handlers[t] || []).forEach(f => { try { f(...a); } catch (e) { console.error(e); } }); },
-    uid() { let v; try { v = localStorage.getItem('nr-uid'); } catch (e) { } if (!v || local) { v = 'p' + rid(10); try { if (!local) localStorage.setItem('nr-uid', v); } catch (e) { } } return v; },
+    uid() { if (this._uid) return this._uid; let v; try { v = localStorage.getItem('nr-uid'); } catch (e) { } if (!v || local) { v = 'p' + rid(10); try { if (!local) localStorage.setItem('nr-uid', v); } catch (e) { } } this._uid = v; return v; },
     async init() {
       if (B) return true;
       try {
@@ -104,6 +104,7 @@
       if (code.length !== 4) { this.err = 'Enter the 4-letter code.'; return false; }
       const m = await B.get('nr/' + code + '/m');
       if (!m) { this.err = 'No room with that code.'; return false; }
+      if (m.ban && m.ban[this.uid()]) { this.err = 'The host removed you from that room.'; return false; }
       const ps = await B.get('nr/' + code + '/p') || {};
       if (Object.keys(ps).length >= (m.n || MAXP)) { this.err = 'That room is full (' + MAXP + ' players).'; return false; }
       this.me = this.uid(); this.name = name; this.code = code; this.host = m.h; this.isHost = false;
@@ -115,7 +116,8 @@
     async _enter() {
       this.on = true; this.started = false; this.run = undefined; this.players = {}; this.states = {};
       await B.put(this.path('p/' + this.me), { n: this.name, j: Date.now() });
-      unsub.push(B.watch(this.path('p'), v => { this.players = v || {}; if (this.isHost && this.pub) B.update('nr/LIST/' + this.code, { n: Object.keys(this.players).length, t: Date.now() }); this.emit('players', this.players); }));
+      this.seenSelf = false;
+      unsub.push(B.watch(this.path('p'), v => { this.players = v || {}; if (this.players[this.me]) this.seenSelf = true; else if (this.seenSelf && !this.isHost && this.on) { this.emit('closed', 'The host removed you from the room.'); this.leave(true); return; } if (this.isHost && this.pub) B.update('nr/LIST/' + this.code, { n: Object.keys(this.players).length, t: Date.now() }); this.emit('players', this.players); }));
       unsub.push(B.watch(this.path('m'), v => { if (!v) { if (this.on) { this.emit('closed', this.isHost ? '' : 'The host left the room.'); this.leave(true); } return; } this.meta = v; if (v.st === 'play' && v.run !== this.run) { this.run = v.run; this.started = true; this.emit('started', v); } }));
       unsub.push(B.watch(this.path('s'), v => { this.states = v || {}; this.emit('states', this.states); }));
       if (this.isHost) unsub.push(B.added(this.path('c'), (k, v) => { B.removeKey(this.path('c'), k); (v.b || []).forEach(m => this.emit('cev', m, v.f)); }));
@@ -139,6 +141,7 @@
       // host trims old events so the room doesn't grow
       while (myEvKeys.length && now - myEvKeys[0][1] > 20000) B.removeKey(this.path('e'), myEvKeys.shift()[0]);
     },
+    kick(id) { if (!this.isHost || id === this.me) return; B.update(this.path('m/ban'), { [id]: 1 }); B.remove(this.path('p/' + id)); B.remove(this.path('s/' + id)); },
     count() { return Object.keys(this.players).length || 1; },
     leave(fromClose) {
       const was = this.on; this.on = false; this.started = false; unsub.forEach(f => { try { f(); } catch (e) { } }); unsub = []; evQ = []; cevQ = []; myEvKeys = [];

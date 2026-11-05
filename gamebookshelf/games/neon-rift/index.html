@@ -38,6 +38,8 @@
   </div>
   <div id="pus"></div>
   <div id="team" class="hide"></div>
+  <div id="pings"></div>
+  <div id="bstats" class="hide"></div>
   <div id="rev" class="hide"><b>REVIVING</b><i><u></u></i><span>STAY CLOSE</span></div>
   <div id="face" class="pnl t0"><canvas id="faceC" width="40" height="48"></canvas></div>
   <div id="xpw"><span id="lvl">LV 1</span><div class="bar xp"><u id="xpB"></u></div></div>
@@ -50,7 +52,7 @@
   <nav><button id="bPlay" disabled>LOADING…</button><button id="bOnline">PLAY ONLINE</button><button id="bUpg">UPGRADES</button><button id="bRec">RECORDS</button><button id="bSet">SETTINGS</button></nav>
   <div id="load"><span id="loadT">SCULPTING ASSETS</span><i><u id="loadB"></u></i></div>
   <div id="cores">◆ <b id="coreN">0</b> RIFT CORES</div>
-  <div class="foot"><span><kbd>WASD</kbd> move</span><span><kbd>MOUSE</kbd> aim / fire</span><span><kbd>SHIFT</kbd> dash · hold to sprint</span><span><kbd>SPACE</kbd> jump</span><span><kbd>R</kbd> reload</span><span><kbd>RMB</kbd> scope (rifle)</span><span><kbd>1-5</kbd> / wheel weapons</span><span><kbd>ESC</kbd> pause</span></div>
+  <div class="foot"><span><kbd>WASD</kbd> move</span><span><kbd>MOUSE</kbd> aim / fire</span><span><kbd>SHIFT</kbd> dash · hold to sprint</span><span><kbd>SPACE</kbd> jump</span><span><kbd>R</kbd> reload</span><span><kbd>T</kbd> / middle click ping</span><span><kbd>RMB</kbd> scope (rifle)</span><span><kbd>1-5</kbd> / wheel weapons</span><span><kbd>ESC</kbd> pause</span></div>
 </div>
 <div id="upg" class="scr hide"><div class="kick">PERMANENT</div><h2>UPGRADES</h2><div class="sub">◆ <b id="upCores">0</b> RIFT CORES — earned every run</div><div id="upList" class="grid"></div><button class="back">BACK</button></div>
 <div id="rec" class="scr hide"><div class="kick">SERVICE</div><h2>RECORDS</h2><div id="recList" class="stats"></div><button class="back">BACK</button></div>
@@ -83,7 +85,12 @@
   <div class="sub" id="onMsg"></div>
   <p class="onote">Fight through the rooms together. Gold and XP drop for everyone, each player shops at the Armory, and if you go down a teammate can revive you by standing next to you, or you redeploy in the next room. Enemies get tougher with more players.</p>
   <button class="back" id="onBack">BACK</button></div>
-<div id="dead" class="scr hide"><div class="kick red">SIGNAL LOST</div><h1 class="red">YOU DIED</h1><div id="deadStats" class="stats"></div><div id="deadCores"></div><nav class="row"><button id="bAgain">PLAY AGAIN</button><button id="bMenu">MAIN MENU</button></nav></div>
+<div id="xt" class="scr hide"><div class="kick">WAVE 50 HELD</div><h2>THE RIFT IS STABLE</h2>
+  <div class="sub">An escape pod is fuelled and waiting. Fly home now with an extraction bonus, or stay and see how deep the rift goes.</div>
+  <div class="xtc"><div>EXTRACT NOW</div><b id="xtBonus">+0</b><span>RIFT CORES · DOUBLE PAYOUT + 250 BONUS</span></div>
+  <nav class="row" id="xtBtns"><button id="xtPod">LAUNCH ESCAPE POD</button><button id="xtEnd">KEEP FIGHTING · ENDLESS</button></nav>
+  <div class="sub hide" id="xtWait">The host is choosing for the team…</div></div>
+<div id="dead" class="scr hide"><div class="kick red" id="dKick">SIGNAL LOST</div><h1 class="red" id="dTitle">YOU DIED</h1><div id="deadStats" class="stats"></div><div id="deadCores"></div><nav class="row"><button id="bAgain">PLAY AGAIN</button><button id="bMenu">MAIN MENU</button></nav></div>
 <div id="err"></div>
 <script>window.onerror=function(m,s,l){var e=document.getElementById('err');e.style.display='block';e.textContent='ERROR: '+m+' ('+String(s||'').split('/').pop()+':'+l+')'};</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>

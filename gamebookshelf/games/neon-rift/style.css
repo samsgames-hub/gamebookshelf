@@ -187,3 +187,21 @@ body.aim #gl{cursor:none}body.aim #lockHint.on~*{cursor:default}
 #onRooms{display:grid;gap:6px;max-width:520px;max-height:260px;overflow-y:auto}#onRooms .rm{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 12px;background:rgba(5,12,20,.6);border:1px solid var(--c2)}
 #onRooms .rm b{display:block;font:700 15px var(--f);letter-spacing:.12em}#onRooms .rm span{font:600 11px var(--f);letter-spacing:.2em;color:var(--dim)}#onRooms .rm button{min-width:0;padding:8px 18px;font-size:14px}
 #onRooms .dim{font:500 13px var(--f);color:var(--dim);letter-spacing:.04em}#bAgain:disabled{opacity:.55;cursor:default}
+
+/* ---- pings, boss stats, extraction, kick ---- */
+#pings{inset:0;pointer-events:none}.ping{position:absolute;left:0;top:0;display:flex;flex-direction:column;align-items:center;gap:1px;text-shadow:0 1px 3px #000}
+.ping i{width:14px;height:14px;border:2px solid var(--c);transform:rotate(45deg);box-shadow:0 0 10px var(--c);margin-bottom:4px;animation:pg 1s ease-in-out infinite}
+.ping b{font:700 12px var(--f);letter-spacing:.2em;color:var(--c)}.ping span{font:600 11px var(--f);color:var(--w)}
+.ping.en i{border-color:var(--red);box-shadow:0 0 10px var(--red)}.ping.en b{color:var(--red)}@keyframes pg{50%{transform:rotate(45deg) scale(1.25)}}
+#bstats{right:18px;top:110px;width:330px;padding:14px 16px;background:linear-gradient(135deg,rgba(5,12,20,.85),rgba(5,12,20,.55));border:1px solid var(--amb);border-left:3px solid var(--amb);opacity:0;transform:translateX(30px);transition:.45s}
+#bstats.show{opacity:1;transform:none}#bstats.out{opacity:0;transform:translateX(30px)}#bstats .kick{color:var(--amb);font-size:11px;letter-spacing:.4em}
+#bstats h3{font:500 34px/1 var(--n);letter-spacing:.06em;margin:2px 0 8px}#bstats table{width:100%;border-collapse:collapse;font:600 13px var(--f);letter-spacing:.08em}
+#bstats th{font-size:10px;letter-spacing:.24em;color:var(--dim);text-align:right;padding-bottom:4px}#bstats th:first-child{text-align:left}
+#bstats td{padding:3px 0;text-align:right}#bstats td:first-child{text-align:left;color:var(--w)}#bstats tr.me td:first-child{color:var(--c)}#bstats em{font-style:normal;color:var(--amb);font-size:10px;letter-spacing:.2em}
+#xt{background:radial-gradient(circle at 30% 50%,rgba(10,40,40,.75),rgba(2,4,8,.92))}.xtc{padding:14px 18px;border:1px solid var(--c2);border-left:3px solid #7dffb0;background:rgba(5,12,20,.6);max-width:420px}
+.xtc div{font:700 12px var(--f);letter-spacing:.3em;color:#7dffb0}.xtc b{display:block;font:500 56px/1 var(--n);color:#c9a0ff}.xtc span{font:600 12px var(--f);letter-spacing:.2em;color:var(--dim)}
+#dead.win{background:radial-gradient(circle at 30% 50%,rgba(10,50,40,.75),rgba(2,4,8,.92))}#dead.win .red{color:#7dffb0!important}.xtb{color:#7dffb0!important;animation:none!important}
+#onPlayers button.kick{pointer-events:auto;min-width:0;margin-left:10px;padding:3px 10px;font-size:11px;letter-spacing:.2em;border-left-color:var(--red);color:var(--red)}
+.tb.png{left:50%;transform:translateX(-50%);top:66px;width:52px;height:40px;border-radius:8px;font-size:11px}
+@media (max-width:760px){#bstats{top:auto;bottom:160px;right:8px;width:260px}}
+#xtBtns button{white-space:nowrap;min-width:290px}#dead,#xt{overflow-y:auto;justify-content:safe center}
