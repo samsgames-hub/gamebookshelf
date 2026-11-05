@@ -1351,10 +1351,16 @@ addEventListener('keyup',e=>{keys[e.code]=0});
 addEventListener('mousedown',e=>{if(e.button===0&&G.mode==='play'&&(document.pointerLockElement||isTouch||G.freeAim))mdown=1;if(e.button===2&&G.mode==='play')P.ads=1});addEventListener('mouseup',e=>{if(e.button===0)mdown=0;if(e.button===2)P.ads=0});
 addEventListener('contextmenu',e=>e.preventDefault());
 addEventListener('wheel',e=>{if(G.mode==='play')cycleW(e.deltaY>0?1:-1)},{passive:true});
-addEventListener('mousemove',e=>{if(G.mode==='play'&&(document.pointerLockElement||G.freeAim)){const k=save.set.sens*.00055*(1-.55*P.adsK);P.yaw-=e.movementX*k;P.pitch=clamp(P.pitch-e.movementY*k,-1.5,1.5);VM.swayX+=clamp(e.movementX,-60,60)*.02;VM.swayY+=clamp(-e.movementY,-60,60)*.02}});
+// Chrome sometimes reports one huge bogus movement while the pointer is locked (common on trackpads and right after locking),
+// which snapped the view. Drop the first events after a lock and any single reading far bigger than recent movement.
+const ML={skip:0,avg:6};
+function lookDelta(e){let dx=e.movementX||0,dy=e.movementY||0;if(ML.skip>0){ML.skip--;return null}
+const m=Math.hypot(dx,dy),lim=Math.max(140,ML.avg*7);if(m>lim||Math.abs(dx)>innerWidth*.35||Math.abs(dy)>innerHeight*.35)return null;
+ML.avg+=(Math.min(m,60)-ML.avg)*.08;return[dx,dy]}
+addEventListener('mousemove',e=>{if(G.mode==='play'&&(document.pointerLockElement||G.freeAim)){const d=lookDelta(e);if(!d)return;const k=save.set.sens*.00055*(1-.55*P.adsK);P.yaw-=d[0]*k;P.pitch=clamp(P.pitch-d[1]*k,-1.5,1.5);VM.swayX+=clamp(d[0],-60,60)*.02;VM.swayY+=clamp(-d[1],-60,60)*.02}});
 ren.domElement.addEventListener('mousedown',e=>{if(G.mode==='play'&&!document.pointerLockElement&&!isTouch){lockPointer();if(!G.freeAim)e.stopPropagation()}});
 document.addEventListener('pointerlockerror',onLockFail);
-document.addEventListener('pointerlockchange',()=>{if(document.pointerLockElement){G.noPause=0;lockErr=0}else if(G.mode==='play'&&!G.noPause&&!isTouch)pauseGame()});
+document.addEventListener('pointerlockchange',()=>{ML.skip=2;if(document.pointerLockElement){G.noPause=0;lockErr=0}else if(G.mode==='play'&&!G.noPause&&!isTouch)pauseGame()});
 addEventListener('blur',()=>{for(const k in keys)keys[k]=0;mdown=0;P.ads=0;if(G.mode==='play'&&!isTouch)pauseGame()});
 addEventListener('resize',()=>setupPost());
 if(isTouch)touchUI();else addEventListener('touchstart',()=>{if(!$('touch')){touchUI();if(G.mode==='play')$('touch').classList.remove('hide')}},{once:true,passive:true})}
