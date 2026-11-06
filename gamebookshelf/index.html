@@ -81,9 +81,13 @@ main{max-width:1280px;margin:0 auto;padding:12px 32px 40px}
 .about .box{display:grid;grid-template-columns:1fr 1fr;gap:28px;padding:28px;border-radius:14px;background:var(--s1);border:1px solid var(--line)}
 .about h2{margin:0 0 8px;font:700 30px var(--disp)}
 .about p{margin:0 0 10px;color:#c4cedb;max-width:60ch}
-.about ul{margin:0;padding:0;list-style:none;display:grid;gap:12px}
+.about ul{margin:0;padding:0;list-style:none;display:grid;gap:12px;align-content:start;padding-top:6px}
 .about li{display:flex;gap:12px;align-items:flex-start;color:#c4cedb}
 .about li svg{flex:none;width:20px;height:20px;margin-top:2px;color:var(--go)}
+.help{margin-top:18px;padding-top:18px;border-top:1px solid var(--line)}
+.help h3{margin:0 0 4px;font:600 18px var(--ui)}
+.helpbtn{display:inline-flex;align-items:center;gap:8px;height:44px;padding:0 18px;margin-top:4px;border-radius:10px;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.06);font-weight:500}
+.helpbtn:hover{background:rgba(255,255,255,.12)}.helpbtn svg{width:15px;height:15px}
 /* details drawer */
 .scrim{position:fixed;inset:0;z-index:40;background:rgba(2,4,8,.6);opacity:0;pointer-events:none;transition:opacity .25s}
 .drawer{position:fixed;z-index:41;top:0;right:0;bottom:0;width:min(560px,100vw);background:var(--s1);border-left:1px solid var(--line);transform:translateX(100%);visibility:hidden;transition:transform .3s cubic-bezier(.2,.8,.2,1),visibility 0s .3s;overflow-y:auto;box-shadow:-30px 0 60px rgba(0,0,0,.4)}
@@ -130,7 +134,10 @@ footer{max-width:1280px;margin:0 auto;padding:0 32px 40px;color:var(--muted);fon
   <div class="grid" id="grid"></div>
 </main>
 <section class="about" id="about"><div class="box">
-  <div><h2>About</h2><p id="aboutText"></p></div>
+  <div><h2>About</h2><p id="aboutText"></p>
+    <div class="help"><h3>Need help or found a bug?</h3><p>Tell me what happened and which game it was in, and I'll take a look.</p>
+    <a class="helpbtn" href="https://docs.google.com/forms/d/e/1FAIpQLSd_16yOP5fE9Fz5bNHobgcu159FKJN3eDA0mWfcx7GJDEgM8Q/viewform?usp=dialog" target="_blank" rel="noopener">Open the help form<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M7 4h9v9M16 4L5 15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></a></div>
+  </div>
   <ul>
     <li><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10.5l4 4 8-9" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>Nothing to download or install. Press Play and the game opens in this tab.</li>
     <li><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10.5l4 4 8-9" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>Your progress and records are saved in your own browser.</li>
