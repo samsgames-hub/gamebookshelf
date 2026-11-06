@@ -44,9 +44,9 @@ a{color:inherit;text-decoration:none}button{font:inherit;color:inherit}
 .play svg{width:16px;height:16px}
 .ghost{display:inline-flex;align-items:center;height:52px;padding:0 22px;border-radius:10px;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.06);cursor:pointer;font-weight:500;font-size:17px}
 .ghost:hover{background:rgba(255,255,255,.12)}
-.thumbs{position:absolute;z-index:3;right:max(32px,calc((100vw - 1280px)/2 + 32px));bottom:72px;display:flex;flex-direction:column;gap:10px;width:230px}
-.thumb{position:relative;display:flex;gap:10px;align-items:center;padding:8px;border-radius:10px;border:1px solid transparent;background:rgba(18,25,35,.55);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);cursor:pointer;text-align:left;overflow:hidden}
-.thumb img{width:72px;height:42px;object-fit:cover;border-radius:6px;flex:none}
+.thumbs{position:absolute;z-index:3;right:max(32px,calc((100vw - 1280px)/2 + 32px));bottom:48px;display:flex;flex-direction:column;gap:7px;width:230px;max-height:calc(100% - 64px);overflow-y:auto;scrollbar-width:none}.thumbs::-webkit-scrollbar{display:none}
+.thumb{flex:none;position:relative;display:flex;gap:10px;align-items:center;padding:6px 8px;border-radius:10px;border:1px solid transparent;background:rgba(18,25,35,.55);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);cursor:pointer;text-align:left;overflow:hidden}
+.thumb img{width:64px;height:36px;object-fit:cover;border-radius:6px;flex:none}
 .thumb span{font-weight:600;font-size:15px;line-height:1.2}
 .thumb:hover{background:rgba(26,35,48,.8)}
 .thumb[aria-selected="true"]{background:rgba(26,35,48,.92);border-color:rgba(255,255,255,.14)}
@@ -159,6 +159,14 @@ const SITE={
 //  2. Optional: add two pictures to assets/ — a wide banner (about 1920x820) and a 16:9 tile (about 800x450).
 //  3. Copy one of the entries below, paste it at the end of the list and change the details.
 const GAMES=[
+{id:'mitosis',title:'Mitosis',path:'games/mitosis/index.html',
+ hero:'assets/mitosis-hero.jpg',tile:'assets/mitosis-tile.jpg',accent:'#5ee6c8',
+ tags:['Online multiplayer','Arena','.io'],
+ pitch:'Start as a speck in a petri dish full of real players and bots. Eat, grow, split to strike, and don’t get eaten.',
+ blurb:'Swallow glowing pellets and anything a bit smaller than you. Split to catch runners, shoot mass to bait hunters, and hide under viruses that burst anything big. Every minute a golden nutrient bloom draws the whole arena into one fight. Daily missions and levels unlock 24 cell skins.',
+ facts:{Players:'Online with real players and bots, or solo',Length:'As long as you survive',Saves:'Level, skins and records stay in your browser'},
+ controls:[['Mouse','move'],['Space','split'],['Hold W','shoot mass'],['Esc','pause']],
+ note:'Play Online puts you in a public arena with real players, and bots fill the empty spots. Make a private arena to play with friends using a 4-letter code. Works on school and home networks, on a computer or a phone.'},
 {id:'firebase',title:'Firebase',path:'games/firebase/index.html',
  hero:'assets/firebase-hero.webp',tile:'assets/firebase-tile.webp',accent:'#a9b866',
  tags:['Tower defense','Strategy','Military'],
@@ -205,7 +213,7 @@ const GAMES=[
  pitch:'Hold the containment hall against waves of rift creatures, build your loadout between fights, and bring down three towering bosses.',
  blurb:'Fight wave after wave inside a sealed facility, pick a new upgrade every level, and take down three huge bosses that punish greedy players. Every run changes the arena, the events and your build.',
  facts:{Players:'1',Length:'10 to 30 minutes a run',Saves:'Upgrades and records stay in your browser'},
- controls:[['WASD','move'],['Mouse','aim and shoot'],['Shift','dash'],['Space','jump'],['R','reload'],['1–5','switch weapons'],['Esc','pause']],
+ controls:[['WASD','move'],['Mouse','aim and shoot'],['Shift','dash'],['Space','jump'],['R','reload'],['1–4','switch weapons'],['Esc','pause']],
  note:'Best on a computer with a mouse.'},
 {id:'gamble-with-friends',title:'Gamble With Friends',path:'games/gamble-with-friends/index.html',
  hero:'assets/gamble-with-friends-hero.jpg',tile:'assets/gamble-with-friends-tile.jpg',accent:'#ecc766',

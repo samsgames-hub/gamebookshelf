@@ -103,7 +103,7 @@
       code = String(code || '').toUpperCase().replace(/[^A-Z]/g, '');
       if (code.length !== 4) { this.err = 'Enter the 4-letter code.'; return false; }
       const m = await B.get('nr/' + code + '/m');
-      if (!m) { this.err = 'No room with that code.'; return false; }
+      if (!m || m.g) { this.err = 'No room with that code.'; return false; }
       if (m.ban && m.ban[this.uid()]) { this.err = 'The host removed you from that room.'; return false; }
       const ps = await B.get('nr/' + code + '/p') || {};
       if (Object.keys(ps).length >= (m.n || MAXP)) { this.err = 'That room is full (' + MAXP + ' players).'; return false; }

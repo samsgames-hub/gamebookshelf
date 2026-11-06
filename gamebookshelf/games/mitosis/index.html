@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>MITOSIS</title>
+<meta name="description" content="An online cell arena. Eat pellets and smaller cells, split to strike, and dodge anything bigger than you.">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css"></head>
+<body>
+<canvas id="cv"></canvas>
+
+<div id="hud" class="hide">
+  <div id="room" class="pnl hide"><div><span id="roomPub">Public</span> arena <b id="roomCode">----</b></div><small id="roomN">1 player</small><button id="roomCopy" type="button">Copy invite link</button></div>
+  <div id="lb" class="pnl"><h3>Leaderboard</h3><ol id="lbL"></ol></div>
+  <div id="feed"></div>
+  <div id="score" class="pnl"><span>MASS</span><b id="mass">10</b><em id="rank"></em></div>
+  <canvas id="mini" width="180" height="180"></canvas>
+  <button id="bPauseT" class="tbtn small" type="button" aria-label="Pause">II</button>
+  <button id="tSplit" class="tbtn" type="button">SPLIT</button>
+  <button id="tEject" class="tbtn" type="button">EJECT</button>
+</div>
+<div id="toasts"></div>
+
+<section id="title" class="screen">
+  <div class="tl">
+    <h1 class="logo"><span>MIT</span><i></i><span>SIS</span></h1>
+    <p class="tag">Eat. Grow. Split. Don’t get eaten.</p>
+    <div class="me">
+      <button id="skinPrevB" type="button" class="skinb" aria-label="Choose a skin"><canvas id="skinPrev" width="160" height="160"></canvas><span id="skinName">Amoeba</span></button>
+      <div class="nmw"><label for="nm">Your name</label><input id="nm" maxlength="15" placeholder="Cell" autocomplete="off" spellcheck="false"></div>
+    </div>
+    <button id="bPlay" class="big" type="button">PLAY ONLINE</button>
+    <p class="sub">Drops you into a public arena with real players. Bots fill the empty spots.</p>
+    <div class="row3"><button id="bPriv" type="button">Private arena</button><button id="bJoin" type="button">Join with code</button><button id="bSolo" type="button">Solo vs bots</button></div>
+    <nav class="links"><button id="bHow" type="button">How to play</button><button id="bSkins" type="button">Skins</button><button id="bRec" type="button">Records</button><button id="bSet" type="button">Settings</button></nav>
+  </div>
+  <aside class="tr pnl">
+    <div class="lvl"><b id="lvl">Level 1</b><span id="lvlXp">0 / 110 XP</span></div><div class="bar"><i id="lvlBar"></i></div>
+    <h3>Today’s missions</h3><div id="tMis"></div>
+    <p class="hint">Missions reset every day. XP unlocks a new skin each level.</p>
+  </aside>
+</section>
+
+<section id="death" class="screen dim hide">
+  <div class="card">
+    <h2 id="dWho">Eaten</h2>
+    <div id="dStats" class="stats"></div>
+    <div id="dXp"></div>
+    <div id="dMis"></div>
+    <div class="acts"><button id="dAgain" class="big" type="button">PLAY AGAIN</button><button id="dMenu" type="button">Menu</button></div>
+    <p class="hint">Press Space or Enter to play again.</p>
+  </div>
+</section>
+
+<section id="pause" class="screen dim hide">
+  <div class="card narrow"><h2>Paused</h2><p id="pNote" class="hint"></p>
+    <div class="col"><button id="pResume" class="big" type="button">RESUME</button><button id="pSet" type="button">Settings</button><button id="pMenu" type="button">Leave to menu</button></div></div>
+</section>
+
+<section id="howOv" class="screen dim ov hide"><div class="card">
+  <h2>How to play</h2>
+  <div class="how">
+    <div><i class="ic move"></i><b>Move</b><p>Your cells follow the mouse. On a phone, drag anywhere. Bigger cells are slower.</p></div>
+    <div><i class="ic eat"></i><b>Eat</b><p>Glowing pellets give mass. You can swallow any cell about a quarter smaller than you. Anything bigger can swallow you.</p></div>
+    <div><i class="ic split"></i><b>Split · Space</b><p>Each cell splits in half and launches its half at the mouse. Great for catching runners, but each half is easier to eat. Halves rejoin after a while.</p></div>
+    <div><i class="ic eject"></i><b>Eject · hold W</b><p>Shoot out blobs of mass. Feed a teammate, bait a hunter, or feed a virus 7 times to fire a new virus at someone.</p></div>
+    <div><i class="ic virus"></i><b>Viruses</b><p>The spiky green cells. Small cells can hide under them. Anything over 133 mass that touches one bursts into pieces.</p></div>
+    <div><i class="ic bloom"></i><b>Nutrient blooms</b><p>Every minute or so a golden bloom of rich pellets appears, marked on your map. Everyone races for it.</p></div>
+  </div>
+  <p class="hint">Esc or P pauses. Online arenas keep going while you’re paused.</p>
+  <button class="big" data-close type="button">GOT IT</button>
+</div></section>
+
+<section id="setOv" class="screen dim ov hide"><div class="card narrow">
+  <h2>Settings</h2>
+  <label class="sl">Master volume<input id="sVol" type="range" min="0" max="1" step=".05"></label>
+  <label class="sl">Music<input id="sMus" type="range" min="0" max="1" step=".05"></label>
+  <label class="sl">Sound effects<input id="sSfx" type="range" min="0" max="1" step=".05"></label>
+  <label class="tg"><input id="sMute" type="checkbox"><span>Mute everything</span></label>
+  <label class="tg"><input id="sShake" type="checkbox"><span>Screen shake</span></label>
+  <label class="tg"><input id="sQ" type="checkbox"><span>High quality (turn off on slow computers)</span></label>
+  <label class="tg"><input id="sMass" type="checkbox"><span>Show mass on cells</span></label>
+  <button class="big" data-close type="button">DONE</button>
+</div></section>
+
+<section id="skinOv" class="screen dim ov hide"><div class="card wide">
+  <h2>Skins</h2><p class="hint">Level up to unlock a new skin. Everyone in the arena sees the one you pick.</p>
+  <div id="skinGrid"></div>
+  <button class="big" data-close type="button">DONE</button>
+</div></section>
+
+<section id="recOv" class="screen dim ov hide"><div class="card narrow">
+  <h2>Records</h2><div id="recL" class="stats"></div>
+  <button class="big" data-close type="button">CLOSE</button>
+</div></section>
+
+<section id="joinOv" class="screen dim ov hide"><div class="card narrow">
+  <h2>Join an arena</h2><p class="hint">Ask the friend who made the arena for its 4-letter code.</p>
+  <input id="jCode" class="code" maxlength="4" placeholder="ABCD" autocomplete="off" spellcheck="false">
+  <p id="jErr" class="err"></p>
+  <div class="col"><button id="jGo" class="big" type="button">JOIN</button><button data-close type="button">Cancel</button></div>
+</div></section>
+
+<div id="busy" class="screen dim hide"><div class="spin"></div><p id="busyT">Connecting…</p></div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script src="net.js"></script>
+<script src="game.js"></script>
+<script data-goatcounter="https://gamebookshelf.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
+</body></html>
