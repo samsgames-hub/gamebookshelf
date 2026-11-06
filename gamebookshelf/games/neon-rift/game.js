@@ -1533,7 +1533,7 @@ function SET_LOW(){return save.set.q===0}
 function updPod(dt){const X=G.xt;if(!X||!X.pod)return;X.t+=dt;const t=X.t,pod=X.pod,u=pod.userData,p=pod.position;
 if(t<1.5){const k=1-Math.pow(1-t/1.5,3);p.y=lerp(18,0,k);u.L.intensity=6;podFlame(p,1);if(t>1.35&&!X.landed){X.landed=1;smoke(_v4.set(p.x,.3,p.z),18,1.6,1.6,false);sparks(_v4.set(p.x,.2,p.z),0xffa640,40,9,.6,.25);addShake(.6);play('slam');banner('ESCAPE POD DOWN','BOARDING…',1.6)}}
 else if(t<2.8){p.y=Math.sin(t*20)*.01;u.L.intensity=damp(u.L.intensity,1.5,3,dt);if(R()<dt*8)smoke(_v4.set(p.x+rr(-1,1),.2,p.z+rr(-1,1)),1,.8,1.2,false)}
-else{const s=t-2.8;if(!X.lift){X.lift=1;play('rocket');setTimeout(()=>play('roar'),120);addShake(1);banner('LIFT-OFF','HEADING HOME',2)}p.y=s*s*5.5+s*1.5;u.L.intensity=14;podFlame(p,1.6);
+else{const s=t-2.8;if(!X.lift){X.lift=1;play('rocket');setTimeout(()=>play('roar'),120);addShake(1);banner('LIFT-OFF',NET.on?'HEADING HOME':'RUN SAVED — COME BACK ANY TIME WITH RESUME RUN',2.6)}p.y=s*s*5.5+s*1.5;u.L.intensity=14;podFlame(p,1.6);
 if(R()<dt*30)smoke(_v4.set(p.x+rr(-.4,.4),Math.max(.3,p.y-1),p.z+rr(-.4,.4)),1,1.2,1.8,false);addShake(.02*Math.max(0,2-s));pod.rotation.y+=dt*.4}
 u.fl.color.setRGB(5,2.2+Math.sin(t*40)*.6,.6);cam.position.lerp(X.cp,1-Math.exp(-2.2*dt));cam.position.y=Math.max(cam.position.y,1.6);if(t>2.8)X.cp.y=damp(X.cp.y,Math.min(9,3.2+(t-2.8)*2),1.5,dt);
 cam.lookAt(p.x,p.y+2,p.z);G.tf=clamp((t-4.6)/.9,0,1);if(t>5.6&&!X.done){X.done=1;endRun()}}
@@ -1557,7 +1557,7 @@ function resumeBtn(){const b=$('bResume50');if(!b)return;const r=save.run;b.clas
 function xtDue(){return G.wave>=50&&G.wave%10===0&&G.xtAt!==G.wave&&(G.wave===50?!G.endless:true)}
 function xtCores(){return Math.floor(G.score/120)+G.wave*3+G.bosses*15}
 function xtOffer(){if(G.mode==='menu'||G.mode==='dead')return;$('xtKick').textContent='WAVE '+G.wave+' HELD';$('xtSub').textContent=G.wave>50?'Another chance to extract. Fly home, spend your rift cores and come back at wave '+(G.wave+1)+', or keep pushing deeper.':$('xtSub').dataset.t;const host=!NET.on||NET.host,base=xtCores(),bonus=base+250;G.xtBonus=bonus;
-$('xtBonus').textContent='+'+(base+bonus).toLocaleString();$('xtBtns').classList.toggle('hide',!host);$('xtWait').classList.toggle('hide',host);
+$('xtBonus').textContent='+'+(base+bonus).toLocaleString();$('xtNote').innerHTML=NET.on?'<b>CO-OP:</b> extracting ends this mission for the whole team.':'<b>YOU CAN COME BACK.</b> Your run is saved when you extract: guns, perks, gold and level. Spend your rift cores, then press <b>RESUME RUN</b> on the main menu to return at wave '+(G.wave+1)+'.';$('xtPod').textContent=NET.on?'LAUNCH ESCAPE POD':'LAUNCH ESCAPE POD · SAVE & RETURN LATER';$('xtBtns').classList.toggle('hide',!host);$('xtWait').classList.toggle('hide',host);
 G.mode='decide';mdown=0;G.noPause=1;document.exitPointerLock&&document.exitPointerLock();show('xt');$('hud').classList.add('hide');play('lvl')}
 function xtChoose(c){if(NET.on&&!NET.host)return;play('click');if(NET.host)NRN().ev({k:'xt',c});xtApply(c)}
 function xtApply(c){if(G.mode==='menu'||G.mode==='dead')return;show(null);$('hud').classList.remove('hide');

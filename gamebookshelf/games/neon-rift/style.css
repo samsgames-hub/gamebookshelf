@@ -220,3 +220,6 @@ body.aim #gl{cursor:none}body.aim #lockHint.on~*{cursor:default}
 #rec{overflow-y:auto;justify-content:safe center}
 
 #bResume50{border-left-color:#7dffb0;color:#7dffb0}#bResume50 small{display:block;font-size:11px;letter-spacing:.24em;color:var(--dim);margin-top:2px}
+
+.xtn{max-width:560px;padding:10px 14px;border:1px solid rgba(125,255,176,.45);background:rgba(10,40,30,.55);font:500 15px var(--f);letter-spacing:.03em;color:var(--w)}.xtn b{color:#7dffb0;letter-spacing:.12em}
+#xtPod{white-space:normal!important;max-width:420px}
