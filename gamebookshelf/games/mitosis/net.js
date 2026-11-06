@@ -16,7 +16,7 @@
     apiKey: 'AIzaSyAorALlmWcgCLaS9cIR_9BEUPKXcmKECoY', authDomain: 'gamebookshelf-9984c.firebaseapp.com', projectId: 'gamebookshelf-9984c',
     databaseURL: 'https://gamebookshelf-9984c-default-rtdb.firebaseio.com', appId: '1:373968261700:web:c41f30d9f3ef1f50dde211'
   };
-  const CAP = 10, LETTERS = 'ABCDEFGHJKLMNPQRSTUVWXYZ', LIST = 'nr/BLOB';
+  const HOF = 'nr/MXTO', CAP = 10, LETTERS = 'ABCDEFGHJKLMNPQRSTUVWXYZ', LIST = 'nr/BLOB';
   const rid = n => { let s = ''; const a = new Uint8Array(n); crypto.getRandomValues(a); for (let i = 0; i < n; i++) s += 'abcdefghijklmnopqrstuvwxyz0123456789'[a[i] % 36]; return s; };
   const local = /[?&]net=local/.test(location.search);
   const wait = ms => new Promise(r => setTimeout(r, ms));
@@ -92,30 +92,31 @@
     now() { return Date.now() + this.offset; },
     path(s) { return 'nr/' + this.code + (s ? '/' + s : ''); },
     // Join a public arena with space, or open a new one if none are free.
-    async quick(name, skin, carry) {
+    async quick(name, skin, carry, mode) {
+      mode = mode || 'ffa';
       if (!await this.init()) return false;
       try {
         const list = await B.get(LIST) || {}, t = this.now();
-        const rooms = Object.entries(list).filter(([c, r]) => r && t - (r.t || 0) < 75000 && (r.n || 0) < (r.cap || CAP) && c !== this._avoid)
+        const rooms = Object.entries(list).filter(([c, r]) => r && t - (r.t || 0) < 75000 && (r.n || 0) < (r.cap || CAP) && c !== this._avoid && (r.mode || 'ffa') === mode)
           .sort((a, b) => (b[1].n || 0) - (a[1].n || 0));
         for (const [code] of rooms) if (await this.join(code, name, skin, carry, true)) return true;
       } catch (e) { }
       this.err = '';
-      return this.create(name, skin, true, carry);
+      return this.create(name, skin, true, carry, '', mode);
     },
-    async create(name, skin, pub, carry, code) {
+    async create(name, skin, pub, carry, code, mode) {
       if (!await this.init()) return false;
       this.me = this.uid(); this.name = name; this.skin = skin;
       if (!code) for (let i = 0; i < 10; i++) {
         code = Array.from({ length: 4 }, () => LETTERS[Math.random() * LETTERS.length | 0]).join('');
         const m = await B.get('nr/' + code + '/m'); if (!m || this.now() - (m.t || 0) > 6 * 3600e3) break;
       }
-      const meta = { g: 'mx', h: this.me, t: this.now(), n: CAP, pub: !!pub, seed: (Math.random() * 2147483647) | 0 };
+      const meta = { g: 'mx', h: this.me, t: this.now(), n: CAP, pub: !!pub, seed: (Math.random() * 2147483647) | 0, mode: mode || 'ffa' };
       this.code = code;
       if (!await B.claim(this.path('m'), meta)) return false; // someone else got there first
       this.host = this.me; this.isHost = true; this.pub = !!pub; this.meta = meta;
       await B.onDc(this.path());
-      if (this.pub) { await B.put(LIST + '/' + code, { h: name, n: 1, cap: CAP, t: this.now() }); await B.onDc(LIST + '/' + code); }
+      if (this.pub) { await B.put(LIST + '/' + code, { h: name, n: 1, cap: CAP, t: this.now(), mode: meta.mode }); await B.onDc(LIST + '/' + code); }
       clearInterval(this.hb); this.hb = setInterval(() => { if (this.on && this.isHost && this.pub) B.update(LIST + '/' + this.code, { t: this.now(), n: Object.keys(this.players).length || 1 }); }, 20000);
       await this._enter(carry);
       return true;
@@ -154,9 +155,10 @@
       const carry = this.carry ? this.carry() : 0;
       const next = ps.length ? ps[0][0] : this.me;
       let ok = false;
-      if (next === this.me) ok = await this.create(this.name, this.skin, this.pub, carry, code);
-      for (let t = 0; !ok && t < 16; t++) { await wait(500); ok = await this.join(code, this.name, this.skin, carry, true); if (!ok && t === 7) ok = await this.create(this.name, this.skin, this.pub, carry, code); }
-      if (!ok) { this._avoid = code; ok = await this.quick(this.name, this.skin, carry); }
+      const md = (this.meta && this.meta.mode) || 'ffa';
+      if (next === this.me) ok = await this.create(this.name, this.skin, this.pub, carry, code, md);
+      for (let t = 0; !ok && t < 16; t++) { await wait(500); ok = await this.join(code, this.name, this.skin, carry, true); if (!ok && t === 7) ok = await this.create(this.name, this.skin, this.pub, carry, code, md); }
+      if (!ok) { this._avoid = code; ok = await this.quick(this.name, this.skin, carry, md); }
       this.migrating = false;
       this.emit('migrated', ok, this.isHost);
     },
@@ -178,6 +180,16 @@
         else { B.remove(this.path('p/' + this.me)); B.remove(this.path('i/' + this.me)); B.remove(this.path('v/' + this.me)); }
       }
       this.code = ''; this.players = {}; this.isHost = false; this.pub = false;
+    },
+    // all-time biggest cells, shared by everyone (nr/MXTO has an O, so no room can ever use that code)
+    async hofGet() { if (!await this.init()) return null; return B.get(HOF); },
+    async hofSubmit(name, m, mode) {
+      if (!await this.init()) return; m = Math.round(m); const all = await B.get(HOF) || {}, id = this.uid(), cur = all[id];
+      if (cur && cur.m >= m) return;
+      const list = Object.entries(all).sort((a, b) => (b[1].m || 0) - (a[1].m || 0));
+      if (!cur && list.length >= 25 && m <= (list[24][1].m || 0)) return;
+      await B.put(HOF + '/' + id, { n: name, m, md: mode, t: this.now() });
+      for (const [k] of list.slice(29)) if (k !== id) B.remove(HOF + '/' + k);
     },
     invite() { return location.origin + location.pathname + '?room=' + this.code + (local ? '&net=local' : ''); },
     _test() { return B; }

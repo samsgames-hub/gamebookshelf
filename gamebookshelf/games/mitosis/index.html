@@ -13,6 +13,7 @@
   <div id="room" class="pnl hide"><div><span id="roomPub">Public</span> arena <b id="roomCode">----</b></div><small id="roomN">1 player</small><button id="roomCopy" type="button">Copy invite link</button></div>
   <div id="lb" class="pnl"><h3>Leaderboard</h3><ol id="lbL"></ol></div>
   <div id="feed"></div>
+  <div id="modeBar" class="hide"></div>
   <div id="score" class="pnl"><span>MASS</span><b id="mass">10</b><em id="rank"></em></div>
   <canvas id="mini" width="180" height="180"></canvas>
   <button id="bPauseT" class="tbtn small" type="button" aria-label="Pause">II</button>
@@ -29,8 +30,10 @@
       <button id="skinPrevB" type="button" class="skinb" aria-label="Choose a skin"><canvas id="skinPrev" width="160" height="160"></canvas><span id="skinName">Amoeba</span></button>
       <div class="nmw"><label for="nm">Your name</label><input id="nm" maxlength="15" placeholder="Cell" autocomplete="off" spellcheck="false"></div>
     </div>
+    <div id="modes" role="group" aria-label="Game mode"><button type="button" data-m="ffa">Free-for-all</button><button type="button" data-m="teams">Teams</button><button type="button" data-m="royale">Battle Royale</button></div>
+    <p id="modeD" class="sub"></p>
     <button id="bPlay" class="big" type="button">PLAY ONLINE</button>
-    <p class="sub">Drops you into a public arena with real players. Bots fill the empty spots.</p>
+    <p class="sub">Drops you into a public arena of this mode with real players. Bots fill the empty spots.</p>
     <div class="row3"><button id="bPriv" type="button">Private arena</button><button id="bJoin" type="button">Join with code</button><button id="bSolo" type="button">Solo vs bots</button></div>
     <nav class="links"><button id="bHow" type="button">How to play</button><button id="bSkins" type="button">Skins</button><button id="bRec" type="button">Records</button><button id="bSet" type="button">Settings</button></nav>
   </div>
@@ -38,6 +41,7 @@
     <div class="lvl"><b id="lvl">Level 1</b><span id="lvlXp">0 / 110 XP</span></div><div class="bar"><i id="lvlBar"></i></div>
     <h3>Today’s missions</h3><div id="tMis"></div>
     <p class="hint">Missions reset every day. XP unlocks a new skin each level.</p>
+    <h3>All-time biggest</h3><ol id="hofL" class="hof"></ol>
   </aside>
 </section>
 
@@ -48,7 +52,7 @@
     <div id="dXp"></div>
     <div id="dMis"></div>
     <div class="acts"><button id="dAgain" class="big" type="button">PLAY AGAIN</button><button id="dMenu" type="button">Menu</button></div>
-    <p class="hint">Press Space or Enter to play again.</p>
+    <p id="dHint" class="hint">Press Space or Enter to play again.</p>
   </div>
 </section>
 
@@ -65,6 +69,8 @@
     <div><i class="ic split"></i><b>Split · Space</b><p>Each cell splits in half and launches its half at the mouse. Great for catching runners, but each half is easier to eat. Halves rejoin after a while.</p></div>
     <div><i class="ic eject"></i><b>Eject · hold W</b><p>Shoot out blobs of mass. Feed a teammate, bait a hunter, or feed a virus 7 times to fire a new virus at someone.</p></div>
     <div><i class="ic virus"></i><b>Viruses</b><p>The spiky green cells. Small cells can hide under them. Anything over 133 mass that touches one bursts into pieces.</p></div>
+    <div><i class="ic teams"></i><b>Teams</b><p>Three teams. You can’t eat teammates, and you bounce off them instead. Feed them with W and win by holding the most mass.</p></div>
+    <div><i class="ic royale"></i><b>Battle Royale</b><p>Everyone starts tiny. After 25 seconds a red ring closes in, and anything outside it melts. You get one life per round, and the last cell alive wins.</p></div>
     <div><i class="ic bloom"></i><b>Nutrient blooms</b><p>Every minute or so a golden bloom of rich pellets appears, marked on your map. Everyone races for it.</p></div>
   </div>
   <p class="hint">Esc or P pauses. Online arenas keep going while you’re paused.</p>
@@ -91,6 +97,7 @@
 
 <section id="recOv" class="screen dim ov hide"><div class="card narrow">
   <h2>Records</h2><div id="recL" class="stats"></div>
+  <h3 class="sh">All-time biggest cells (everyone)</h3><ol id="hofAll" class="hof"></ol>
   <button class="big" data-close type="button">CLOSE</button>
 </div></section>
 

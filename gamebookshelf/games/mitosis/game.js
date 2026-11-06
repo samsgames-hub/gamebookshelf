@@ -9,7 +9,10 @@ const NET = window.MXNet;
 
 // ---------------- tuning ----------------
 const WORLD = 6000, NP = 1000, NB = 140, NS = NP + NB, MAXC = 16, START_M = 10, SPLIT_MIN = 36, EJECT_MIN = 35, EJ_LOSS = 16, EJ_M = 12,
-  VIR_M = 100, POP_M = 133, VIR_MIN = 12, VIR_MAX = 20, ARENA = 24, DT = 1 / 40, SEND = 0.125, GEN = 1296, MAXM = 22500;
+  VIR_M = 100, POP_M = 133, VIR_MIN = 12, VIR_MAX = 20, ARENA = 24, DT = 1 / 40, SEND = 0.125, GEN = 1296, MAXM = 10000, MAXT = 60000;
+const TEAMC = ['#ff5c6c', '#4da3ff', '#5ee68a'], TEAMN = ['Red', 'Blue', 'Green'], R0 = 4300, R1 = 420;
+const MODES = { ffa: ['Free-for-all', 'Everyone for themselves. Get as big as you can.'], teams: ['Teams', 'Red, Blue and Green. Teammates can’t eat each other. Feed them with W.'], royale: ['Battle Royale', 'Everyone starts tiny. The dish shrinks. Last cell alive wins the round.'] };
+const ringR = tau => tau < 25 ? R0 : tau < 205 ? R1 + (R0 - R1) * Math.pow(1 - (tau - 25) / 180, 1.35) : R1;
 const rOf = m => 10 * Math.sqrt(m), spdOf = m => 640 * Math.pow(m, -0.35);
 const clamp = (v, a, b) => v < a ? a : v > b ? b : v, lerp = (a, b, t) => a + (b - a) * t, TAU = Math.PI * 2;
 const b36 = n => Math.round(n).toString(36), p36 = s => parseInt(s, 36) || 0;
@@ -130,7 +133,7 @@ const BOTN = ['Nucleus', 'quietgiant', 'Mitochondria', 'zeph', 'plankton_king', 
 function makeSim(seed, opts) {
   opts = opts || {};
   const R = rng(seed ^ 0x5bd1e995);
-  const S = { seed, t: 0, owners: [], cells: [], ej: [], vir: [], pg: new Uint16Array(NS), px: new Float32Array(NS), py: new Float32Array(NS), pc: new Uint8Array(NS), nid: 1, bloom: null, bloomNext: 50 + R() * 25, bloomN: 0, pd: [], fx: [], feed: [], lb: [], lbT: 0, sendT: 0, pfT: 0 };
+  const S = { mode: opts.mode || 'ffa', rd: null, teamM: [0, 0, 0], seed, t: 0, owners: [], cells: [], ej: [], vir: [], pg: new Uint16Array(NS), px: new Float32Array(NS), py: new Float32Array(NS), pc: new Uint8Array(NS), nid: 1, bloom: null, bloomNext: 50 + R() * 25, bloomN: 0, pd: [], fx: [], feed: [], lb: [], lbT: 0, sendT: 0, pfT: 0 };
   const PB = 200, PG = Math.ceil(WORLD / PB), buck = Array.from({ length: PG * PG }, () => []), bi = new Int32Array(NS).fill(-1), tmp = {};
   const bkey = (x, y) => clamp((y / PB) | 0, 0, PG - 1) * PG + clamp((x / PB) | 0, 0, PG - 1);
   function unbucket(i) { if (bi[i] < 0) return; const b = buck[bi[i]], k = b.indexOf(i); if (k >= 0) { b[k] = b[b.length - 1]; b.pop(); } bi[i] = -1; }
@@ -160,6 +163,8 @@ function makeSim(seed, opts) {
       inp: { tx: WORLD / 2, ty: WORLD / 2, split: 0, ej: 0, rs: 0, hw: 1200, hh: 800 }, lastSplit: 0, lastRs: 0, ejT: 0, ev: [], st: null, cx: WORLD / 2, cy: WORLD / 2, total: 0, rank: 0, feedT: 0, killer: '',
       ai: bot ? { skill: .35 + R() * .65, think: R() * .2, tx: R() * WORLD, ty: R() * WORLD, wander: 0, aggro: .4 + R() * .6 } : null };
     // reuse a free slot so owner numbers stay small
+    o.team = -1;
+    if (S.mode === 'teams') { const n = [0, 0, 0]; for (const x of S.owners) if (!x.gone && x.team >= 0) n[x.team] += x.bot ? 1 : 1.5; o.team = n.indexOf(Math.min(...n)); }
     const free = S.owners.findIndex(x => x.gone);
     if (free >= 0) { o.i = free; S.owners[free] = o; } else S.owners.push(o);
     S.rosterDirty = true;
@@ -183,12 +188,29 @@ function makeSim(seed, opts) {
     let o = S.owners.find(x => !x.gone && x.uid === uid);
     if (!o) o = addOwner(name, skin, false, uid);
     else { o.name = clean(name) || o.name; o.skin = skin | 0; S.rosterDirty = true; }
-    if (carry !== undefined) spawn(o, carry && carry.m, carry); botFill(); return o;
+    if (carry !== undefined && !(S.mode === 'royale' && !canJoin())) spawn(o, carry && carry.m, carry); botFill(); return o;
   }
   function removeHuman(uid) { const o = S.owners.find(x => !x.gone && x.uid === uid); if (!o) return; killOwnerCells(o); o.gone = true; S.rosterDirty = true; botFill(); }
   function killOwnerCells(o) { for (const c of o.cells) c.dead = true; o.cells.length = 0; }
   function feedLine(s) { S.feed.push({ t: S.t, s }); if (S.feed.length > 30) S.feed.shift(); }
 
+  const canJoin = () => !S.rd || (S.rd.ph === 'live' && S.t - S.rd.t0 < 25);
+  const mate = (a, b) => S.mode === 'teams' && a !== b && S.owners[a] && S.owners[b] && S.owners[a].team === S.owners[b].team;
+  function startRound() {
+    S.rd = { ph: 'live', t0: S.t, cx: WORLD / 2 + (R() - .5) * 1400, cy: WORLD / 2 + (R() - .5) * 1400, r: R0, winner: '', endT: 0 };
+    S.ej.length = 0;
+    for (const o of S.owners) { if (o.gone) continue; killOwnerCells(o); o.dead = true; }
+    S.cells = S.cells.filter(c => !c.dead);
+    for (const o of S.owners) {
+      if (o.gone) continue; if (o.retire) { o.gone = true; S.rosterDirty = true; continue; }
+      const a = R() * TAU, d = Math.sqrt(R()) * R0 * .62; spawn(o, START_M, { x: S.rd.cx + Math.cos(a) * d, y: S.rd.cy + Math.sin(a) * d }); o.lastRs = o.inp.rs; o.ev.push('N');
+    }
+  }
+  S.modeInfo = () => {
+    if (S.mode === 'teams') return { mode: 'teams', tm: S.teamM.map(Math.round) };
+    if (S.mode === 'royale' && S.rd) { const rd = S.rd, tau = S.t - rd.t0; return { mode: 'royale', ph: rd.ph === 'live' ? 1 : 2, cx: rd.cx, cy: rd.cy, r: rd.r, left: rd.ph === 'live' ? (tau < 25 ? 25 - tau : tau < 205 ? 205 - tau : Math.max(0, 260 - tau)) : Math.max(0, rd.endT - S.t), closing: tau >= 25 && tau < 205 ? 1 : tau >= 205 ? 2 : 0, alive: S.alive || 0, winner: rd.winner, join: canJoin() ? 1 : 0 }; }
+    return { mode: 'ffa' };
+  };
   function splitOwner(o, tx, ty) {
     const list = o.cells.slice().sort((a, b) => b.m - a.m); let n = o.cells.length, did = 0;
     for (const c of list) {
@@ -224,7 +246,7 @@ function makeSim(seed, opts) {
     const small = o.cells.reduce((a, c) => (!a || c.m < a.m ? c : a), null), view = me.r * 4 + 700 + ai.skill * 400;
     let fx = 0, fy = 0, threat = 0, prey = null, pv = 0, hideV = null;
     for (const c of S.cells) {
-      if (c.dead || c.o === o.i) continue;
+      if (c.dead || c.o === o.i || mate(c.o, o.i)) continue;
       const dx = c.x - me.x, dy = c.y - me.y, d = Math.hypot(dx, dy); if (d > view + c.r) continue;
       if (c.m > small.m * 1.25 && c.m > me.m * .7) {
         const reach = c.r + me.r + (c.m > me.m * 2.6 ? 420 : 140), close = Math.max(1, d - c.r - me.r);
@@ -240,6 +262,7 @@ function makeSim(seed, opts) {
     }
     const m = 380; if (me.x < m) fx += (m - me.x) / m * 2; if (me.x > WORLD - m) fx -= (me.x - WORLD + m) / m * 2; if (me.y < m) fy += (m - me.y) / m * 2; if (me.y > WORLD - m) fy -= (me.y - WORLD + m) / m * 2;
     let tx, ty;
+    if (S.rd) { const rd = S.rd, d = Math.hypot(me.x - rd.cx, me.y - rd.cy), safe = Math.min(rd.r, ringR(S.t - rd.t0 + 12)) * .8; if (d > safe) { const w = (d - safe) / 120 + 1; fx += (rd.cx - me.x) / d * w * 3; fy += (rd.cy - me.y) / d * w * 3; threat = Math.max(threat, w); } }
     if (threat > .55 * (1.4 - ai.skill)) {
       if (hideV && ai.skill > .5) { tx = hideV.v.x; ty = hideV.v.y; }
       else { const l = Math.hypot(fx, fy) || 1; tx = me.x + fx / l * 600; ty = me.y + fy / l * 600; }
@@ -251,7 +274,7 @@ function makeSim(seed, opts) {
     } else {
       // graze: best pellet patch nearby (blooms are worth a detour)
       let bd = 1e9, bx = ai.tx, by = ai.ty; const rad = 520, x0 = clamp(((me.x - rad) / PB) | 0, 0, PG - 1), x1 = clamp(((me.x + rad) / PB) | 0, 0, PG - 1), y0 = clamp(((me.y - rad) / PB) | 0, 0, PG - 1), y1 = clamp(((me.y + rad) / PB) | 0, 0, PG - 1);
-      for (let gy = y0; gy <= y1; gy++) for (let gx = x0; gx <= x1; gx++) for (const i of buck[gy * PG + gx]) { let d = Math.hypot(S.px[i] - me.x, S.py[i] - me.y); if (i >= NP) d *= .5; if (d < bd) { bd = d; bx = S.px[i]; by = S.py[i]; } }
+      for (let gy = y0; gy <= y1; gy++) for (let gx = x0; gx <= x1; gx++) for (const i of buck[gy * PG + gx]) { let d = Math.hypot(S.px[i] - me.x, S.py[i] - me.y); if (i >= NP) d *= .5; if (S.rd && Math.hypot(S.px[i] - S.rd.cx, S.py[i] - S.rd.cy) > S.rd.r * .9) continue; if (d < bd) { bd = d; bx = S.px[i]; by = S.py[i]; } }
       if (S.bloom && Math.hypot(S.bloom.x - me.x, S.bloom.y - me.y) < 2200 && ai.skill > .45 && bd > 160) { bx = S.bloom.x; by = S.bloom.y; }
       if (bd > 1e8) { if (S.t > ai.wander) { ai.wander = S.t + 3 + R() * 4; ai.tx = 300 + R() * (WORLD - 600); ai.ty = 300 + R() * (WORLD - 600); } bx = ai.tx; by = ai.ty; }
       const l = Math.hypot(fx, fy); tx = bx + (l > .05 ? fx / l * 200 : 0); ty = by + (l > .05 ? fy / l * 200 : 0);
@@ -275,8 +298,8 @@ function makeSim(seed, opts) {
     for (const o of S.owners) {
       if (o.gone) continue;
       if (o.dead) {
-        if (o.bot) { if (o.retire) { o.gone = true; S.rosterDirty = true; continue; } if (S.t >= o.respawnAt) { spawn(o, o.initM || START_M); o.initM = 0; } }
-        else if (o.inp.rs !== o.lastRs) { o.lastRs = o.inp.rs; spawn(o, START_M); }
+        if (o.bot) { if (o.retire) { o.gone = true; S.rosterDirty = true; continue; } if (S.t >= o.respawnAt && canJoin()) { if (S.rd) { const a = R() * TAU, d = Math.sqrt(R()) * S.rd.r * .6; spawn(o, START_M, { x: S.rd.cx + Math.cos(a) * d, y: S.rd.cy + Math.sin(a) * d }); } else spawn(o, o.initM || START_M); o.initM = 0; } }
+        else if (o.inp.rs !== o.lastRs && canJoin()) { o.lastRs = o.inp.rs; if (S.rd) { const a = R() * TAU, d = Math.sqrt(R()) * S.rd.r * .6; spawn(o, START_M, { x: S.rd.cx + Math.cos(a) * d, y: S.rd.cy + Math.sin(a) * d }); } else spawn(o, START_M); }
         continue;
       }
       if (o.bot) { o.ai.think -= dt; if (o.ai.think <= 0) { o.ai.think = .12 + (1 - o.ai.skill) * .25; think(o); } }
@@ -293,8 +316,11 @@ function makeSim(seed, opts) {
       let dx = o.inp.tx - c.x, dy = o.inp.ty - c.y; const d = Math.hypot(dx, dy) || 1, sp = spdOf(c.m) * Math.min(1, d / (c.r * .5 + 30));
       const k = Math.exp(-dt * 3.4);
       c.x += dx / d * sp * dt + c.vx * dt; c.y += dy / d * sp * dt + c.vy * dt; c.vx *= k; c.vy *= k;
-      if (c.m > 100) c.m -= c.m * .0019 * dt;
-      if (c.m > MAXM && o.cells.length < MAXC) { c.m = MAXM; splitOwner(o, c.x + 1, c.y); }
+      // the bigger you are, the faster you shrink, so nobody snowballs forever
+      if (c.m > 60) c.m -= c.m * (.002 + .007 * Math.min(1, (o.total || 0) / 25000)) * dt;
+      if (c.m > MAXM) { if (o.cells.length < MAXC) splitOwner(o, c.x + 1, c.y); if (c.m > MAXM) c.m = MAXM; }
+      if (!(c.m > 0) || !isFinite(c.m)) c.m = START_M;
+      if (S.rd && Math.hypot(c.x - S.rd.cx, c.y - S.rd.cy) > S.rd.r) { c.m -= (c.m * .09 + 6) * dt; c.hurt = S.t; if (c.m < 3) { c.dead = true; if (o.cells.every(x => x.dead)) o.killer = 'the ring'; } }
       c.r = rOf(c.m); const mg = Math.min(c.r * .65, 420); c.x = clamp(c.x, mg, WORLD - mg); c.y = clamp(c.y, mg, WORLD - mg);
     }
     // grid
@@ -311,7 +337,8 @@ function makeSim(seed, opts) {
         if (a.o === b.o) {
           if (S.t >= a.mergeAt && S.t >= b.mergeAt) { if (d < big.r - sm.r * .2) eatCell(big, sm); }
           else if (S.t > a.noColl && S.t > b.noColl) { const ov = (rs - d), wa = b.m / (a.m + b.m), wb = 1 - wa, f = Math.min(1, ov / rs) * .5 * ov; dx /= d; dy /= d; a.x -= dx * f * wa * 2; a.y -= dy * f * wa * 2; b.x += dx * f * wb * 2; b.y += dy * f * wb * 2; }
-        } else if (big.m >= sm.m * 1.25 && d < big.r - sm.r * .4) eatCell(big, sm);
+        } else if (mate(a.o, b.o)) { if (S.t > a.noColl && S.t > b.noColl) { const ov = (rs - d), wa = b.m / (a.m + b.m), wb = 1 - wa, f = Math.min(1, ov / rs) * .35 * ov; dx /= d; dy /= d; a.x -= dx * f * wa * 2; a.y -= dy * f * wa * 2; b.x += dx * f * wb * 2; b.y += dy * f * wb * 2; } }
+        else if (big.m >= sm.m * 1.25 && d < big.r - sm.r * .4) eatCell(big, sm);
         if (a.dead) break;
       }
     }
@@ -343,15 +370,28 @@ function makeSim(seed, opts) {
     // tidy
     if (S.cells.some(c => c.dead)) { S.cells = S.cells.filter(c => !c.dead); for (const o of S.owners) if (!o.gone && !o.dead) { o.cells = o.cells.filter(c => !c.dead); if (!o.cells.length) { o.dead = true; o.respawnAt = S.t + 2 + R() * 4; o.ev.push('D' + (o.killer || '')); } } }
     for (const o of S.owners) {
-      if (o.gone || o.dead) continue; let t = 0, x = 0, y = 0; for (const c of o.cells) { t += c.m; x += c.x * c.m; y += c.y * c.m; } o.total = t; o.cx = x / t; o.cy = y / t; if (t > o.st.maxM) o.st.maxM = t;
+      if (o.gone || o.dead) continue; let t = 0, x = 0, y = 0; for (const c of o.cells) t += c.m;
+      if (t > MAXT) { const k = MAXT / t; for (const c of o.cells) { c.m *= k; c.r = rOf(c.m); } t = MAXT; }
+      t = 0; for (const c of o.cells) { t += c.m; x += c.x * c.m; y += c.y * c.m; } o.total = t; o.cx = x / t; o.cy = y / t; if (t > o.st.maxM) o.st.maxM = t;
     }
     // leaderboard + blooms
     if (S.t - S.lbT > .5) {
       S.lbT = S.t; const al = S.owners.filter(o => !o.gone && !o.dead).sort((a, b) => b.total - a.total); al.forEach((o, k) => { o.rank = k + 1; if (o.st && k + 1 < o.st.best) o.st.best = k + 1; });
       S.lb = al.slice(0, 10).map(o => [o.i, Math.round(o.total)]); S.alive = al.length;
+      if (S.mode === 'teams') { S.teamM = [0, 0, 0]; for (const o of al) if (o.team >= 0) S.teamM[o.team] += o.total; }
       for (const o of S.owners) if (o.dead) o.rank = 0;
     }
-    if (!S.bloom && S.t > S.bloomNext) { const p = freeSpot(300); S.bloomN++; S.bloom = { id: S.bloomN, x: p.x, y: p.y, end: S.t + 32 }; for (let i = NP; i < NS; i++) place(i); for (const o of S.owners) if (!o.gone) o.ev.push('B'); }
+    if (S.rd) {
+      const rd = S.rd, tau = S.t - rd.t0; rd.r = ringR(tau);
+      if (rd.ph === 'live') {
+        const al = S.owners.filter(o => !o.gone && !o.dead);
+        if ((tau > 27 && al.length <= 1) || tau >= 260) {
+          const w = al.sort((a, b) => b.total - a.total)[0]; rd.ph = 'end'; rd.endT = S.t + 9; rd.winner = w ? w.name : '';
+          for (const o of S.owners) if (!o.gone) o.ev.push('W' + rd.winner); if (w) w.ev.push('V');
+        }
+      } else if (S.t >= rd.endT) startRound();
+    }
+    if (!S.bloom && S.t > S.bloomNext) { let p = freeSpot(300); if (S.rd) { const a = R() * TAU, d = Math.sqrt(R()) * S.rd.r * .5; p = { x: clamp(S.rd.cx + Math.cos(a) * d, 400, WORLD - 400), y: clamp(S.rd.cy + Math.sin(a) * d, 400, WORLD - 400) }; } S.bloomN++; S.bloom = { id: S.bloomN, x: p.x, y: p.y, end: S.t + 32 }; for (let i = NP; i < NS; i++) place(i); for (const o of S.owners) if (!o.gone) o.ev.push('B'); }
     else if (S.bloom && S.t > S.bloom.end) { S.bloom = null; for (let i = NP; i < NS; i++) unbucket(i); S.bloomNext = S.t + 70 + R() * 40; }
   }
 
@@ -368,12 +408,16 @@ function makeSim(seed, opts) {
     const fd = S.feed.filter(f => f.t > o.feedT).map(f => f.s).join(';'); if (S.feed.length) o.feedT = S.feed[S.feed.length - 1].t;
     const ev = o.ev.splice(0, 12).map(clean2).join(';');
     const bl = S.bloom ? [S.bloom.id, S.bloom.x, S.bloom.y, (S.bloom.end - S.t) * 10].map(b36).join('.') : '';
-    return [b36(q), b36(S.t * 1000), cs.join(';'), es.join(';'), vs.join(';'), pd, bl, you, ev, S.lb.map(([i, m]) => b36(i) + '.' + b36(m)).join(';'), fd, b36(o.i)].join('|');
+    const mi = S.modeInfo(); let ms = '';
+    if (mi.mode === 'teams') ms = 'T.' + mi.tm.map(b36).join('.');
+    else if (mi.mode === 'royale') ms = 'R.' + [mi.ph, mi.cx, mi.cy, mi.r, mi.left * 10, mi.closing, mi.alive, mi.join].map(b36).join('.') + '.' + clean(mi.winner);
+    return [b36(q), b36(S.t * 1000), cs.join(';'), es.join(';'), vs.join(';'), pd, bl, you, ev, S.lb.map(([i, m]) => b36(i) + '.' + b36(m)).join(';'), fd, b36(o.i), ms].join('|');
   }
   const clean2 = s => s.replace(/[|;]/g, ' ');
-  function roster() { const r = {}; for (const o of S.owners) if (!o.gone) r[o.i] = o.name + '~' + o.skin + '~' + (o.uid || ''); return r; }
+  function roster() { const r = {}; for (const o of S.owners) if (!o.gone) r[o.i] = o.name + '~' + o.skin + '~' + (o.uid || '') + '~' + o.team; return r; }
 
   botFill();
+  if (S.mode === 'royale') startRound();
   Object.assign(S, { step, addHuman, removeHuman, viewFor, roster, botFill, spawn, splitOwner, ejectOwner, place });
   return S;
 }
@@ -382,7 +426,7 @@ function makeSim(seed, opts) {
 //  CLIENT WORLD (rebuilt from the host's view strings)
 // =====================================================================================
 function makeClient() {
-  const C = { seed: 0, pg: new Uint16Array(NS), have: false, q: -1, snaps: [], roster: {}, me: -1, you: null, bloom: null, lb: [], off: null, pred: new Map(), needPf: true, lastRecv: 0, gotFirst: false };
+  const C = { known: new Set(), seed: 0, pg: new Uint16Array(NS), have: false, q: -1, snaps: [], roster: {}, me: -1, you: null, bloom: null, lb: [], off: null, pred: new Map(), needPf: true, lastRecv: 0, gotFirst: false };
   C.applyPf = s => { if (!s) return; for (let i = 0; i < NS; i++) C.pg[i] = p36(s.substr(i * 2, 2)); C.have = true; C.needPf = false; };
   C.ingest = (str) => {
     const p = str.split('|'); if (p.length < 12) return;
@@ -402,10 +446,14 @@ function makeClient() {
     C.lb = p[9] ? p[9].split(';').map(s => s.split('.').map(p36)) : [];
     if (p[10]) for (const f of p[10].split(';')) C.feed.push(f);
     C.me = p36(p[11]);
+    const ms = p[12] || '';
+    if (ms[0] === 'T') C.mi = { mode: 'teams', tm: ms.slice(2).split('.').map(p36) };
+    else if (ms[0] === 'R') { const a = ms.slice(2).split('.'), n = a.slice(0, 8).map(p36); C.mi = { mode: 'royale', ph: n[0], cx: n[1], cy: n[2], r: n[3], left: n[4] / 10, closing: n[5], alive: n[6], join: n[7], winner: a.slice(8).join(' '), at: now }; }
+    else C.mi = { mode: 'ffa' };
     C.snaps.push({ t: ht, cells, ej, vir }); if (C.snaps.length > 30) C.snaps.shift();
     C.lastRecv = now; C.gotFirst = true;
   };
-  C.events = []; C.feed = []; C.changed = [];
+  C.events = []; C.feed = []; C.changed = []; C.ghosts = []; C.half = new Map(); C.gid = -1; C.mi = { mode: 'ffa' };
   return C;
 }
 
@@ -452,7 +500,12 @@ function doSplit() {
   if (G.state !== 'play' || G.paused) return;
   G.split = (G.split + 1) % 8;
   if (G.sim && G.me) G.me.inp.split = G.split;
-  else if (G.cl) { const own = myCellsClient(); if (own.some(c => c.m >= SPLIT_MIN) && own.length < MAXC) AU.split(); }
+  else if (G.cl) {
+    const C = G.cl, own = myCellsClient().sort((a, b) => b.m - a.m), tgt = aimTarget(); let n = own.length + C.ghosts.length, did = 0;
+    for (const c of own) { if (n >= MAXC || c.m < SPLIT_MIN || C.half.has(c.id)) continue; let dx = tgt.x - c.x, dy = tgt.y - c.y, d = Math.hypot(dx, dy) || 1; const h = c.m / 2, sp = 700 + 160 * Math.min(1, 60 / Math.sqrt(h)), r = rOf(h);
+      C.ghosts.push({ id: C.gid--, x: c.x + dx / d * r * .5, y: c.y + dy / d * r * .5, vx: dx / d * sp, vy: dy / d * sp, m: h, born: performance.now() }); C.half.set(c.id, { m: h, until: performance.now() + 450 }); n++; did++; }
+    if (did) { AU.split(); bump(3); }
+  }
 }
 function screenToWorld(sx, sy) { const s = G.cam.z * G.base; return { x: G.cam.x + (sx - G.W / 2) / s, y: G.cam.y + (sy - G.H / 2) / s }; }
 function aimTarget() {
@@ -467,7 +520,7 @@ function bump(n) { if (save.set.shake) G.shake = Math.max(G.shake, n); }
 // =====================================================================================
 function startAttract() { G.mode = 'attract'; G.sim = makeSim((Math.random() * 1e9) | 0, { attract: 1, minBots: 22 }); G.cl = null; G.me = null; for (let k = 0; k < 160; k++) G.sim.step(DT); G.acc = 0; }
 function startSolo() {
-  stopNet(); G.mode = 'solo'; G.sim = makeSim((Math.random() * 1e9) | 0, { minBots: 20 }); G.cl = null;
+  stopNet(); G.mode = 'solo'; G.sim = makeSim((Math.random() * 1e9) | 0, { minBots: 20, mode: save.mode || 'ffa' }); G.cl = null;
   for (let k = 0; k < 120; k++) G.sim.step(DT);
   G.me = G.sim.addHuman('me', playerName(), save.skin, { m: START_M }); G.myIdx = G.me.i; beginPlay();
 }
@@ -476,7 +529,7 @@ async function goOnline(kind, code) {
   AU.init(); save.name = clean($('nm').value); store();
   showBusy(kind === 'join' ? 'Joining arena ' + code + '…' : 'Finding an arena…');
   stopNet(); let ok;
-  try { ok = kind === 'join' ? await NET.join(code, playerName(), save.skin) : kind === 'private' ? await NET.create(playerName(), save.skin, false) : await NET.quick(playerName(), save.skin); } catch (e) { ok = false; }
+  try { ok = kind === 'join' ? await NET.join(code, playerName(), save.skin) : kind === 'private' ? await NET.create(playerName(), save.skin, false, 0, '', save.mode || 'ffa') : await NET.quick(playerName(), save.skin, 0, save.mode || 'ffa'); } catch (e) { ok = false; }
   hideBusy();
   if (!ok) {
     if (kind === 'join') { $('jErr').textContent = NET.err || 'Could not join that arena.'; openOv('joinOv'); return; }
@@ -486,7 +539,7 @@ async function goOnline(kind, code) {
 }
 function setupNetMode(fresh, carry) {
   if (NET.isHost) {
-    G.mode = 'host'; G.sim = makeSim(NET.meta.seed || 1, { minBots: 6 }); G.cl = null; for (let k = 0; k < 120; k++) G.sim.step(DT);
+    G.mode = 'host'; G.sim = makeSim(NET.meta.seed || 1, { minBots: 6, mode: NET.meta.mode || 'ffa' }); G.cl = null; for (let k = 0; k < 120; k++) G.sim.step(DT);
     G.me = G.sim.addHuman(NET.me, playerName(), save.skin, carry || { m: START_M }); G.myIdx = G.me.i; G.sim.q = 0;
     for (const [id, p] of Object.entries(NET.players)) if (id !== NET.me) G.sim.addHuman(id, p.n, p.s, { m: p.c || START_M });
     NET.setRoster(G.sim.roster()); NET.putPellets(G.sim.pfString());
@@ -523,7 +576,7 @@ NET.listen('migrated', (ok, host) => {
   toast(host ? 'You are now hosting this arena.' : 'Back in the arena.', 2.5);
 });
 NET.listen('conn', c => toast(c ? 'Reconnected.' : 'Connection lost. Trying to reconnect…', 3));
-function updRoomBadge() { if (!NET.on) return; $('roomCode').textContent = NET.code; $('roomN').textContent = NET.count() + (NET.count() === 1 ? ' player' : ' players') + (NET.isHost ? ' · you host' : ''); $('roomPub').textContent = NET.pub ? 'Public' : 'Private'; }
+function updRoomBadge() { if (!NET.on) return; $('roomCode').textContent = NET.code; $('roomN').textContent = NET.count() + (NET.count() === 1 ? ' player' : ' players') + (NET.isHost ? ' · you host' : ''); $('roomPub').textContent = (NET.pub ? 'Public ' : 'Private ') + MODES[(NET.meta && NET.meta.mode) || 'ffa'][0]; }
 
 function beginPlay() {
   G.mouse.x = G.W / 2; G.mouse.y = G.H / 2; G.state = 'play'; G.paused = false; G.alive = true; G.lifeStart = performance.now(); G.deadAt = 0; G.lastRank = 0; G.lastMass = START_M; G.prevIds.clear();
@@ -533,6 +586,7 @@ function beginPlay() {
 }
 function respawn() {
   if (G.state !== 'dead') return; AU.click();
+  const mi = G._lastF && G._lastF.mi; if (mi && mi.mode === 'royale' && !mi.join) { toast('You’ll drop in automatically when the next round starts.', 2); return; }
   $('death').classList.add('hide'); G.state = 'play'; G.alive = true; G.lifeStart = performance.now(); G.prevIds.clear();
   if (G.sim && G.me) { G.sim.spawn(G.me, START_M); G.me.lastRs = G.rs; } else { G.rs++; G.awaitSpawn = performance.now(); }
 }
@@ -564,6 +618,9 @@ function handleEvents(list) {
     else if (k === 'J') AU.eject();
     else if (k === 'B') { AU.bloom(); toast('A nutrient bloom has appeared. It’s marked on the map.', 3.5, 'bloom'); }
     else if (k === 'D') onDeath(v);
+    else if (k === 'N') { if (G.state === 'dead' || G.state === 'play') { $('death').classList.add('hide'); if (G.state === 'dead') { G.state = 'play'; G.alive = true; G.lifeStart = performance.now(); } toast('New round! Grow fast before the ring closes in.', 3, 'bloom'); AU.bloom(); } }
+    else if (k === 'W') { if (v && v !== playerName()) toast(v + ' wins the round!', 3); }
+    else if (k === 'V') { toast('YOU WIN THE ROUND! +250 XP', 4, 'good'); AU.level(); save.xp += 250; save.rec.wins = (save.rec.wins || 0) + 1; store(); bump(10); G.flash = .4; }
   }
 }
 function onDeath(killer) {
@@ -574,6 +631,7 @@ function onDeath(killer) {
 }
 function finishLife(you, killer) {
   if (!you) return;
+  if (G.mode !== 'attract' && you.maxM >= 40 && killer !== undefined) NET.hofSubmit(playerName(), Math.min(MAXT, you.maxM), G.mode === 'solo' ? 'solo' : (NET.meta && NET.meta.mode) || 'ffa').catch(() => { });
   const xp = Math.round(you.maxM / 4 + you.cells * 14 + you.kills * 40 + you.pel * .15 + you.life / 6 + (you.best <= 3 ? 60 : 0) + (you.best === 1 ? 90 : 0));
   const L0 = levelOf(save.xp); save.xp += xp; const L1 = levelOf(save.xp);
   const r = save.rec, nb = []; if (you.maxM > r.mass) { r.mass = you.maxM; nb.push('mass'); } if (you.cells > r.cells) { r.cells = you.cells; nb.push('cells'); } if (you.life > r.life) { r.life = you.life; nb.push('life'); } if (you.best === 1) r.top++;
@@ -581,7 +639,9 @@ function finishLife(you, killer) {
   store();
   if (!killer && killer !== '') return;
   const mm = Math.floor(you.life / 60), ss = you.life % 60;
-  $('dWho').textContent = killer ? 'Eaten by ' + killer : 'You were absorbed';
+  const roy = (G._lastF && G._lastF.mi && G._lastF.mi.mode === 'royale');
+  $('dWho').textContent = killer === 'the ring' ? 'The ring got you' : killer ? 'Eaten by ' + killer : 'You were absorbed';
+  $('dAgain').textContent = roy ? 'NEXT ROUND' : 'PLAY AGAIN'; $('dHint').textContent = roy ? 'You’ll drop back in automatically when the next round starts. Keep watching!' : 'Press Space or Enter to play again.';
   $('dStats').innerHTML = [['Top mass', you.maxM.toLocaleString(), nb.includes('mass')], ['Cells eaten', you.cells, nb.includes('cells')], ['Pellets', you.pel], ['Time alive', mm + ':' + String(ss).padStart(2, '0'), nb.includes('life')], ['Best rank', you.best < 99 ? '#' + you.best : '–']].map(([a, b, n]) => `<div><span>${a}</span><b>${b}${n ? '<i>NEW BEST</i>' : ''}</b></div>`).join('');
   const L = levelOf(save.xp), cur = save.xp - lvlNeed(L), need = lvlNeed(L + 1) - lvlNeed(L);
   $('dXp').innerHTML = `<div class="xpl"><b>+${xp} XP</b><span>Level ${L}${L1 > L0 ? ' · LEVEL UP!' : ''}</span></div><div class="bar"><i style="width:${Math.round(cur / need * 100)}%"></i></div>` + (L1 > L0 && L1 <= SKINS.length ? `<p class="unl">New skin unlocked: <b>${SKINS[L1 - 1][0]}</b></p>` : '') + (done.length ? `<p class="unl">Mission complete: <b>${done.join(', ')}</b></p>` : '');
@@ -637,7 +697,8 @@ function frameData() {
     for (const c of S.cells) if (!c.dead) F.cells.push({ id: c.id, o: c.o, x: lerp(c.px, c.x, a), y: lerp(c.py, c.y, a), m: c.m, r: c.r, own: G.me && c.o === G.me.i, eatT: c.eatT });
     for (const e of S.ej) if (!e.dead) F.ej.push({ id: e.id, x: e.x, y: e.y, r: e.r, sk: e.sk });
     for (const v of S.vir) F.vir.push({ id: v.id, x: v.x, y: v.y, r: v.r });
-    F.owner = i => { const o = S.owners[i]; return o ? { name: o.name, skin: o.skin } : { name: '', skin: 0 }; };
+    F.owner = i => { const o = S.owners[i]; return o ? { name: o.name, skin: o.skin, team: o.team } : { name: '', skin: 0, team: -1 }; };
+    F.mi = S.modeInfo();
     F.pelletOn = S.pelletOn; F.px = S.px; F.py = S.py; F.pc = S.pc; F.bloom = S.bloom ? { x: S.bloom.x, y: S.bloom.y, left: S.bloom.end - S.t } : null;
     F.lb = S.lb.map(([i, m]) => [i, m]); F.me = G.me ? G.me.i : -1;
   } else if (G.cl && G.cl.gotFirst) {
@@ -655,7 +716,11 @@ function frameData() {
     for (const [id, c] of last.cells) if (c.o === C.me && !B.cells.has(id)) { const pr = C.pred.get(id); F.cells.push({ id, o: c.o, x: pr ? pr.x : c.x, y: pr ? pr.y : c.y, m: c.m, r: rOf(c.m), own: true }); }
     for (const [id, eb] of B.ej) { const ea = A.ej.get(id) || eb; F.ej.push({ id, x: lerp(ea.x, eb.x, a), y: lerp(ea.y, eb.y, a), r: rOf(EJ_M), sk: eb.sk }); }
     for (const [id, vb] of B.vir) { const va = A.vir.get(id) || vb; F.vir.push({ id, x: lerp(va.x, vb.x, a), y: lerp(va.y, vb.y, a), r: rOf(vb.m) }); }
-    F.owner = i => { const s = C.roster[i]; if (!s) return { name: '', skin: 0 }; const p = s.split('~'); return { name: p[0], skin: +p[1] || 0 }; };
+    F.owner = i => { const s = C.roster[i]; if (!s) return { name: '', skin: 0, team: -1 }; const p = s.split('~'); return { name: p[0], skin: +p[1] || 0, team: p[3] === undefined ? -1 : +p[3] }; };
+    F.mi = C.mi ? (C.mi.mode === 'royale' ? Object.assign({}, C.mi, { left: Math.max(0, C.mi.left - (performance.now() - C.mi.at) / 1000) }) : C.mi) : { mode: 'ffa' };
+    const nowT = performance.now();
+    for (const f of F.cells) if (f.own && C.half.has(f.id)) { const h = C.half.get(f.id); if (nowT < h.until) { f.m = Math.min(f.m, h.m); f.r = rOf(f.m); } else C.half.delete(f.id); }
+    for (const g of C.ghosts) F.cells.push({ id: g.id, o: C.me, x: g.x, y: g.y, m: g.m, r: rOf(g.m), own: true });
     F.client = C; F.bloom = C.bloom ? { x: C.bloom.x, y: C.bloom.y, left: C.bloom.left - (performance.now() - C.bloom.at) / 1000 } : null; F.lb = C.lb; F.me = C.me;
   }
   return F;
@@ -677,6 +742,15 @@ function predict(dt) {
     if (Math.hypot(ex - p.x, ey - p.y) > 500) { p.x = ex; p.y = ey; }
   }
   for (const id of [...C.pred.keys()]) if (!seen.has(id)) C.pred.delete(id);
+  const nowT = performance.now();
+  for (let k = C.ghosts.length - 1; k >= 0; k--) {
+    const g = C.ghosts[k], dx = tgt.x - g.x, dy = tgt.y - g.y, d = Math.hypot(dx, dy) || 1, sp = spdOf(g.m) * Math.min(1, d / (rOf(g.m) * .5 + 30)), kk = Math.exp(-dt * 3.4);
+    g.x += dx / d * sp * dt + g.vx * dt; g.y += dy / d * sp * dt + g.vy * dt; g.vx *= kk; g.vy *= kk;
+    let adopt = null, bd = 1e9; for (const id of seen) if (!C.known.has(id)) { const p = C.pred.get(id), dd = Math.hypot(p.x - g.x, p.y - g.y); if (dd < bd) { bd = dd; adopt = id; } }
+    if (adopt !== null && bd < 600) { const p = C.pred.get(adopt); p.x = g.x; p.y = g.y; C.known.add(adopt); MEM.set(adopt, MEM.get(g.id)); C.ghosts.splice(k, 1); continue; }
+    if (nowT - g.born > 700) C.ghosts.splice(k, 1);
+  }
+  for (const id of seen) C.known.add(id); if (C.known.size > 400) C.known = new Set(seen);
 }
 
 function draw(F, dt) {
@@ -716,6 +790,13 @@ function draw(F, dt) {
   ctx.stroke();
   // rim of the dish
   ctx.lineWidth = 26; ctx.strokeStyle = 'rgba(94,230,200,.07)'; ctx.strokeRect(-13, -13, WORLD + 26, WORLD + 26); ctx.lineWidth = 6; ctx.strokeStyle = 'rgba(140,255,230,.45)'; ctx.strokeRect(-3, -3, WORLD + 6, WORLD + 6);
+  // battle royale ring: everything outside it hurts
+  if (F.mi && F.mi.mode === 'royale') {
+    const m = F.mi; ctx.save(); ctx.beginPath(); ctx.rect(-2000, -2000, WORLD + 4000, WORLD + 4000); ctx.arc(m.cx, m.cy, m.r, 0, TAU, true); ctx.fillStyle = 'rgba(255,40,70,.14)'; ctx.fill();
+    ctx.beginPath(); ctx.arc(m.cx, m.cy, m.r, 0, TAU); ctx.lineWidth = Math.max(26, 12 / s); ctx.strokeStyle = 'rgba(255,70,100,.18)'; ctx.stroke(); ctx.lineWidth = Math.max(7, 3 / s); ctx.strokeStyle = `rgba(255,110,130,${.75 + Math.sin(G.t * 5) * .2})`; ctx.stroke();
+    if (m.closing === 1) { ctx.setLineDash([40, 40]); ctx.lineWidth = Math.max(4, 2 / s); ctx.strokeStyle = 'rgba(255,255,255,.25)'; ctx.beginPath(); ctx.arc(m.cx, m.cy, Math.max(R1, ringR(205 - Math.max(0, m.left) + 20)), 0, TAU); ctx.stroke(); ctx.setLineDash([]); }
+    ctx.restore();
+  }
   // bloom glow
   if (F.bloom) { const pulse = .7 + Math.sin(G.t * 3) * .15, g = ctx.createRadialGradient(F.bloom.x, F.bloom.y, 0, F.bloom.x, F.bloom.y, 720); g.addColorStop(0, `rgba(255,240,122,${.16 * pulse})`); g.addColorStop(1, 'rgba(255,240,122,0)'); ctx.fillStyle = g; ctx.beginPath(); ctx.arc(F.bloom.x, F.bloom.y, 720, 0, TAU); ctx.fill(); }
   // pellets
@@ -733,7 +814,7 @@ function draw(F, dt) {
   for (const l of list) { if (l.k) drawVirus(l.c, s); else drawCell(l.c, F, near, dt, s, q); }
   // vanished cells -> burst (eaten or merged)
   const nowIds = new Map(); for (const c of F.cells) nowIds.set(c.id, c);
-  for (const [id, c] of G.prevIds) if (!nowIds.has(id) && c.x > vx0 && c.x < vx1 && c.y > vy0 && c.y < vy1) { const sk = SKINS[F.owner(c.o).skin % SKINS.length]; burst(c.x, c.y, clamp(Math.round(c.r / 4), 6, 40), sk[1], 160 + c.r * 2, clamp(c.r * .16, 3, 30), .8); }
+  for (const [id, c] of G.prevIds) if (id > 0 && !nowIds.has(id) && c.x > vx0 && c.x < vx1 && c.y > vy0 && c.y < vy1) { const sk = SKINS[F.owner(c.o).skin % SKINS.length]; burst(c.x, c.y, clamp(Math.round(c.r / 4), 6, 40), sk[1], 160 + c.r * 2, clamp(c.r * .16, 3, 30), .8); }
   G.prevIds = nowIds;
   for (const [id, m] of MEM) if (!nowIds.has(id)) { m.seen += dt; if (m.seen > 1) MEM.delete(id); }
   // particles
@@ -779,7 +860,7 @@ function drawCell(c, F, near, dt, s, q) {
     if (r * s > 22) { ctx.fillStyle = 'rgba(255,255,255,.08)'; for (let k = 0; k < 4; k++) { const a = c.id * 1.7 + k * 1.6 + G.t * (.12 + k * .03), d = r * (.25 + .12 * k); ctx.beginPath(); ctx.ellipse(c.x + Math.cos(a) * d, c.y + Math.sin(a) * d, r * (.11 - k * .015), r * (.07 - k * .01), a, 0, TAU); ctx.fill(); } ctx.fillStyle = shade(sk[2], -.25) + '66'; ctx.beginPath(); ctx.arc(c.x + Math.cos(c.id + G.t * .1) * r * .12, c.y + Math.sin(c.id * 1.3 + G.t * .1) * r * .12, r * .2, 0, TAU); ctx.fill(); }
     ctx.restore();
   }
-  path(); ctx.lineWidth = clamp(r * .07, 2.5, 26); ctx.strokeStyle = shade(sk[2], -.45); ctx.stroke();
+  path(); ctx.lineWidth = clamp(r * .07, 2.5, 26); ctx.strokeStyle = own.team >= 0 ? TEAMC[own.team] : shade(sk[2], -.45); ctx.stroke();
   ctx.lineWidth = clamp(r * .025, 1, 8); ctx.strokeStyle = 'rgba(255,255,255,.18)'; ctx.stroke();
   ctx.fillStyle = 'rgba(255,255,255,.2)'; ctx.beginPath(); ctx.ellipse(c.x - r * .34, c.y - r * .42, r * .3, r * .15, -.6, 0, TAU); ctx.fill();
   // just ate something: quick bright rim
@@ -787,7 +868,7 @@ function drawCell(c, F, near, dt, s, q) {
   // name + mass
   const fs = r * .34;
   if (fs * s > 4.5 && own.name) {
-    ctx.font = `700 ${fs}px Sora, system-ui, sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.lineWidth = fs * .14; ctx.strokeStyle = 'rgba(0,0,0,.55)'; ctx.strokeText(own.name, c.x, c.y); ctx.fillStyle = '#fff'; ctx.fillText(own.name, c.x, c.y);
+    ctx.font = `700 ${fs}px Sora, system-ui, sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.lineWidth = fs * .14; ctx.strokeStyle = 'rgba(0,0,0,.55)'; ctx.strokeText(own.name, c.x, c.y); ctx.fillStyle = own.team >= 0 ? shade(TEAMC[own.team], .55) : '#fff'; ctx.fillText(own.name, c.x, c.y);
     if (save.set.mass && (c.own || r > 60)) { const f2 = fs * .55; ctx.font = `600 ${f2}px Sora, system-ui, sans-serif`; ctx.lineWidth = f2 * .14; ctx.strokeText(Math.round(c.m), c.x, c.y + fs * .78); ctx.fillStyle = 'rgba(255,255,255,.82)'; ctx.fillText(Math.round(c.m), c.x, c.y + fs * .78); }
   }
 }
@@ -807,13 +888,27 @@ function hud(F, own, dt) {
     AU.energy = clamp(Math.log10(Math.max(10, you.mass)) - 1.2, 0, 1) * .8 + (G.warn > .3 ? .2 : 0);
   }
   // leaderboard
-  const s = (F.lb || []).map(([i, m], k) => { const o = F.owner(i); return `<li class="${i === F.me ? 'me' : ''}"><span>${k + 1}</span><b>${esc(o.name || 'cell')}</b><em>${m.toLocaleString()}</em></li>`; }).join('');
+  const s = (F.lb || []).map(([i, m], k) => { const o = F.owner(i); return `<li class="${i === F.me ? 'me' : ''}"><span>${k + 1}</span><b${o.team >= 0 ? ` style="color:${TEAMC[o.team]}"` : ''}>${esc(o.name || 'cell')}</b><em>${m.toLocaleString()}</em></li>`; }).join('');
+  modeHud(F, you);
   if (s !== lastLb) { $('lbL').innerHTML = s; lastLb = s; }
   // minimap
   const W = mm.width, k = W / WORLD; mx.clearRect(0, 0, W, W); mx.fillStyle = 'rgba(8,24,32,.7)'; mx.fillRect(0, 0, W, W); mx.strokeStyle = 'rgba(94,230,200,.18)'; mx.lineWidth = 1; for (let i = 1; i < 4; i++) { mx.beginPath(); mx.moveTo(i * W / 4, 0); mx.lineTo(i * W / 4, W); mx.moveTo(0, i * W / 4); mx.lineTo(W, i * W / 4); mx.stroke(); }
   if (F.bloom) { mx.fillStyle = `rgba(255,240,122,${.5 + Math.sin(G.t * 6) * .3})`; mx.beginPath(); mx.arc(F.bloom.x * k, F.bloom.y * k, 7, 0, TAU); mx.fill(); }
+  if (F.mi && F.mi.mode === 'royale') { mx.strokeStyle = 'rgba(255,110,130,.9)'; mx.lineWidth = 1.5; mx.beginPath(); mx.arc(F.mi.cx * k, F.mi.cy * k, F.mi.r * k, 0, TAU); mx.stroke(); }
   mx.strokeStyle = 'rgba(255,255,255,.4)'; const s2 = G.cam.z * G.base; mx.strokeRect((G.cam.x - G.W / 2 / s2) * k, (G.cam.y - G.H / 2 / s2) * k, G.W / s2 * k, G.H / s2 * k);
   for (const c of own) { mx.fillStyle = '#fff'; mx.beginPath(); mx.arc(c.x * k, c.y * k, Math.max(2.5, c.r * k), 0, TAU); mx.fill(); }
+}
+let lastMb = '';
+function modeHud(F, you) {
+  const mi = F.mi || { mode: 'ffa' }, el = $('modeBar'); let h = '';
+  if (G.state === 'menu' || G.mode === 'attract') h = '';
+  else if (mi.mode === 'teams') { const tot = mi.tm.reduce((a, b) => a + b, 0) || 1, my = F.owner(F.me).team; h = mi.tm.map((m, t) => `<div class="tm${t === my ? ' mine' : ''}"><span style="background:${TEAMC[t]}"></span><b>${TEAMN[t]}</b><em>${Math.round(m / tot * 100)}%</em><i style="width:${m / tot * 100}%;background:${TEAMC[t]}"></i></div>`).join(''); }
+  else if (mi.mode === 'royale') {
+    const t = Math.ceil(mi.left), mm = Math.floor(t / 60) + ':' + String(t % 60).padStart(2, '0');
+    if (mi.ph === 2) h = `<div class="rb win"><b>${mi.winner ? esc(mi.winner) + ' wins the round!' : 'Round over'}</b><em>Next round in ${t}s</em></div>`;
+    else h = `<div class="rb"><b>${mi.alive} alive</b><em>${mi.closing === 0 ? 'Ring starts closing in ' + mm : mi.closing === 1 ? 'Ring closing · ' + mm : 'Final ring · ' + mm}</em>${you && !you.alive ? `<small>${mi.join ? 'Joining now…' : 'You’ll join the next round'}</small>` : ''}</div>`;
+  }
+  if (h !== lastMb) { el.innerHTML = h; lastMb = h; el.classList.toggle('hide', !h); }
 }
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 let toastQ = [];
@@ -850,6 +945,7 @@ function update(sdt, realDt) {
       if (str !== G.lastIn) { G.lastIn = str; NET.input(str); }
     }
     if (G.state === 'play' && C.you && C.you.alive) G.awaitSpawn = 0;
+    if (G.state === 'dead' && C.you && C.you.alive && C.mi.mode === 'royale') handleEvents(['N']);
     if (C.changed.length < 60) for (const i of C.changed) { pelletPos(C.seed, i, (C.pg[i] + GEN - 1) % GEN, C.bloom, _pp); if (_pp.on) sparkle(_pp.x, _pp.y, _pp.c); }
     C.changed.length = 0;
   }
@@ -862,7 +958,8 @@ function lastNear() {
   // is a cell that could eat one of mine within striking distance?
   const F = G._lastF; if (!F) return false;
   const own = F.cells.filter(c => c.own); if (!own.length) return false; const mn = own.reduce((a, c) => Math.min(a, c.m), 1e9);
-  for (const c of F.cells) { if (c.own || c.m < mn * 1.3) continue; for (const o of own) { const d = Math.hypot(c.x - o.x, c.y - o.y) - c.r - o.r; if (d < 90 + (c.m > o.m * 2.6 ? 280 : 0)) return true; } }
+  const myT = F.owner(F.me).team;
+  for (const c of F.cells) { if (c.own || c.m < mn * 1.3 || (myT >= 0 && F.owner(c.o).team === myT)) continue; for (const o of own) { const d = Math.hypot(c.x - o.x, c.y - o.y) - c.r - o.r; if (d < 90 + (c.m > o.m * 2.6 ? 280 : 0)) return true; } }
   return false;
 }
 function hostSend(dt) {
@@ -896,6 +993,18 @@ function refreshTitle() {
   $('lvl').textContent = 'Level ' + L; $('lvlBar').style.width = Math.round(cur / need * 100) + '%'; $('lvlXp').textContent = cur + ' / ' + need + ' XP';
   drawSkinPrev($('skinPrev'), save.skin); $('skinName').textContent = SKINS[save.skin][0];
   renderMissions($('tMis'));
+  document.querySelectorAll('#modes button').forEach(b => b.classList.toggle('sel', b.dataset.m === (save.mode || 'ffa'))); $('modeD').textContent = MODES[save.mode || 'ffa'][1];
+  loadHof();
+}
+let hofT = 0, hof = [];
+function loadHof(force) {
+  if (!force && performance.now() - hofT < 30000 && hofT) return renderHof(); hofT = performance.now();
+  NET.hofGet().then(v => { hof = Object.values(v || {}).filter(e => e && e.n && e.m > 0).map(e => ({ n: clean(e.n), m: Math.min(MAXT, Math.round(e.m)), md: e.md })).sort((a, b) => b.m - a.m).slice(0, 25); renderHof(); }).catch(() => { });
+}
+function renderHof() {
+  const row = (e, i) => `<li><span>${i + 1}</span><b>${esc(e.n)}</b><small>${esc(e.md === 'solo' ? 'solo' : (MODES[e.md] || MODES.ffa)[0])}</small><em>${e.m.toLocaleString()}</em></li>`;
+  $('hofL').innerHTML = hof.length ? hof.slice(0, 6).map(row).join('') : '<li class="none">No records yet. Be the first!</li>';
+  $('hofAll').innerHTML = hof.length ? hof.map(row).join('') : '<li class="none">No records yet.</li>';
 }
 function drawSkinPrev(c, i) {
   const g = c.getContext('2d'), S = c.width, r = S * .4, sk = SKINS[i]; g.clearRect(0, 0, S, S);
@@ -917,10 +1026,11 @@ function buildSettings() {
 [['sMute', 'mute'], ['sShake', 'shake'], ['sQ', 'q'], ['sMass', 'mass']].forEach(([id, k]) => $(id).addEventListener('change', e => { save.set[k] = e.target.checked ? 1 : 0; AU.apply(); store(); if (k === 'q') resize(); }));
 function buildRecords() {
   const r = save.rec, mm = Math.floor(r.life / 60), ss = r.life % 60;
-  $('recL').innerHTML = [['Biggest mass', r.mass.toLocaleString()], ['Most cells eaten in one life', r.cells], ['Longest life', mm + ':' + String(ss).padStart(2, '0')], ['Times finishing #1', r.top], ['Arenas played', r.games], ['Total XP', save.xp.toLocaleString()]].map(([a, b]) => `<div><span>${a}</span><b>${b}</b></div>`).join('');
+  $('recL').innerHTML = [['Biggest mass', r.mass.toLocaleString()], ['Most cells eaten in one life', r.cells], ['Longest life', mm + ':' + String(ss).padStart(2, '0')], ['Times finishing #1', r.top], ['Battle Royale wins', r.wins || 0], ['Arenas played', r.games], ['Total XP', save.xp.toLocaleString()]].map(([a, b]) => `<div><span>${a}</span><b>${b}</b></div>`).join('');
 }
 const on = (id, f) => $(id).addEventListener('click', e => { AU.init(); f(e); });
 on('bPlay', () => goOnline('quick'));
+document.querySelectorAll('#modes button').forEach(b => b.addEventListener('click', () => { AU.init(); AU.click(); save.mode = b.dataset.m; store(); refreshTitle(); }));
 on('bPriv', () => goOnline('private'));
 on('bJoin', () => { $('jErr').textContent = ''; openOv('joinOv'); setTimeout(() => $('jCode').focus(), 50); });
 on('jGo', () => { const c = $('jCode').value.trim().toUpperCase(); if (c.length !== 4) { $('jErr').textContent = 'Codes are 4 letters.'; return; } closeOverlays(); goOnline('join', c); });
@@ -930,7 +1040,7 @@ on('bHow', () => openOv('howOv'));
 on('bSet', () => { buildSettings(); openOv('setOv'); });
 on('bSkins', () => { buildSkins(); openOv('skinOv'); });
 on('skinPrevB', () => { buildSkins(); openOv('skinOv'); });
-on('bRec', () => { buildRecords(); openOv('recOv'); });
+on('bRec', () => { buildRecords(); loadHof(true); openOv('recOv'); });
 document.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', () => { AU.click(); closeOverlays(); }));
 on('dAgain', () => respawn());
 on('dMenu', () => toMenu());
