@@ -367,7 +367,7 @@ function setupPlay(play, los, x0) {
   PS.play = play; PS.los = los; PS.x0 = x0; PS.t = 0; PS.phase = 'presnap'; PS.carrier = null; PS.result = null; PS.events.length = 0; PS.deadT = 0; PS.crossed = false; PS.tgt = null; PS.passer = null; PS.tackler = null; PS.fallT = 0;
   ball.state = 'held'; ball.tried.clear(); ball.deflected = false; landRing.visible = false;
   const gun = play.form === 'gun', inside = x => (x > x0 ? -1 : 1);
-  const place = (p, x, z, face) => { p.pos.set(x, 0, z); p.vel.set(0, 0, 0); p.face = face === undefined ? 0 : face; p.fall = 0; p.stun = 0; p.down = false; p.eng = null; p.engBy = []; p.pose = ''; p.route = null; p.ri = 0; p.settle = false; p.cover = null; p.job = ''; p.drop = null; p.react = 0; p.tried = false; p.jukeT = 0; p.armT = 0; p.missT = 0; p.blockT = 0; p.seen.copy(p.pos); p.m.root.visible = true; };
+  const place = (p, x, z, face) => { p.pos.set(x, 0, z); p.vel.set(0, 0, 0); p.face = face === undefined ? 0 : face; p.fall = 0; p.stun = 0; p.down = false; p.eng = null; p.engBy = []; p.pose = ''; p.route = null; p.ri = 0; p.settle = false; p.cover = null; p.job = ''; p.drop = null; p.react = 0; p.tried = false; p.jukeT = 0; p.armT = 0; p.missT = 0; p.blockT = 0; p.tackleCD = 0; p.free = 0; p.getUp = undefined; p.bt = null; p.btT = 0; p.throwT = 0; p.seen.copy(p.pos); p.m.root.visible = true; };
   const off = Object.fromEntries(OFF.map(p => [p.slot, p])), def = Object.fromEntries(DEFN.map(p => [p.slot, p]));
   const mul = 1 + RATE.rec * .012;
   for (const p of OFF) { p.maxSpd = SPD[p.role] * (p.role === 'WR' || p.role === 'TE' ? mul : p.role === 'RB' ? 1 + RATE.back * .015 : 1); }
@@ -405,8 +405,9 @@ function setupPlay(play, los, x0) {
   if (!play.r.TE && play.type !== 'run') off.TE.blk = rushers.find(d => d.slot === 'LB0') || rushers[rushers.length - 1];
   if (!play.r.RB && play.type !== 'run') off.RB.blk = rushers.find(d => d.slot === 'LB0') || null;
   if (play.type === 'run' || play.type === 'screen') { off.TE.blk = def.LB2; }
+  if (play.type === 'run') { const seen = new Set(); for (const o of ol) { if (seen.has(o.blk)) o.blk = def.LB1; else seen.add(o.blk); } } // spare lineman climbs to the middle linebacker
   // who you control
-  PS.ctrl = play.type === 'run' ? off.RB : off.QB;
+  PS.ctrl = play.type === 'run' ? off.RB : off.QB; PS.holeX = play.toss ? x0 - 9 : x0 - .3;
   ball.holder = off.OL2; ball.state = 'held';
   for (const p of PLAYERS) animatePlayer(p, .016, 0);
   // field lines
@@ -458,15 +459,17 @@ function throwBall(power, yaw, pitch) {
   const L = predictLanding(ball.pos, ball.vel, 1.5); ball.landing = L;
   // the receiver who can get there goes for it; defenders read it a beat later
   let best = null, bs = 1e9;
-  for (const p of OFF) { if (!['WR', 'TE', 'RB'].includes(p.role) || p.down) continue; const d = Math.hypot(p.pos.x - L.p.x, p.pos.z - L.p.z), need = d / p.maxSpd; if (need < L.t * 1.35 + .35 && d < bs) { bs = d; best = p; } }
+  for (const p of OFF) { if (!['WR', 'TE', 'RB'].includes(p.role) || p.down) continue; const d = Math.hypot(p.pos.x - L.p.x, p.pos.z - L.p.z), need = d / p.maxSpd; if (need < L.t * 1.6 + .5 && d < bs) { bs = d; best = p; } }
   PS.tgt = best; for (const d of DEFN) d.react = D.lag + rnd(.08, .3);
   AU.throw(power); return true;
 }
 function tryCatch(p, dt) {
   if (ball.tried.has(p) || p.down || p.stun > 0 || p.fall > 0) return;
-  const hx = p.pos.x, hy = 1.45, hz = p.pos.z, dx = ball.pos.x - hx, dy = ball.pos.y - hy, dz = ball.pos.z - hz, reach = p.side === 0 ? 1.15 : 1.0;
-  if (dx * dx + dz * dz > reach * reach || dy < -1.3 || dy > 1.25) return;
+  const hx = p.pos.x, hy = 1.45, hz = p.pos.z, dx = ball.pos.x - hx, dy = ball.pos.y - hy, dz = ball.pos.z - hz, reach = p.side === 0 ? (p === PS.tgt ? 1.35 : 1.15) : .9;
+  if (dx * dx + dz * dz > reach * reach || dy < -1.3 || dy > (p.role === 'DL' ? .55 : p.side === 1 ? .95 : 1.25)) return;
   if (p === ball.thrower && ball.flightT < .5) return;
+  // right at the release only a rusher with his hands up can get a finger on it
+  if (p.side === 1 && ball.flightT < .3) { ball.tried.add(p); if (Math.random() < .07) { deflect(.3); PS.events.push('PBU'); AU.thud(.5); } return; }
   ball.tried.add(p);
   const cont = PLAYERS.filter(q => q.side !== p.side && !q.down && Math.hypot(q.pos.x - hx, q.pos.z - hz) < 1.4).length;
   const spd = ball.vel.length();
@@ -475,9 +478,9 @@ function tryCatch(p, dt) {
     if (Math.random() < pc) return catchBall(p);
     deflect(.45); AU.thud(.4);
   } else {
-    const facing = Math.cos(p.face - Math.atan2(-ball.vel.x, -ball.vel.z)), pi = (.1 + Math.max(0, facing) * .16) * D.ints * (ball.deflected ? 1.3 : 1);
+    const facing = Math.cos(p.face - Math.atan2(-ball.vel.x, -ball.vel.z)), pi = (.08 + Math.max(0, facing) * .13) * D.ints * (ball.deflected ? 1.3 : 1);
     if (Math.random() < pi) return catchBall(p);
-    if (Math.random() < .72) { deflect(.5); PS.events.push('PBU'); AU.thud(.6); }
+    if (Math.random() < .5) { deflect(.5); PS.events.push('PBU'); AU.thud(.6); }
   }
 }
 function deflect(k) { ball.vel.multiplyScalar(k); ball.vel.x += rnd(-3, 3); ball.vel.y = Math.abs(ball.vel.y) * .4 + rnd(1, 3.5); ball.vel.z += rnd(-2, 2); ball.deflected = true; }
@@ -512,7 +515,7 @@ function stepSim(dt, inp) {
     else if (ball.pos.y < .12) { ball.state = 'held'; ball.holder = rb; PS.carrier = rb; PS.phase = 'run'; }
   } else if (ball.state === 'air' || ball.state === 'loose') {
     ball.flightT += dt; ball.vel.y -= GRAV * dt; ball.pos.addScaledVector(ball.vel, dt); ball.spin += dt * 28;
-    if (ball.flightT > .1) { const cand = PLAYERS.slice().sort((a, b) => a.pos.distanceToSquared(ball.pos) - b.pos.distanceToSquared(ball.pos)); for (const p of cand.slice(0, 6)) { if (ball.state !== 'air' && ball.state !== 'loose') break; tryCatch(p, dt); } }
+    if (ball.flightT > .1) { const cand = PLAYERS.slice().sort((a, b) => (a.pos.distanceTo(ball.pos) - (a.side === 0 ? .5 : 0)) - (b.pos.distanceTo(ball.pos) - (b.side === 0 ? .5 : 0))); for (const p of cand.slice(0, 6)) { if (ball.state !== 'air' && ball.state !== 'loose') break; tryCatch(p, dt); } }
     if ((ball.state === 'air' || ball.state === 'loose') && (ball.pos.y < .12 || Math.abs(ball.pos.x) > HALF_W + 4 || Math.abs(ball.pos.z) > 64)) { ball.pos.y = .12; return endPlay({ type: 'inc' }); }
   }
   if (ball.state === 'held' && ball.holder) {
@@ -529,9 +532,10 @@ function stepSim(dt, inp) {
   if (ctrl && !ctrl.down && ctrl.fall <= 0) {
     const yaw = G.yaw, fwd = [Math.sin(yaw), Math.cos(yaw)], right = [-Math.cos(yaw), Math.sin(yaw)];
     let mx = inp.x, mz = inp.z; const ml = Math.hypot(mx, mz); if (ml > 1) { mx /= ml; mz /= ml; }
-    const sprint = inp.sprint && G.stamina > .05 && (mz > .2 || ml > .5), base = ctrl.role === 'QB' && PS.phase !== 'run' ? 5.6 : ctrl.maxSpd * .8;
+    if (G.stamina <= .01) G.winded = true; if (G.stamina > .35) G.winded = false; // out of breath until you recover a bit
+    const sprint = inp.sprint && !G.winded && (mz > .2 || ml > .5), base = ctrl.role === 'QB' && PS.phase !== 'run' ? 5.6 : ctrl.maxSpd * .8;
     let spd = (sprint ? ctrl.maxSpd * (ctrl === PS.carrier ? 1 : .95) : base) * (ctrl.stun > 0 ? .5 : 1);
-    if (sprint) G.stamina = Math.max(0, G.stamina - dt / (5.5 + RATE.back * .4)); else G.stamina = Math.min(1, G.stamina + dt / 3.5);
+    if (sprint) G.stamina = Math.max(0, G.stamina - dt / (3.8 + RATE.back * .25)); else G.stamina = Math.min(1, G.stamina + dt / 5);
     let vx = (fwd[0] * mz + right[0] * mx) * spd, vz = (fwd[1] * mz + right[1] * mx) * spd;
     if (ctrl.jukeT > 0) { const k = ctrl.jukeT / .38; vx += right[0] * ctrl.jukeDir * 9 * k; vz += right[1] * ctrl.jukeDir * 9 * k; }
     accelTo(ctrl, vx, vz, dt * (ctrl.jukeT > 0 ? 2.2 : 1.15));
@@ -568,12 +572,12 @@ function stepSim(dt, inp) {
     const foes = carrier.side === 0 ? DEFN : OFF;
     for (const d of foes) {
       if (d.down || d.fall > 0 || d.stun > 0 || d.eng || d.tackleCD > PS.t) continue;
-      const dx = carrier.pos.x - d.pos.x, dz = carrier.pos.z - d.pos.z, dist = Math.hypot(dx, dz); if (dist > 1.05) continue;
+      const dx = carrier.pos.x - d.pos.x, dz = carrier.pos.z - d.pos.z, dist = Math.hypot(dx, dz); if (dist > 1.3) continue; // diving reach
       d.tackleCD = PS.t + .6;
       let p = carrier.side === 0 ? D.tackle : .8;
       const cs = Math.hypot(carrier.vel.x, carrier.vel.z); p -= cs > 8 ? .08 : 0;
       if (carrier === ctrl) {
-        if (d.missT > 0) p -= .5 + RATE.back * .015; else if (carrier.jukeT > 0) p -= .15;
+        if (d.missT > 0) p -= .4 + RATE.back * .015; else if (carrier.jukeT > 0) p -= .15;
         if (carrier.armT > 0) { const f = Math.cos(Math.atan2(-dx, -dz) - carrier.face); if (f > .1) { p -= .5; d.stun = .9; d.vel.set(-dx / dist * 4, 0, -dz / dist * 4); AU.thud(.7); bumpCam(.15); continue; } }
       }
       if (carrier.role === 'RB' || carrier.side === 1) p -= .05;
@@ -613,13 +617,16 @@ function engagedMove(p, dt) {
   if (p.side === 1) {
     // defender pushing through a block
     const goal = PS.carrier && PS.phase === 'run' ? PS.carrier.pos : by('QB').pos, dx = goal.x - p.pos.x, dz = goal.z - p.pos.z, d = Math.hypot(dx, dz) || 1;
-    const blockers = p.engBy.length, push = (PS.play.type === 'run' ? .5 : .95) * D.rush / blockers;
-    accelTo(p, dx / d * push, dz / d * push, dt);
+    const blockers = p.engBy.length;
+    if (PS.play.type === 'run') { // run blocking: linemen drive their man back and away from the hole
+      const side = Math.sign(p.pos.x - PS.holeX) || 1; accelTo(p, side * 1.5 * blockers, .7 * blockers - .3, dt);
+    } else { const push = .95 * D.rush / blockers; accelTo(p, dx / d * push, dz / d * push, dt); }
     if (PS.t > p.shedAt) { for (const b of p.engBy) { b.eng = null; b.stun = .6; b.blockT = 0; } p.engBy = []; p.eng = null; p.free = PS.t + 1.6; p.vel.x += dx / d * 2; p.vel.z += dz / d * 2; }
   } else {
     // blocker sticks to the front of the defender
     const goal = PS.carrier && PS.phase === 'run' ? PS.carrier.pos : by('QB').pos, dx = goal.x - other.pos.x, dz = goal.z - other.pos.z, d = Math.hypot(dx, dz) || 1;
-    const tx = other.pos.x + dx / d * .92, tz = other.pos.z + dz / d * .92; p.vel.set((tx - p.pos.x) / Math.max(dt, .016) * .5, 0, (tz - p.pos.z) / Math.max(dt, .016) * .5);
+    let tx = other.pos.x + dx / d * .92, tz = other.pos.z + dz / d * .92;
+    if (PS.play.type === 'run') { const side = Math.sign(other.pos.x - PS.holeX) || 1; tx = other.pos.x - side * .7; tz = other.pos.z - .6; } p.vel.set((tx - p.pos.x) / Math.max(dt, .016) * .5, 0, (tz - p.pos.z) / Math.max(dt, .016) * .5);
     p.face = Math.atan2(other.pos.x - p.pos.x, other.pos.z - p.pos.z); p.blockT = .2;
     if (!other.engBy.includes(p)) p.eng = null;
   }
@@ -627,7 +634,7 @@ function engagedMove(p, dt) {
 function tryEngage(b, d) {
   if (!d || d.down || d.fall > 0 || b.stun > 0) return false;
   const dist = Math.hypot(d.pos.x - b.pos.x, d.pos.z - b.pos.z); if (dist > 1.05 || d.engBy.length >= 2 || d.missT > 0 || PS.t < (d.free || 0)) return false;
-  if (!d.engBy.length) { const run = PS.play.type === 'run' || PS.phase === 'run', wr = b.role === 'WR' || b.role === 'RB' || b.role === 'TE', open = PS.phase === 'run' && PS.play.type !== 'run'; d.shedAt = PS.t + (open ? rnd(.35, .9) : wr ? rnd(.45, 1.1) : run ? rnd(.9, 2.0) : rnd(1.9, 3.7)) * (1 + RATE.line * .06) * D.hold; }
+  if (!d.engBy.length) { const run = PS.play.type === 'run' || PS.phase === 'run', wr = b.role === 'WR' || b.role === 'RB' || b.role === 'TE', open = PS.phase === 'run' && PS.play.type !== 'run'; d.shedAt = PS.t + (open ? rnd(.35, .9) : wr ? rnd(.45, 1.1) : run ? rnd(1.1, 2.4) : rnd(1.9, 3.7)) * (1 + RATE.line * .06) * D.hold; }
   else d.shedAt += 1.3;
   d.engBy.push(b); d.eng = b; b.eng = d; AU.pads(.35); return true;
 }
@@ -645,7 +652,7 @@ function offenseAI(p, dt, qb, rb, carrier, running, air) {
     if (PS.play.type === 'screen' && PS.t > 1.4 && p.role === 'OL') { const rbp = rb.pos; steer(p, rbp.x - 3 + (p.num % 3) * 3, rbp.z + 5, 5.5, dt, true); return; }
     const d = p.blk; if (!d || d.down) { steer(p, p.pos.x, p.pos.z + (run ? .5 : -.2), 2, dt, true); return; }
     if (tryEngage(p, d)) return;
-    const goal = run ? V3(d.pos.x, 0, d.pos.z + 3) : qb.pos, dx = goal.x - d.pos.x, dz = goal.z - d.pos.z, l = Math.hypot(dx, dz) || 1;
+    const goal = run ? (ball.holder || rb).pos : qb.pos, dx = goal.x - d.pos.x, dz = goal.z - d.pos.z, l = Math.hypot(dx, dz) || 1; // stay between your man and the ball
     steer(p, d.pos.x + dx / l * .9, d.pos.z + dz / l * .9, p.maxSpd, dt); p.blockT = .2; return;
   }
   if (run) {
@@ -679,8 +686,13 @@ function blockFor(p, carrier, dt) {
   steer(p, d.pos.x + dx / l * .9, d.pos.z + dz / l * .9, p.maxSpd, dt);
 }
 function pursue(p, c, dt, spd) {
-  const dx = c.pos.x - p.pos.x, dz = c.pos.z - p.pos.z, dist = Math.hypot(dx, dz), lead = clamp(dist / spd, 0, 1.1) * .85;
-  let tx = c.pos.x + c.vel.x * lead, tz = c.pos.z + c.vel.z * lead;
+  // aim for the point where we can meet the runner (true intercept), not where he is now
+  if (p.side === 1 && PS.phase === 'run') spd *= 1.05;
+  const dx = c.pos.x - p.pos.x, dz = c.pos.z - p.pos.z, dist = Math.hypot(dx, dz), vx = c.vel.x, vz = c.vel.z;
+  const a = vx * vx + vz * vz - spd * spd, b = 2 * (dx * vx + dz * vz), cc = dx * dx + dz * dz; let lead = dist / spd;
+  if (Math.abs(a) > 1e-3) { const disc = b * b - 4 * a * cc; if (disc >= 0) { const r1 = (-b - Math.sqrt(disc)) / (2 * a), r2 = (-b + Math.sqrt(disc)) / (2 * a), t = Math.min(r1 > 0 ? r1 : 1e9, r2 > 0 ? r2 : 1e9); if (t < 1e8) lead = t; } }
+  lead = clamp(lead, 0, 2.2);
+  let tx = c.pos.x + vx * lead, tz = c.pos.z + vz * lead;
   if (p.side === 1 && c.side === 0) tz = Math.max(tz, c.pos.z - .5); // take an angle in front of the runner
   steer(p, tx, tz, spd, dt); if (dist < 3.2 && p.pose !== 'block') p.pose = '';
 }
