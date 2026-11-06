@@ -807,7 +807,7 @@ crawler:{hp:38,sp:5.6,xp:2,r:.9,sc:15,gc:0x9aff3a},brute:{hp:340,sp:2.9,xp:6,r:1
 titan:{hp:4600,sp:3.2,xp:45,r:2.6,sc:1500,gc:0xff7a30,boss:'RIFT TITAN'},warden:{hp:5200,sp:3,xp:55,r:2.2,sc:2000,gc:0x6ab8ff,boss:'VOID WARDEN'},core:{hp:6400,sp:0,xp:70,r:4.4,sc:3000,gc:0xff3a6a,boss:'THE CORE'}};
 const EN=[],EB=[],PR=[],GEMS=[],PUS=[],TEL=[],HB=[];let gemIM=null;
 const GOLD={drone:2,soldier:4,assassin:6,crawler:3,brute:12,tank:18,elite:22,titan:150,warden:170,core:190};
-const PRICE=[0,45,150,300,550];
+const PRICE=[0,25,80,160,300];
 const HUMAN={soldier:1,assassin:1,brute:1,elite:1,titan:1};
 // ---------- online co-op ----------
 const NET={on:false,host:false,client:false,final:false,wasOnline:false,tgt:null,hurt:{},hurtSrc:{},remote:{},ready:{},goNow:false,iReady:false,readyT:0,nid:0,byId:{},map:{},deadN:new Set(),stT:0,snT:0,huT:0,dT:0,laser:null,la:0,startRP:null,curRP:null,killBy:null,downed:false};
