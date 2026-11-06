@@ -286,7 +286,7 @@ scene.add(ball.mesh);
 const ballShadow = new THREE.Mesh(new THREE.CircleGeometry(.14, 12), shadowMat); ballShadow.rotation.x = -Math.PI / 2; scene.add(ballShadow);
 // first-person hands + ball
 const vm = new THREE.Group(); camera.add(vm);
-const vmBall = buildBall(); vmBall.scale.setScalar(.6); vm.add(vmBall);
+const vmBall = buildBall(); vmBall.scale.setScalar(.5); vm.add(vmBall);
 const vmHandR = new THREE.Mesh(new THREE.SphereGeometry(.035, 10, 8), mat(0x15161a, .6)), vmHandL = vmHandR.clone();
 const vmArmR = new THREE.Mesh(new THREE.CylinderGeometry(.03, .036, .3, 10), mat(0x1d4e9e, .7)), vmArmL = vmArmR.clone();
 vmArmR.material = vmArmR.material.clone(); vmArmL.material = vmArmR.material;
@@ -296,6 +296,18 @@ const ringMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true
 const landRing = new THREE.Mesh(new THREE.RingGeometry(.55, .75, 32), ringMat); landRing.rotation.x = -Math.PI / 2; landRing.visible = false; scene.add(landRing);
 const markTex = (() => { const c = document.createElement('canvas'); c.width = c.height = 64; const x = c.getContext('2d'); x.fillStyle = '#fff'; x.beginPath(); x.moveTo(8, 10); x.lineTo(56, 10); x.lineTo(32, 50); x.closePath(); x.fill(); return new THREE.CanvasTexture(c); })();
 function makeMarker() { const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: markTex, color: 0x4dd2ff, depthTest: false, transparent: true })); s.scale.set(.55, .55, 1); s.renderOrder = 10; s.visible = false; scene.add(s); return s; }
+// the throw arc: a dashed line along the ball's predicted flight while you power up
+const ARC_N = 34, arcGeo = new THREE.BufferGeometry(); arcGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(ARC_N * 3), 3));
+const dotTex = (() => { const c = document.createElement('canvas'); c.width = c.height = 32; const x = c.getContext('2d'), g = x.createRadialGradient(16, 16, 0, 16, 16, 16); g.addColorStop(0, 'rgba(255,255,255,1)'); g.addColorStop(.5, 'rgba(255,255,255,.9)'); g.addColorStop(1, 'rgba(255,255,255,0)'); x.fillStyle = g; x.fillRect(0, 0, 32, 32); return new THREE.CanvasTexture(c); })();
+const arcMat = new THREE.PointsMaterial({ color: 0xffffff, size: 9, sizeAttenuation: false, map: dotTex, transparent: true, opacity: .9, depthWrite: false, depthTest: false });
+const arcLine = new THREE.Points(arcGeo, arcMat); arcLine.frustumCulled = false; arcLine.visible = false; arcLine.renderOrder = 5; scene.add(arcLine);
+function setArc(p0, v0, catchY) {
+  const a = arcGeo.attributes.position.array, p = p0.clone(), v = v0.clone(); let tEnd = 0;
+  { const q = p0.clone(), w = v0.clone(), dt = 1 / 60; for (let i = 0; i < 600; i++) { w.y -= GRAV * dt; q.addScaledVector(w, dt); tEnd += dt; if (w.y < 0 && q.y <= catchY) break; } }
+  const dt = tEnd / (ARC_N - 1);
+  for (let i = 0; i < ARC_N; i++) { if (i === 0) { v.y -= GRAV * dt * 2; p.addScaledVector(v, dt * 2); } a[i * 3] = p.x; a[i * 3 + 1] = p.y; a[i * 3 + 2] = p.z; v.y -= GRAV * dt; p.addScaledVector(v, dt); }
+  arcGeo.attributes.position.needsUpdate = true; arcLine.visible = true;
+}
 // route lines shown before the snap
 const routeLines = [];
 function clearRouteLines() { for (const l of routeLines) { scene.remove(l); l.geometry.dispose(); } routeLines.length = 0; }
@@ -567,7 +579,8 @@ function stepSim(dt, inp) {
     const dx = b.pos.x - a.pos.x, dz = b.pos.z - a.pos.z, d2 = dx * dx + dz * dz, min = .78; if (d2 > min * min || d2 < 1e-6) continue;
     const d = Math.sqrt(d2), o = (min - d) * .5, nx = dx / d, nz = dz / d; a.pos.x -= nx * o; a.pos.z -= nz * o; b.pos.x += nx * o; b.pos.z += nz * o;
   }
-  // tackles
+  // tackles (a quarterback holding the ball in the pocket can be sacked too)
+  { const carrier = PS.carrier || (PS.phase === 'live' && ball.state === 'held' && ball.holder && ball.holder.side === 0 ? ball.holder : null);
   if (carrier && !carrier.down && carrier.fall <= 0 && (PS.phase === 'run' || PS.phase === 'live')) {
     const foes = carrier.side === 0 ? DEFN : OFF;
     for (const d of foes) {
@@ -585,7 +598,7 @@ function stepSim(dt, inp) {
       d.stun = .85; d.fall = .01; d.fallDir = 1; d.vel.multiplyScalar(.3); carrier.vel.multiplyScalar(.7); AU.thud(.5); PS.events.push('MISS');
       if (carrier === ctrl) { bumpCam(.25); G.hitStop(.06); }
     }
-  }
+  } }
   // dead-ball checks
   if (carrier && PS.phase === 'run') {
     if (Math.abs(carrier.pos.x) > HALF_W) return endPlay({ type: 'oob', z: carrier.pos.z });
@@ -620,7 +633,7 @@ function engagedMove(p, dt) {
     const blockers = p.engBy.length;
     if (PS.play.type === 'run') { // run blocking: linemen drive their man back and away from the hole
       const side = Math.sign(p.pos.x - PS.holeX) || 1; accelTo(p, side * 1.5 * blockers, .7 * blockers - .3, dt);
-    } else { const push = .95 * D.rush / blockers; accelTo(p, dx / d * push, dz / d * push, dt); }
+    } else { const push = .6 * D.rush / blockers; accelTo(p, dx / d * push, dz / d * push, dt); }
     if (PS.t > p.shedAt) { for (const b of p.engBy) { b.eng = null; b.stun = .6; b.blockT = 0; } p.engBy = []; p.eng = null; p.free = PS.t + 1.6; p.vel.x += dx / d * 2; p.vel.z += dz / d * 2; }
   } else {
     // blocker sticks to the front of the defender
@@ -634,7 +647,7 @@ function engagedMove(p, dt) {
 function tryEngage(b, d) {
   if (!d || d.down || d.fall > 0 || b.stun > 0) return false;
   const dist = Math.hypot(d.pos.x - b.pos.x, d.pos.z - b.pos.z); if (dist > 1.05 || d.engBy.length >= 2 || d.missT > 0 || PS.t < (d.free || 0)) return false;
-  if (!d.engBy.length) { const run = PS.play.type === 'run' || PS.phase === 'run', wr = b.role === 'WR' || b.role === 'RB' || b.role === 'TE', open = PS.phase === 'run' && PS.play.type !== 'run'; d.shedAt = PS.t + (open ? rnd(.35, .9) : wr ? rnd(.45, 1.1) : run ? rnd(1.1, 2.4) : rnd(1.9, 3.7)) * (1 + RATE.line * .06) * D.hold; }
+  if (!d.engBy.length) { const run = PS.play.type === 'run' || PS.phase === 'run', wr = b.role === 'WR' || b.role === 'RB' || b.role === 'TE', open = PS.phase === 'run' && PS.play.type !== 'run'; d.shedAt = PS.t + (open ? rnd(.35, .9) : wr ? rnd(.45, 1.1) : run ? rnd(1.1, 2.4) : rnd(2.8, 4.8)) * (1 + RATE.line * .06) * D.hold; }
   else d.shedAt += 1.3;
   d.engBy.push(b); d.eng = b; b.eng = d; AU.pads(.35); return true;
 }
@@ -715,7 +728,7 @@ function defenseAI(p, dt, qb, rb, carrier, running, air) {
     if (p.missT > 0) return;
     const tgt = ball.holder && ball.holder.side === 0 ? ball.holder : qb;
     // rushers who are free: angle at the passer, using the blocker list to avoid walking into a block they've shed
-    pursue(p, tgt, dt, spd * (PS.t < .3 ? .6 : 1)); return;
+    pursue(p, tgt, dt, spd * (PS.t < .3 ? .6 : .85)); return; // rushers close a bit slower so you have time to read
   }
   coverMove(p, dt, qb, rb);
 }
@@ -1154,6 +1167,7 @@ function updateCamera(dt) {
   const c = PS.ctrl;
   // never draw the body you're looking out of
   if (G.hidP !== c) { if (G.hidP) G.hidP.m.root.visible = true; G.hidP = c && !G.cine ? c : null; if (G.hidP) G.hidP.m.root.visible = false; }
+  if (G.hidP) G.hidP.m.root.visible = false; // a new play makes everyone visible again
   if (!c || G.cine) { // follow the ball carrier (interceptions)
     const t = PS.carrier || ball; const p = t.pos || t; tmpV.set(p.x + 4, 6, p.z + (PS.carrier && PS.carrier.side === 1 ? 10 : -10)); camera.position.lerp(tmpV, 1 - Math.exp(-dt * 3)); camera.lookAt(p.x, 1, p.z); vm.visible = false; return;
   }
@@ -1171,7 +1185,7 @@ function updateCamera(dt) {
   const run = clamp(sp / 8, 0, 1), sw = Math.sin(c.ph) * .03 * run;
   if (c.role === 'QB' && PS.phase !== 'run' && PS.phase !== 'tackled') {
     const ch = G.charging ? clamp(G.power, 0, 1) : 0, th = c.throwT;
-    vmBall.visible = holding; vmBall.position.set(.2 + ch * .12 + sw, -.24 + ch * .12 - th * .2, -.5 + ch * .22 - th * .3); vmBall.rotation.set(.3 + ch * .6, .5, -.3);
+    vmBall.visible = holding; vmBall.position.set(.22 + ch * .1 + sw, -.25 + ch * .08 - th * .2, -.52 + ch * .06 - th * .3); vmBall.rotation.set(.3 + ch * .6, .5, -.3);
     vmHandR.position.set(vmBall.position.x + .03, vmBall.position.y - .07, vmBall.position.z + .04); vmHandL.position.set(-.06 - ch * .1, -.27 + sw, -.46 + ch * .15);
   } else {
     vmBall.visible = holding; vmBall.position.set(.26 + sw, -.42 + Math.abs(sw), -.42); vmBall.rotation.set(.1, .2, -.9);
@@ -1198,8 +1212,8 @@ function hud(dt) {
     const qb = PS.ctrl, fwd = V3(Math.sin(G.yaw), 0, Math.cos(G.yaw)), right = V3(-Math.cos(G.yaw), 0, Math.sin(G.yaw)), spd = 11 + Math.max(.12, G.power) * (17 + RATE.arm * .8), pt = G.pitch + .07;
     const p0 = qb.pos.clone().add(V3(0, 1.95, 0)).addScaledVector(right, .28).addScaledVector(fwd, .35), v0 = V3(Math.sin(G.yaw) * Math.cos(pt) * spd, Math.sin(pt) * spd, Math.cos(G.yaw) * Math.cos(pt) * spd);
     const L = predictLanding(p0, v0, 1.5); landRing.visible = true; landRing.position.set(L.p.x, .04, L.p.z); landRing.scale.setScalar(1 + L.t * .25);
-    ringMat.color.set(Math.abs(L.p.x) > HALF_W || L.p.z > 60 ? 0xff5a5a : 0xffffff);
-  } else if (ball.state !== 'air') landRing.visible = false;
+    const out = Math.abs(L.p.x) > HALF_W || L.p.z > 60; ringMat.color.set(out ? 0xff5a5a : 0xffffff); arcMat.color.set(out ? 0xff5a5a : 0xffffff); setArc(p0, v0, 1.5);
+  } else { arcLine.visible = false; if (ball.state !== 'air') landRing.visible = false; }
   // receiver markers
   const showM = save.set.marks && (G.state === 'live' && PS.phase === 'live' && ball.holder && ball.holder.role === 'QB' && PS.play.type !== 'run');
   for (const p of OFF) { if (!p.mark) continue; p.mark.visible = showM && !!p.route; if (!p.mark.visible) continue; let sep = 99; for (const d of DEFN) { const dd = Math.hypot(d.pos.x - p.pos.x, d.pos.z - p.pos.z); if (dd < sep) sep = dd; } p.mark.position.set(p.pos.x, 2.75, p.pos.z); p.mark.material.color.set(sep > 3 ? 0x5cff8a : sep > 1.6 ? 0xffd34d : 0xff5a6a); }
