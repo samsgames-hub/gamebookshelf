@@ -1357,8 +1357,8 @@ document.querySelectorAll('button').forEach(b=>b.addEventListener('mouseenter',(
 addEventListener('keydown',e=>{keys[e.code]=1;if(e.code==='Space'||e.code.startsWith('Arrow'))e.preventDefault();
 if(G.mode==='levelup'&&/Digit[123]/.test(e.code)&&G.lvOpts){pickUp(G.lvOpts[+e.code.slice(5)-1]);return}
 if(G.mode==='transit'&&G.shopOn&&(e.code==='Enter'||e.code==='KeyE')){leaveTransit();return}
-if(G.mode!=='play')return;if(e.code==='Escape'&&!document.pointerLockElement){pauseGame();return}if(/Digit[1-5]/.test(e.code))switchW(+e.code.slice(5)-1);if(e.code==='KeyQ')switchW(P.last);if(e.code==='KeyR')reload();if(e.code==='KeyT'&&!e.repeat)wheelOpen();if((e.code==='ShiftLeft'||e.code==='ShiftRight')&&!e.repeat)tryDash();if(e.code==='KeyP')pauseGame()});
-addEventListener('keyup',e=>{keys[e.code]=0;if(e.code==='KeyT')wheelClose()});
+if(G.mode!=='play')return;if(e.code==='Escape'&&!document.pointerLockElement){pauseGame();return}if(/Digit[1-5]/.test(e.code))switchW(+e.code.slice(5)-1);if(e.code==='KeyQ'&&!e.repeat)P.ads=1;if(e.code==='KeyX')switchW(P.last);if(e.code==='KeyR')reload();if(e.code==='KeyT'&&!e.repeat)wheelOpen();if((e.code==='ShiftLeft'||e.code==='ShiftRight')&&!e.repeat)tryDash();if(e.code==='KeyP')pauseGame()});
+addEventListener('keyup',e=>{keys[e.code]=0;if(e.code==='KeyT')wheelClose();if(e.code==='KeyQ')P.ads=0});
 addEventListener('mousedown',e=>{if(e.button===1&&G.mode==='play'){e.preventDefault();doPing('smart')}if(e.button===0&&G.mode==='play'&&(document.pointerLockElement||isTouch||G.freeAim))mdown=1;if(e.button===2&&G.mode==='play')P.ads=1});addEventListener('mouseup',e=>{if(e.button===0)mdown=0;if(e.button===2)P.ads=0});
 addEventListener('contextmenu',e=>e.preventDefault());
 addEventListener('wheel',e=>{if(G.mode==='play')cycleW(e.deltaY>0?1:-1)},{passive:true});
