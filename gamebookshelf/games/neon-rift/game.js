@@ -1132,7 +1132,7 @@ function newRun(){if(G.boss)bossEnd(G.boss);evtEnd();for(const e of EN.slice())f
 GEMS.length=0;PUS.forEach(u=>{freeSprite(u.s);freeSprite(u.gl)});PUS.length=0;clrT();WAVES.forEach(w=>w.m.visible=false);WAVES.length=0;laserFX(null);PA.clear();PS.clear();FX.decals.forEach(m=>m.visible=false);
 const u=save.up;Object.assign(P,{hp:100+u.hp*20,mhp:100+u.hp*20,msh:60*(1+u.sh*.15),sh:60*(1+u.sh*.15),sd:0,lvl:1,xp:0,need:6,cw:0,last:0,ammo:WEP.map(w=>w.mag),rl:0,rlt:1,next:0,charge:0,dashMax:1+u.dash,dashC:1+u.dash,dashT:0,inv:0,
 dm:1+u.dmg*.1,rm:1,sm:1+u.spd*.06,crit:.05,mag:1,xpMul:1+u.xp*.1,proj:0,rls:1,vamp:0,pu:[0,0,0,0,0,0],shieldPU:0,mag2:0,dead:0,own:[1,0,0,0,0],ads:0,adsK:0,adsOn:0,onG:1,sprint:0,moving:0,rec:0,recY:0,yaw:0,pitch:0,stepT:0,fovK:0,odOn:false,bzOn:false});
-P.pos.set(0,0,21);P.vel.set(0,0,0);Object.assign(G,{boss:null,wave:0,spawnQ:[],spawnT:0,score:0,kills:0,combo:0,comboT:0,bestCombo:0,t0:performance.now(),time:0,bosses:0,ts:1,slow:0,shake:0,evt:'',evtT:0,breather:2.2,waveClear:1,frz:0,grav:0,ovc:1,dmgFX:0,mods:{},fade:0,my:{k:0,dmg:0,rev:0},endless:0,xtAsked:0,gold:0,goldTot:0,goldPop:0,exit:-1,entry:-1,rooms:1,tf:0,shopOn:0,medN:0,tuneN:0});
+P.pos.set(0,0,21);P.vel.set(0,0,0);Object.assign(G,{boss:null,wave:0,spawnQ:[],spawnT:0,score:0,kills:0,combo:0,comboT:0,bestCombo:0,t0:performance.now(),time:0,bosses:0,ts:1,slow:0,shake:0,evt:'',evtT:0,breather:2.2,waveClear:1,frz:0,grav:0,ovc:1,dmgFX:0,mods:{},fade:0,my:{k:0,dmg:0,rev:0},endless:0,xtAsked:0,gold:0,goldTot:0,goldPop:0,exit:-1,entry:-1,rooms:1,tf:0,shopOn:0,medN:0,tuneN:0,picks:[],resumed:0});
 COINS.length=0;if(coinIM)coinIM.count=0;applyRP(NET.on&&NET.startRP?NET.startRP:rollRP(false));hudBoss(null);P.ammo=WEP.map(w=>Math.round(w.mag*P.mag));VM.cur=-1}
 function tryDash(){if(P.dashC<1||P.dead)return;P.dashC--;const f=(keys.KeyW?1:0)-(keys.KeyS?1:0)+(mv.y<-.3?1:mv.y>.3?-1:0),s=(keys.KeyD?1:0)-(keys.KeyA?1:0)+(mv.x>.3?1:mv.x<-.3?-1:0);let dx=-Math.sin(P.yaw)*f+Math.cos(P.yaw)*s,dz=-Math.cos(P.yaw)*f-Math.sin(P.yaw)*s;
 if(!f&&!s){dx=-Math.sin(P.yaw);dz=-Math.cos(P.yaw)}const l=Math.hypot(dx,dz);P.vel.x=dx/l*27;P.vel.z=dz/l*27;P.inv=.32;P.fovK=1;play('dash');for(let i=0;i<14;i++)PA.emit(P.pos.x+rr(-.4,.4),P.pos.y+rr(.3,1.6),P.pos.z+rr(-.4,.4),-dx/l*4,0,-dz/l*4,.35,.3,.4,1.6,3,.8,-.5,0,2)}
@@ -1201,7 +1201,7 @@ const UPS=[{n:'+20% Damage',d:'Every weapon hits harder',f:()=>P.dm*=1.2,r:0},{n
 {n:'+30% Magazine',d:'More shots before reloading',f:()=>{P.mag*=1.3},r:0}];
 function levelUp(){FACE.react('grin');G.mode='levelup';G.noPause=1;document.exitPointerLock&&document.exitPointerLock();P.lvl++;P.xp-=P.need;P.need=Math.round(P.need*1.35+3);play('lvl');mdown=0;
 const opts=UPS.slice().sort(()=>R()-.5).slice(0,3);showLevelUp(opts)}
-function pickUp(o){o.f();G.mode='play';hideLevelUp();lockPointer();if(P.xp>=P.need)setTimeout(()=>{if(G.mode==='play')levelUp()},300)}
+function pickUp(o){o.f();(G.picks=G.picks||[]).push(UPS.indexOf(o));G.mode='play';hideLevelUp();lockPointer();if(P.xp>=P.need)setTimeout(()=>{if(G.mode==='play')levelUp()},300)}
 function die(){if(P.dead)return;if(NET.on&&!NET.final){P.dead=1;P.hp=0;NET.downed=true;mdown=0;P.ads=0;banner('YOU ARE DOWN','A TEAMMATE CAN REVIVE YOU — OR YOU REDEPLOY NEXT ROOM',4);play('roar');if(NET.host)netAllDeadCheck();return}P.dead=1;G.mode='dead';G.noPause=1;mdown=0;const t=Math.round((performance.now()-G.t0)/1000),cores=Math.floor(G.score/120)+G.wave*3+G.bosses*15;
 save.cores+=cores;save.best=Math.max(save.best,G.score);save.bestWave=Math.max(save.bestWave,G.wave);save.bestCombo=Math.max(save.bestCombo,G.bestCombo);save.runs++;store();play('roar');
 G.deathT=0;G.death={t,cores};setTimeout(()=>{document.exitPointerLock&&document.exitPointerLock();showDeath(G.death)},1600)}
@@ -1327,7 +1327,7 @@ function startGame(){lockPointer();audioInit();if(AU.ctx&&AU.ctx.state==='suspen
 function pauseGame(){if(G.mode!=='play')return;G.mode='pause';mdown=0;show('pause')}
 function resume(){G.mode='play';G.noPause=0;show(null);lockPointer()}
 function toMenu(){if(NET.on)netLeave();clearPings();if(G.boss)bossEnd(G.boss);evtEnd();for(const e of EN.slice())freeE(e);clrT();laserFX(null);G.boss=null;G.mode='menu';$('hud').classList.add('hide');$('touch')&&$('touch').classList.add('hide');show('menu');document.exitPointerLock&&document.exitPointerLock()}
-function menuStats(){$('coreN').textContent=save.cores.toLocaleString()}
+function menuStats(){resumeBtn();$('coreN').textContent=save.cores.toLocaleString()}
 function showLevelUp(opts){$('lvlN').textContent='LEVEL '+P.lvl;const c=$('cards');c.innerHTML='';const rn=['COMMON','RARE','EPIC'];
 opts.forEach((o,i)=>{const b=document.createElement('button');b.className='card r'+o.r;b.innerHTML=`<em>${rn[o.r]}</em><b>${o.n}</b><span>${o.d}</span><kbd>${i+1}</kbd>`;b.onclick=()=>pickUp(o);c.appendChild(b)});G.lvOpts=opts;show('lvlup')}
 function hideLevelUp(){show(null)}
@@ -1339,7 +1339,7 @@ $('shopGuns').innerHTML=WEP.map((w,i)=>{const own=P.own[i],c=PRICE[i];return`<bu
 SUP.map(u=>`<button class="gun sup${G.gold<u.c()?' poor':''}" data-s="${u.id}"><b>${u.n}</b><span>${u.d}</span><em>◉ ${u.c()}</em></button>`).join('');
 $('shopGuns').querySelectorAll('.gun').forEach(b=>b.onclick=()=>{if(b.dataset.s){const u=SUP.find(x=>x.id===b.dataset.s),c=u.c();if(G.gold>=c){G.gold-=c;u.f();play('buy')}else play('empty');shopUI();return}
 const i=+b.dataset.i;if(P.own[i])return;if(G.gold>=PRICE[i]){G.gold-=PRICE[i];P.own[i]=1;P.ammo[i]=Math.round(WEP[i].mag*P.mag);P.last=P.cw;P.cw=i;VM.cur=-1;play('buy');FACE.react('grin')}else play('empty');shopUI()})}
-function showDeath(d){lbDeath(d);$('dKick').textContent=d.win?'ESCAPE POD SECURED':'SIGNAL LOST';$('dTitle').textContent=d.win?'EXTRACTED':'YOU DIED';$('dead').classList.toggle('win',!!d.win);$('deadStats').innerHTML=[['SCORE',G.score.toLocaleString()],['WAVE',G.wave],['KILLS',G.kills],['ROOMS',G.rooms],['GOLD LOOTED','◉ '+G.goldTot],['BOSSES',G.bosses],['BEST COMBO','x'+G.bestCombo],['TIME',Math.floor(d.t/60)+':'+String(d.t%60).padStart(2,'0')]].map(r=>`<div><span>${r[0]}</span><b>${r[1]}</b></div>`).join('');
+function showDeath(d){lbDeath(d);$('bAgain').textContent=d.saved?'SPEND RIFT CORES':'PLAY AGAIN';$('deadSaved').classList.toggle('hide',!d.saved);$('dKick').textContent=d.win?'ESCAPE POD SECURED':'SIGNAL LOST';$('dTitle').textContent=d.win?'EXTRACTED':'YOU DIED';$('dead').classList.toggle('win',!!d.win);$('deadStats').innerHTML=[['SCORE',G.score.toLocaleString()],['WAVE',G.wave],['KILLS',G.kills],['ROOMS',G.rooms],['GOLD LOOTED','◉ '+G.goldTot],['BOSSES',G.bosses],['BEST COMBO','x'+G.bestCombo],['TIME',Math.floor(d.t/60)+':'+String(d.t%60).padStart(2,'0')]].map(r=>`<div><span>${r[0]}</span><b>${r[1]}</b></div>`).join('');
 $('deadCores').innerHTML=`+${d.cores} <small>RIFT CORES</small>`+(d.win?`<div class="nb xtb">INCLUDES +${d.bonus} EXTRACTION BONUS</div>`:'')+(G.score>=save.best&&G.score>0?'<div class="nb">NEW BEST SCORE</div>':'');$('hud').classList.add('hide');$('touch')&&$('touch').classList.add('hide');show('dead')}
 const UPG=[['hp','Vitality','+20 starting health'],['dmg','Firepower','+10% starting damage'],['spd','Mobility','+6% movement speed'],['xp','Insight','+10% XP gain'],['sh','Bulwark','+15% shield strength'],['dash','Momentum','+1 dash charge',3]];
 function upgUI(){$('upCores').textContent=save.cores.toLocaleString();$('upList').innerHTML=UPG.map(([k,n,d,mx])=>{const l=save.up[k],max=mx||10,cost=Math.round(12*Math.pow(1.45,l));return`<button class="upc${l>=max?' max':save.cores<cost?' poor':''}" data-k="${k}"><b>${n}</b><span>${d}</span><div class="pips">${Array.from({length:max},(_,i)=>`<i class="${i<l?'on':''}"></i>`).join('')}</div><em>${l>=max?'MAXED':'◆ '+cost}</em></button>`}).join('');
@@ -1347,9 +1347,9 @@ $('upList').querySelectorAll('.upc').forEach(b=>b.onclick=()=>{const k=b.dataset
 function recUI(){lbLoad($('lbList'));$('recList').innerHTML=[['BEST SCORE',save.best.toLocaleString()],['HIGHEST WAVE',save.bestWave],['BEST COMBO','x'+save.bestCombo],['BOSSES FELLED',save.bossKills],['RUNS',save.runs],['EXTRACTIONS',save.extracts||0],['RIFT CORES',save.cores.toLocaleString()]].map(r=>`<div><span>${r[0]}</span><b>${r[1]}</b></div>`).join('')}
 let setFrom='menu';
 function setUI(){const s=save.set;for(const k of['master','music','sfx','sens','fov','bright']){const el=$('s_'+k);el.value=s[k];$('v_'+k).textContent=s[k]}$('s_q').value=s.qa!==false&&s.qa!==0?'a':String(s.q);$('qinfo').textContent=perfLabel();$('s_shake').checked=!!s.shake;$('s_mute').checked=!!s.mute}
-function bindUI(){$('bPlay').onclick=()=>{if(!$('bPlay').disabled)startGame()};$('bUpg').onclick=()=>{upgUI();show('upg');play('click')};$('bRec').onclick=()=>{recUI();show('rec');play('click')};$('bSet').onclick=()=>{setFrom='menu';setUI();show('set');play('click')};
+function bindUI(){$('bPlay').onclick=()=>{if(!$('bPlay').disabled)startGame()};$('bResume50').onclick=()=>{if(!$('bPlay').disabled)resumeRun()};$('bUpg').onclick=()=>{upgUI();show('upg');play('click')};$('bRec').onclick=()=>{recUI();show('rec');play('click')};$('bSet').onclick=()=>{setFrom='menu';setUI();show('set');play('click')};
 document.querySelectorAll('.back').forEach(b=>b.onclick=()=>{play('click');show(b.closest('#set')&&setFrom==='pause'?'pause':'menu')});
-$('bResume').onclick=resume;$('lbSend').onclick=lbSend;$('xtPod').onclick=()=>xtChoose('pod');$('xtEnd').onclick=()=>xtChoose('endless');$('bGo').onclick=leaveTransit;$('bSet2').onclick=()=>{setFrom='pause';setUI();show('set')};$('bQuit').onclick=toMenu;$('bAgain').onclick=()=>{if(NET.on&&NET.final){if(NET.host)netRestart()}else if(NET.wasOnline){NET.wasOnline=false;openOnline()}else startGame()};$('bMenu').onclick=toMenu;
+$('bResume').onclick=resume;$('lbSend').onclick=lbSend;$('xtPod').onclick=()=>xtChoose('pod');$('xtEnd').onclick=()=>xtChoose('endless');$('bGo').onclick=leaveTransit;$('bSet2').onclick=()=>{setFrom='pause';setUI();show('set')};$('bQuit').onclick=toMenu;$('bAgain').onclick=()=>{if(G.death&&G.death.saved&&!NET.on){play('click');upgUI();show('upg');return}if(NET.on&&NET.final){if(NET.host)netRestart()}else if(NET.wasOnline){NET.wasOnline=false;openOnline()}else startGame()};$('bMenu').onclick=toMenu;
 for(const k of['master','music','sfx','sens','fov','bright'])$('s_'+k).oninput=e=>{save.set[k]=+e.target.value;$('v_'+k).textContent=save.set[k];if(k==='fov'){cam.fov=save.set.fov;cam.updateProjectionMatrix()}setVol();store()};
 $('s_q').onchange=e=>{const v=e.target.value;if(v==='a')save.set.qa=1;else{save.set.qa=0;save.set.q=+v}perfInit(false);store();setupPost();$('qinfo').textContent=perfLabel();scene.traverse(o=>{if(o.material)(Array.isArray(o.material)?o.material:[o.material]).forEach(m=>m.needsUpdate=true)})};
 $('s_shake').onchange=e=>{save.set.shake=e.target.checked?1:0;store()};$('s_mute').onchange=e=>{save.set.mute=e.target.checked?1:0;setVol();store()};
@@ -1546,6 +1546,14 @@ try{$('lbName').value=$('lbName').value||localStorage.getItem('nr-name')||''}cat
 function lbSend(){const n=($('lbName').value||'').trim().slice(0,14).toUpperCase()||'PLAYER';try{localStorage.setItem('nr-name',n)}catch(e){}const b=$('lbSend');b.disabled=true;b.textContent='SENDING…';play('click');
 NRNet.lbSubmit(n,G.wave,G.score).then(r=>{b.textContent=r==='new'?'SUBMITTED':r==='kept'?'YOUR BEST STANDS':'FAILED';if(!r){b.disabled=false;$('lbRes').innerHTML='<div class="dim">Couldn’t reach the leaderboard. Try again.</div>';return}
 NRNet.lbGet().then(l=>{$('lbRes').innerHTML=lbRows(l,NRNet.uid())})})}
+function saveRun(t){save.run={v:1,wave:G.wave,score:G.score,kills:G.kills,rooms:G.rooms,bosses:G.bosses,bestCombo:G.bestCombo,gold:G.gold,goldTot:G.goldTot,own:P.own.slice(),cw:P.own[P.cw]?P.cw:0,
+lvl:P.lvl,xp:P.xp,need:P.need,picks:(G.picks||[]).slice(),medN:G.medN,tuneN:G.tuneN,time:t,my:Object.assign({},G.my),at:Date.now()};store()}
+function resumeRun(){const r=save.run;if(!r)return;startGame();
+Object.assign(G,{wave:r.wave,score:r.score,kills:r.kills,rooms:r.rooms,bosses:r.bosses,bestCombo:r.bestCombo,gold:r.gold,goldTot:r.goldTot,medN:r.medN||0,tuneN:r.tuneN||0,picks:(r.picks||[]).slice(),my:Object.assign({k:0,dmg:0,rev:0},r.my),endless:1,xtAsked:1,resumed:1,t0:performance.now()-(r.time||0)*1000,breather:3.5,waveClear:1});
+Object.assign(P,{own:r.own.slice(),lvl:r.lvl,xp:r.xp,need:r.need});for(const i of G.picks)if(UPS[i])UPS[i].f();for(let i=0;i<G.tuneN;i++)P.dm*=1.1;
+P.hp=P.mhp;P.sh=P.msh;P.dashC=P.dashMax;P.cw=P.own[r.cw]?r.cw:0;P.ammo=WEP.map(w=>Math.round(w.mag*P.mag));VM.cur=-1;
+save.run=null;store();banner('BACK IN THE RIFT','WAVE '+(G.wave+1)+' · ENDLESS · YOUR GEAR IS RESTORED',3.2);play('roar')}
+function resumeBtn(){const b=$('bResume50');if(!b)return;const r=save.run;b.classList.toggle('hide',!r);if(r)b.innerHTML=`RESUME RUN <small>WAVE ${r.wave+1} · ${r.own.filter(Boolean).length} GUNS · LV ${r.lvl}</small>`}
 function xtCores(){return Math.floor(G.score/120)+G.wave*3+G.bosses*15}
 function xtOffer(){if(G.endless||G.mode==='menu'||G.mode==='dead')return;const host=!NET.on||NET.host,base=xtCores(),bonus=base+250;G.xtBonus=bonus;
 $('xtBonus').textContent='+'+(base+bonus).toLocaleString();$('xtBtns').classList.toggle('hide',!host);$('xtWait').classList.toggle('hide',host);
@@ -1556,7 +1564,7 @@ if(c==='endless'){G.endless=1;G.xtAsked=1;G.mode='play';G.noPause=0;lockPointer(
 G.mode='extract';G.tf=0;P.ads=0;mdown=0;startPod();banner('ESCAPE POD INBOUND','STAND CLEAR OF THE LANDING ZONE',2.2);play('warn')}
 function endRun(){if(G.mode==='dead')return;if(G.xt&&G.xt.pod){scene.remove(G.xt.pod);G.xt.pod=null}P.dead=1;G.mode='dead';G.noPause=1;mdown=0;const t=Math.round((performance.now()-G.t0)/1000),base=xtCores(),bonus=G.xtBonus||base+250,cores=base+bonus;
 save.cores+=cores;save.best=Math.max(save.best,G.score);save.bestWave=Math.max(save.bestWave,G.wave);save.bestCombo=Math.max(save.bestCombo,G.bestCombo);save.runs++;save.extracts=(save.extracts||0)+1;store();play('lvl');
-G.death={t,cores,bonus,win:1};if(NET.on)NET.final=true;document.exitPointerLock&&document.exitPointerLock();showDeath(G.death);if(NET.on)netDeathUI()}
+const saved=!NET.on;if(saved)saveRun(t);G.death={t,cores,bonus,win:1,saved};if(NET.on)NET.final=true;document.exitPointerLock&&document.exitPointerLock();showDeath(G.death);if(NET.on)netDeathUI()}
 
 // ================= MAIN LOOP =================
 let last=performance.now(),flick=0;
@@ -1586,7 +1594,7 @@ U.sat.value=G.mode==='dead'?.25:G.frz>0&&playing?.7:1.08;U.tint.value.set(G.frz>
 if(playing||G.mode==='levelup'||G.mode==='pause'||G.mode==='transit')hudUpdate(playing?rdt:0);document.body.classList.toggle('aim',playing&&!isTouch);
 renderFrame(showVM&&P.adsK<.6)}
 function init(){perfInit(true);PERF.hook=qc=>{if(qc)scene.traverse(o=>{if(o.material)(Array.isArray(o.material)?o.material:[o.material]).forEach(m=>m.needsUpdate=true)});const e=document.getElementById('qinfo');if(e)e.textContent=perfLabel()};hudInit();buildWorld();initFX();setupPost();layout();setTheme(0);bindUI();netUI();show('menu');startModels();requestAnimationFrame(loop);
-window.__NR={startPod,doPing,bossStats,xtOffer,xtChoose,PINGS,setLayout,dmgP,NET,netGo,rollRP,applyRP,withSeed,G,P,EN,W,COINS,hurtE,VM,WEP,PRICE,switchW,leaveTransit,enterTransit,dropGold,MOD,ren,scene,cam,sun,save,renderFrame,setupPost,newRun,spawnE,updateVM,PERF,perfSet,perfInit}}
+window.__NR={resumeRun,UPS,startPod,doPing,bossStats,xtOffer,xtChoose,PINGS,setLayout,dmgP,NET,netGo,rollRP,applyRP,withSeed,G,P,EN,W,COINS,hurtE,VM,WEP,PRICE,switchW,leaveTransit,enterTransit,dropGold,MOD,ren,scene,cam,sun,save,renderFrame,setupPost,newRun,spawnE,updateVM,PERF,perfSet,perfInit}}
 try{init()}catch(e){console.error(e);const el=document.getElementById('err');if(el){el.style.display='block';el.textContent='Startup error: '+e.message}}
 })();
 
