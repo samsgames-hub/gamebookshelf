@@ -799,7 +799,7 @@ G={mode:'menu',boss:null,wave:0,spawnQ:[],spawnT:0,score:0,kills:0,combo:0,combo
 const P={pos:v3(),vel:v3(),yaw:0,pitch:0,rec:0,recY:0,onG:1};
 const WEP=[{n:'PULSE RIFLE',m:'rifle',rate:.092,dmg:19,mag:32,pel:1,sp:.011,rl:1.45,c:0x46e6ff,auto:1,kick:.012,vk:.03,tw:.025,snd:'rifle',sub:'Full-auto · hold right-click to scope'},
 {n:'PLASMA SHOTGUN',m:'shotgun',rate:.72,dmg:15,mag:6,pel:9,sp:.072,rl:1.9,c:0xff8a2a,kick:.055,vk:.11,tw:.03,snd:'shotgun',sub:'9 plasma pellets, brutal up close'},
-{n:'RAILGUN',m:'railgun',rate:1.25,dmg:160,mag:5,pel:1,sp:0,rl:2.1,c:0x8fb6ff,pierce:1,charge:.42,kick:.05,vk:.12,tw:.16,snd:'rail',sub:'Charged beam pierces every target'},
+
 {n:'ROCKET LAUNCHER',m:'launcher',rate:1.0,dmg:90,mag:4,pel:1,sp:0,rl:2.3,c:0xff5a2a,proj:'rocket',splash:5.5,kick:.07,vk:.14,snd:'rocket',sub:'Explosive rockets, 5.5m blast'},
 {n:'VOID CANNON',m:'voidgun',rate:1.6,dmg:250,mag:3,pel:1,sp:0,rl:2.8,c:0xb04bff,proj:'void',splash:7.5,kick:.09,vk:.16,snd:'void',sub:'Dark-energy singularity'}];
 const ET={drone:{hp:28,sp:6.5,xp:1,r:.6,sc:10,gc:0x16e8ff,fly:1},soldier:{hp:70,sp:4.2,xp:2,r:.5,sc:20,gc:0xffa640},assassin:{hp:60,sp:5.2,xp:3,r:.5,sc:30,gc:0xc070ff},
@@ -807,7 +807,7 @@ crawler:{hp:38,sp:5.6,xp:2,r:.9,sc:15,gc:0x9aff3a},brute:{hp:340,sp:2.9,xp:6,r:1
 titan:{hp:4600,sp:3.2,xp:45,r:2.6,sc:1500,gc:0xff7a30,boss:'RIFT TITAN'},warden:{hp:5200,sp:3,xp:55,r:2.2,sc:2000,gc:0x6ab8ff,boss:'VOID WARDEN'},core:{hp:6400,sp:0,xp:70,r:4.4,sc:3000,gc:0xff3a6a,boss:'THE CORE'}};
 const EN=[],EB=[],PR=[],GEMS=[],PUS=[],TEL=[],HB=[];let gemIM=null;
 const GOLD={drone:2,soldier:4,assassin:6,crawler:3,brute:12,tank:18,elite:22,titan:150,warden:170,core:190};
-const PRICE=[0,25,80,160,300];
+const PRICE=[0,25,160,300];
 const HUMAN={soldier:1,assassin:1,brute:1,elite:1,titan:1};
 // ---------- online co-op ----------
 const NET={on:false,host:false,client:false,final:false,wasOnline:false,tgt:null,hurt:{},hurtSrc:{},remote:{},ready:{},goNow:false,iReady:false,readyT:0,nid:0,byId:{},map:{},deadN:new Set(),stT:0,snT:0,huT:0,dT:0,laser:null,la:0,startRP:null,curRP:null,killBy:null,downed:false};
@@ -1131,7 +1131,7 @@ SFX.step=()=>noise(.07,.09,'lowpass',380,120,1,{wet:.05});
 function newRun(){if(G.boss)bossEnd(G.boss);evtEnd();for(const e of EN.slice())freeE(e);EN.length=0;EB.forEach(b=>freeSprite(b.s));EB.length=0;PR.forEach(q=>{freeSprite(q.s);q.core&&freeSprite(q.core);q.m&&scene.remove(q.m)});PR.length=0;
 GEMS.length=0;PUS.forEach(u=>{freeSprite(u.s);freeSprite(u.gl)});PUS.length=0;clrT();WAVES.forEach(w=>w.m.visible=false);WAVES.length=0;laserFX(null);PA.clear();PS.clear();FX.decals.forEach(m=>m.visible=false);
 const u=save.up;Object.assign(P,{hp:100+u.hp*20,mhp:100+u.hp*20,msh:60*(1+u.sh*.15),sh:60*(1+u.sh*.15),sd:0,lvl:1,xp:0,need:6,cw:0,last:0,ammo:WEP.map(w=>w.mag),rl:0,rlt:1,next:0,charge:0,dashMax:1+u.dash,dashC:1+u.dash,dashT:0,inv:0,
-dm:1+u.dmg*.1,rm:1,sm:1+u.spd*.06,crit:.05,mag:1,xpMul:1+u.xp*.1,proj:0,rls:1,vamp:0,pu:[0,0,0,0,0,0],shieldPU:0,mag2:0,dead:0,own:[1,0,0,0,0],ads:0,adsK:0,adsOn:0,onG:1,sprint:0,moving:0,rec:0,recY:0,yaw:0,pitch:0,stepT:0,fovK:0,odOn:false,bzOn:false});
+dm:1+u.dmg*.1,rm:1,sm:1+u.spd*.06,crit:.05,mag:1,xpMul:1+u.xp*.1,proj:0,rls:1,vamp:0,pu:[0,0,0,0,0,0],shieldPU:0,mag2:0,dead:0,own:[1,0,0,0],ads:0,adsK:0,adsOn:0,onG:1,sprint:0,moving:0,rec:0,recY:0,yaw:0,pitch:0,stepT:0,fovK:0,odOn:false,bzOn:false});
 P.pos.set(0,0,21);P.vel.set(0,0,0);Object.assign(G,{boss:null,wave:0,spawnQ:[],spawnT:0,score:0,kills:0,combo:0,comboT:0,bestCombo:0,t0:performance.now(),time:0,bosses:0,ts:1,slow:0,shake:0,evt:'',evtT:0,breather:2.2,waveClear:1,frz:0,grav:0,ovc:1,dmgFX:0,mods:{},fade:0,my:{k:0,dmg:0,rev:0},endless:0,xtAsked:0,gold:0,goldTot:0,goldPop:0,exit:-1,entry:-1,rooms:1,tf:0,shopOn:0,medN:0,tuneN:0,picks:[],resumed:0});
 COINS.length=0;if(coinIM)coinIM.count=0;applyRP(NET.on&&NET.startRP?NET.startRP:rollRP(false));hudBoss(null);P.ammo=WEP.map(w=>Math.round(w.mag*P.mag));VM.cur=-1}
 function tryDash(){if(P.dashC<1||P.dead)return;P.dashC--;const f=(keys.KeyW?1:0)-(keys.KeyS?1:0)+(mv.y<-.3?1:mv.y>.3?-1:0),s=(keys.KeyD?1:0)-(keys.KeyA?1:0)+(mv.x>.3?1:mv.x<-.3?-1:0);let dx=-Math.sin(P.yaw)*f+Math.cos(P.yaw)*s,dz=-Math.cos(P.yaw)*f-Math.sin(P.yaw)*s;
@@ -1213,7 +1213,7 @@ H.slots.innerHTML=WEP.map((w,i)=>`<div class="slot" data-i="${i}"><svg viewBox="
 H.slots.querySelectorAll('.slot').forEach(s=>s.addEventListener('click',()=>switchW(+s.dataset.i)));
 H.num=[];for(let i=0;i<28;i++){const d=document.createElement('div');d.className='dnum';H.nums.appendChild(d);H.num.push({d,t:0,x:0,y:0,p:new THREE.Vector3()})}
 H.dirs=[];for(let i=0;i<6;i++){const d=document.createElement('div');d.className='ddir';H.dd.appendChild(d);H.dirs.push({d,t:0,a:0})}}
-const ICON=['<path d="M2 9h40l4-3h8v4h8v3H44l-6 3v6h-5l-1-5H22l-2 4h-5l1-6H2z"/>','<path d="M2 8h46v3h12v3H48v2H30l-4 6h-6l3-6H8l-2 3H2z"/>','<path d="M2 7h60v2H40v2h22v2H40v2H24l-3 6h-6l2-6H2z"/>','<path d="M4 5h48l6 3v7l-6 3H40v4h-6v-4H22l-2 5h-6l2-5H4z"/>','<path d="M2 12c4-8 18-10 28-8l10-3 4 4 18 2-18 4-6 3 4 5h-6l-4-4c-6 3-20 3-30-3z"/>'];
+const ICON=['<path d="M2 9h40l4-3h8v4h8v3H44l-6 3v6h-5l-1-5H22l-2 4h-5l1-6H2z"/>','<path d="M2 8h46v3h12v3H48v2H30l-4 6h-6l3-6H8l-2 3H2z"/>','<path d="M4 5h48l6 3v7l-6 3H40v4h-6v-4H22l-2 5h-6l2-5H4z"/>','<path d="M2 12c4-8 18-10 28-8l10-3 4 4 18 2-18 4-6 3 4 5h-6l-4-4c-6 3-20 3-30-3z"/>'];
 const set=(k,el,v,f)=>{if(hc[k]!==v){hc[k]=v;f?f(el,v):el.textContent=v}};
 const pct=(el,v)=>el.style.width=(v*100).toFixed(1)+'%';
 function hudUpdate(dt){const w=WEP[P.cw];
@@ -1357,7 +1357,7 @@ document.querySelectorAll('button').forEach(b=>b.addEventListener('mouseenter',(
 addEventListener('keydown',e=>{keys[e.code]=1;if(e.code==='Space'||e.code.startsWith('Arrow'))e.preventDefault();
 if(G.mode==='levelup'&&/Digit[123]/.test(e.code)&&G.lvOpts){pickUp(G.lvOpts[+e.code.slice(5)-1]);return}
 if(G.mode==='transit'&&G.shopOn&&(e.code==='Enter'||e.code==='KeyE')){leaveTransit();return}
-if(G.mode!=='play')return;if(e.code==='Escape'&&!document.pointerLockElement){pauseGame();return}if(/Digit[1-5]/.test(e.code))switchW(+e.code.slice(5)-1);if(e.code==='KeyQ'&&!e.repeat)P.ads=1;if(e.code==='KeyX')switchW(P.last);if(e.code==='KeyR')reload();if(e.code==='KeyT'&&!e.repeat)wheelOpen();if((e.code==='ShiftLeft'||e.code==='ShiftRight')&&!e.repeat)tryDash();if(e.code==='KeyP')pauseGame()});
+if(G.mode!=='play')return;if(e.code==='Escape'&&!document.pointerLockElement){pauseGame();return}if(/Digit[1-4]/.test(e.code))switchW(+e.code.slice(5)-1);if(e.code==='KeyQ'&&!e.repeat)P.ads=1;if(e.code==='KeyX')switchW(P.last);if(e.code==='KeyR')reload();if(e.code==='KeyT'&&!e.repeat)wheelOpen();if((e.code==='ShiftLeft'||e.code==='ShiftRight')&&!e.repeat)tryDash();if(e.code==='KeyP')pauseGame()});
 addEventListener('keyup',e=>{keys[e.code]=0;if(e.code==='KeyT')wheelClose();if(e.code==='KeyQ')P.ads=0});
 addEventListener('mousedown',e=>{if(e.button===1&&G.mode==='play'){e.preventDefault();doPing('smart')}if(e.button===0&&G.mode==='play'&&(document.pointerLockElement||isTouch||G.freeAim))mdown=1;if(e.button===2&&G.mode==='play')P.ads=1});addEventListener('mouseup',e=>{if(e.button===0)mdown=0;if(e.button===2)P.ads=0});
 addEventListener('contextmenu',e=>e.preventDefault());
@@ -1548,12 +1548,12 @@ NRNet.lbSubmit(n,G.wave,G.score).then(r=>{b.textContent=r==='new'?'SUBMITTED':r=
 NRNet.lbGet().then(l=>{$('lbRes').innerHTML=lbRows(l,NRNet.uid())})})}
 function saveRun(t){save.run={v:1,wave:G.wave,score:G.score,kills:G.kills,rooms:G.rooms,bosses:G.bosses,bestCombo:G.bestCombo,gold:G.gold,goldTot:G.goldTot,own:P.own.slice(),cw:P.own[P.cw]?P.cw:0,
 lvl:P.lvl,xp:P.xp,need:P.need,picks:(G.picks||[]).slice(),medN:G.medN,tuneN:G.tuneN,time:t,my:Object.assign({},G.my),at:Date.now()};store()}
-function resumeRun(){const r=save.run;if(!r)return;startGame();
+function resumeRun(){const r=save.run;if(!r)return;if(r.own&&r.own.length===5){r.own.splice(2,1);r.cw=r.cw===2?0:r.cw>2?r.cw-1:r.cw}startGame();
 Object.assign(G,{wave:r.wave,score:r.score,kills:r.kills,rooms:r.rooms,bosses:r.bosses,bestCombo:r.bestCombo,gold:r.gold,goldTot:r.goldTot,medN:r.medN||0,tuneN:r.tuneN||0,picks:(r.picks||[]).slice(),my:Object.assign({k:0,dmg:0,rev:0},r.my),endless:1,xtAsked:1,resumed:1,t0:performance.now()-(r.time||0)*1000,breather:3.5,waveClear:1});
 Object.assign(P,{own:r.own.slice(),lvl:r.lvl,xp:r.xp,need:r.need});for(const i of G.picks)if(UPS[i])UPS[i].f();for(let i=0;i<G.tuneN;i++)P.dm*=1.1;
 P.hp=P.mhp;P.sh=P.msh;P.dashC=P.dashMax;P.cw=P.own[r.cw]?r.cw:0;P.ammo=WEP.map(w=>Math.round(w.mag*P.mag));VM.cur=-1;
 save.run=null;store();G.xtAt=G.wave;banner('BACK IN THE RIFT','WAVE '+(G.wave+1)+' · NEXT ESCAPE POD AT WAVE '+(Math.floor(G.wave/10)*10+10),3.2);play('roar')}
-function resumeBtn(){const b=$('bResume50');if(!b)return;const r=save.run;b.classList.toggle('hide',!r);if(r)b.innerHTML=`RESUME RUN <small>WAVE ${r.wave+1} · ${r.own.filter(Boolean).length} GUN${r.own.filter(Boolean).length>1?'S':''} · LV ${r.lvl}</small>`}
+function resumeBtn(){const b=$('bResume50');if(!b)return;const r=save.run;if(r&&r.own&&r.own.length===5){r.own.splice(2,1);r.cw=r.cw===2?0:r.cw>2?r.cw-1:r.cw;store()}b.classList.toggle('hide',!r);if(r)b.innerHTML=`RESUME RUN <small>WAVE ${r.wave+1} · ${r.own.filter(Boolean).length} GUN${r.own.filter(Boolean).length>1?'S':''} · LV ${r.lvl}</small>`}
 function xtDue(){return G.wave>=50&&G.wave%10===0&&G.xtAt!==G.wave&&(G.wave===50?!G.endless:true)}
 function xtCores(){return Math.floor(G.score/120)+G.wave*3+G.bosses*15}
 function xtOffer(){if(G.mode==='menu'||G.mode==='dead')return;$('xtKick').textContent='WAVE '+G.wave+' HELD';$('xtSub').textContent=G.wave>50?'Another chance to extract. Fly home, spend your rift cores and come back at wave '+(G.wave+1)+', or keep pushing deeper.':$('xtSub').dataset.t;const host=!NET.on||NET.host,base=xtCores(),bonus=base+250;G.xtBonus=bonus;
