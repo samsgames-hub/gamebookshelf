@@ -316,6 +316,9 @@ function makeSim(seed, opts) {
       let dx = o.inp.tx - c.x, dy = o.inp.ty - c.y; const d = Math.hypot(dx, dy) || 1, sp = spdOf(c.m) * Math.min(1, d / (c.r * .5 + 30));
       const k = Math.exp(-dt * 3.4);
       c.x += dx / d * sp * dt + c.vx * dt; c.y += dy / d * sp * dt + c.vy * dt; c.vx *= k; c.vy *= k;
+      // remote players steer their own cells on their own screen: follow their reported spot (within reason) so they never feel lag
+      const rp = o.inp.pos && S.t - (o.inp.posT || 0) < .6 && o.inp.pos.get(c.id);
+      if (rp) { const ex = rp.x - c.x, ey = rp.y - c.y, ed = Math.hypot(ex, ey); if (ed < 220 + c.r) { const f = 1 - Math.exp(-dt * 14); c.x += ex * f; c.y += ey * f; } }
       // the bigger you are, the faster you shrink, so nobody snowballs forever
       if (c.m > 60) c.m -= c.m * (.002 + .007 * Math.min(1, (o.total || 0) / 25000)) * dt;
       if (c.m > MAXM) { if (o.cells.length < MAXC) splitOwner(o, c.x + 1, c.y); if (c.m > MAXM) c.m = MAXM; }
@@ -453,7 +456,7 @@ function makeClient() {
     C.snaps.push({ t: ht, cells, ej, vir }); if (C.snaps.length > 30) C.snaps.shift();
     C.lastRecv = now; C.gotFirst = true;
   };
-  C.events = []; C.feed = []; C.changed = []; C.ghosts = []; C.half = new Map(); C.gid = -1; C.mi = { mode: 'ffa' };
+  C.mergeAt = new Map(); C.events = []; C.feed = []; C.changed = []; C.ghosts = []; C.half = new Map(); C.gid = -1; C.mi = { mode: 'ffa' };
   return C;
 }
 
@@ -563,7 +566,8 @@ NET.listen('players', (ps, old) => {
 });
 NET.listen('inputs', map => {
   if (G.mode !== 'host' || !G.sim) return;
-  for (const [id, s] of Object.entries(map)) { const o = G.sim.owners.find(x => !x.gone && x.uid === id); if (!o || typeof s !== 'string') continue; const a = s.split(','); o.inp.tx = +a[0] || 0; o.inp.ty = +a[1] || 0; o.inp.split = (+a[2] || 0) % 8; o.inp.ej = +a[3] ? 1 : 0; o.inp.rs = +a[4] || 0; o.inp.hw = +a[5] || 1200; o.inp.hh = +a[6] || 800; }
+  for (const [id, s] of Object.entries(map)) { const o = G.sim.owners.find(x => !x.gone && x.uid === id); if (!o || typeof s !== 'string') continue; const a = s.split(','); o.inp.tx = +a[0] || 0; o.inp.ty = +a[1] || 0; o.inp.split = (+a[2] || 0) % 8; o.inp.ej = +a[3] ? 1 : 0; o.inp.rs = +a[4] || 0; o.inp.hw = +a[5] || 1200; o.inp.hh = +a[6] || 800;
+    if (a[7]) { const m = o.inp.pos = o.inp.pos || new Map(); m.clear(); for (const e of a[7].split(';')) { const q = e.split(':'); if (q.length === 3) m.set(+q[0], { x: +q[1], y: +q[2] }); } o.inp.posT = G.sim.t; } }
 });
 NET.listen('view', s => { if (G.cl) G.cl.ingest(s); });
 NET.listen('roster', r => { if (G.cl) G.cl.roster = r; });
@@ -738,11 +742,20 @@ function predict(dt) {
     if (!p) { p = { x: ex, y: ey }; C.pred.set(id, p); }
     const r = rOf(c.m), dx = tgt.x - p.x, dy = tgt.y - p.y, d = Math.hypot(dx, dy) || 1, sp = spdOf(c.m) * Math.min(1, d / (r * .5 + 30));
     p.x += dx / d * sp * dt; p.y += dy / d * sp * dt;
-    const k = 1 - Math.exp(-dt * 5.5); p.x += (ex - p.x) * k; p.y += (ey - p.y) * k;
-    if (Math.hypot(ex - p.x, ey - p.y) > 500) { p.x = ex; p.y = ey; }
+    const err = Math.hypot(c.x - p.x, c.y - p.y), lim = Math.max(80, r * .7) + Math.hypot(vx, vy) * .3;
+    if (err > lim) { const k = 1 - Math.exp(-dt * 6); p.x += (ex - p.x) * k; p.y += (ey - p.y) * k; }
+    if (err > 600) { p.x = ex; p.y = ey; }
   }
   for (const id of [...C.pred.keys()]) if (!seen.has(id)) C.pred.delete(id);
-  const nowT = performance.now();
+  const nowT = performance.now(), ids = [...seen];
+  for (const id of ids) if (!C.mergeAt.has(id)) { const m = last.cells.get(id).m, t = nowT + (10 + m * .02) * 1000; C.mergeAt.set(id, t); if (ids.length > 1) for (const j of ids) C.mergeAt.set(j, Math.max(C.mergeAt.get(j) || 0, nowT + (10 + last.cells.get(j).m * .02) * 1000)); }
+  for (let i = 0; i < ids.length; i++) for (let j = i + 1; j < ids.length; j++) {
+    const a = C.pred.get(ids[i]), b = C.pred.get(ids[j]), ra = rOf(last.cells.get(ids[i]).m), rb = rOf(last.cells.get(ids[j]).m);
+    if (nowT > C.mergeAt.get(ids[i]) && nowT > C.mergeAt.get(ids[j])) continue;
+    const dx = b.x - a.x, dy = b.y - a.y, d = Math.hypot(dx, dy) || .01, ov = ra + rb - d; if (ov <= 0) continue;
+    const f = Math.min(1, ov / (ra + rb)) * .5 * ov * Math.min(1, dt * 40); a.x -= dx / d * f; a.y -= dy / d * f; b.x += dx / d * f; b.y += dy / d * f;
+  }
+  if (C.mergeAt.size > 200) for (const k of [...C.mergeAt.keys()]) if (!seen.has(k)) C.mergeAt.delete(k);
   for (let k = C.ghosts.length - 1; k >= 0; k--) {
     const g = C.ghosts[k], dx = tgt.x - g.x, dy = tgt.y - g.y, d = Math.hypot(dx, dy) || 1, sp = spdOf(g.m) * Math.min(1, d / (rOf(g.m) * .5 + 30)), kk = Math.exp(-dt * 3.4);
     g.x += dx / d * sp * dt + g.vx * dt; g.y += dy / d * sp * dt + g.vy * dt; g.vx *= kk; g.vy *= kk;
@@ -940,8 +953,9 @@ function update(sdt, realDt) {
     // send input ~15/s
     G.inT -= realDt;
     if (G.inT <= 0 && NET.on) {
-      G.inT = 1 / 15; const s = G.cam.z * G.base, hw = Math.round(G.W / 2 / s + 120), hh = Math.round(G.H / 2 / s + 120);
-      const str = [Math.round(tgt.x), Math.round(tgt.y), G.split, G.ejHeld && G.state === 'play' && !G.paused ? 1 : 0, G.rs, hw, hh].join(',');
+      G.inT = 1 / 20; const s = G.cam.z * G.base, hw = Math.round(G.W / 2 / s + 120), hh = Math.round(G.H / 2 / s + 120);
+      const pos = [...C.pred.entries()].map(([id, p]) => id + ':' + Math.round(p.x) + ':' + Math.round(p.y)).join(';');
+      const str = [Math.round(tgt.x), Math.round(tgt.y), G.split, G.ejHeld && G.state === 'play' && !G.paused ? 1 : 0, G.rs, hw, hh, pos].join(',');
       if (str !== G.lastIn) { G.lastIn = str; NET.input(str); }
     }
     if (G.state === 'play' && C.you && C.you.alive) G.awaitSpawn = 0;
