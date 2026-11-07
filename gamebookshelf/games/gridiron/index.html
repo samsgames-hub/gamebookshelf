@@ -34,6 +34,7 @@
     <p class="tag">Call the play. Read the defense. Throw it where you look, then fight for every yard.</p>
     <div class="modes">
       <button id="bSeason" class="mode main"><b>Season</b><span id="tSeason">Pick a team. Chase the title</span></button>
+      <button id="bMP" class="mode friend"><b>Play a friend</b><span>Online head to head. Take turns on offense and defense</span></button>
       <button id="bQuick" class="mode"><b>Quick game</b><span>One game against a random opponent</span></button>
       <button id="bDrill" class="mode"><b>Two-minute drill</b><span id="tDrill">Score fast before time runs out</span></button>
     </div>
@@ -45,9 +46,37 @@
   <div class="pcw">
     <div class="pch"><h2>Call the play</h2><p id="pcSit"></p></div>
     <div id="pcList"></div>
+    <p id="pcWait" class="wait hide"></p>
     <p class="hint">Press <kbd>1</kbd>–<kbd>8</kbd> or click a play</p>
   </div>
 </section>
+
+<section id="mpOv" class="screen dim hide"><div class="card wide">
+  <div class="seh"><h2>Play a friend</h2><button id="mpBack">Back</button></div>
+  <div class="mpg">
+    <div>
+      <label class="sl">Your name<input id="mpName" maxlength="14" placeholder="Player" autocomplete="off" spellcheck="false"></label>
+      <h3>Your team</h3><div id="mpTeams"></div>
+    </div>
+    <div>
+      <div id="mpConnect" class="col">
+        <button id="mpCreate" class="big">CREATE GAME</button>
+        <p class="hint">You’ll get a 4-letter code to send your friend.</p>
+        <div class="or">or join a friend’s game</div>
+        <div class="joinrow"><input id="mpCode" class="code" maxlength="4" placeholder="CODE" autocomplete="off" spellcheck="false"><button id="mpJoinB" class="big">JOIN</button></div>
+      </div>
+      <div id="mpLobby" class="hide">
+        <p class="kick">GAME CODE</p><div id="mpCodeBig" class="codebig">----</div>
+        <ul id="mpList"></ul>
+        <label class="sl">Quarter length<select id="mpQ"><option value="2">2 minutes</option><option value="3">3 minutes</option><option value="4" selected>4 minutes</option><option value="6">6 minutes</option></select></label>
+        <p id="mpNote" class="hint"></p>
+        <button id="mpStart" class="big hide" disabled>KICK OFF</button>
+      </div>
+      <p id="mpErr" class="err"></p>
+    </div>
+  </div>
+  <p class="hint">Whoever has the ball plays quarterback. The other player calls a defense and plays one of the defenders in first person: run into the ball carrier to tackle, press Space to dive, click to swat a pass.</p>
+</div></section>
 
 <section id="oppOv" class="screen dim hide"><div class="card narrow center">
   <p class="kick" id="oppT">Opponent drive</p><h2 id="oppR">PUNT</h2><p id="oppD" class="hint"></p><div id="oppS" class="sc"></div>
@@ -115,6 +144,8 @@
 </div></section>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 <script src="game.js"></script>
 <script data-goatcounter="https://gamebookshelf.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
 </body></html>
