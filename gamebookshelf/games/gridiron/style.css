@@ -124,3 +124,5 @@ h2.good,#goT.good{color:var(--ac)}h2.bad,#goT.bad{color:var(--bad)}
 .pch .side{color:var(--ac);font-weight:800}
 .wait{text-align:center;font:700 22px var(--h);color:#dfe6f0;margin:18px 0}
 @media (max-width:900px){.mpg{grid-template-columns:1fr}#mpTeams{grid-template-columns:repeat(3,1fr)}}
+
+#mpList li.sideh{background:none;padding:6px 2px 0;justify-content:space-between;font:800 18px var(--h);color:var(--ac)}#mpList .sw{padding:4px 10px;border-radius:8px;border:1px solid var(--ln);background:rgba(255,255,255,.06);font:600 12px var(--b);color:var(--tx)}

@@ -354,10 +354,14 @@ const PLAYS = [
   { id: 'toss', name: 'HB Toss', type: 'run', form: 'pistol', d: 'You’re the running back. Take the pitch and race the edge.', toss: 1, r: {} }
 ];
 const DCALLS = [
-  { id: 'man', name: 'Cover 1 Man', you: 'Free safety', d: 'Everyone else plays man. You roam deep and take away the big play.' },
-  { id: 'zone', name: 'Cover 2 Zone', you: 'Middle linebacker', d: 'Two deep safeties. You patrol the middle of the field.' },
-  { id: 'blitz', name: 'LB Blitz', you: 'Blitzing linebacker', d: 'You rush the quarterback. Get there before he throws.' },
-  { id: 'spy', name: 'QB Spy', you: 'Spy linebacker', d: 'Shadow the quarterback. Stop scrambles and runs.' }
+  { id: 'man', name: 'Cover 1 Man', you: 'Free safety', h: 'S1', d: 'Man coverage everywhere. You roam deep and take away the big play.' },
+  { id: 'cover2', name: 'Cover 2 Zone', you: 'Middle linebacker', h: 'LB1', d: 'Two deep safeties, corners squat in the flats. You patrol the middle.' },
+  { id: 'cover3', name: 'Cover 3 Zone', you: 'Deep middle safety', h: 'S1', d: 'Corners take the deep sidelines. You own the deep middle.' },
+  { id: 'blitz', name: 'LB Blitz', you: 'Blitzing linebacker', h: 'LB0', d: 'Six rush. Get to the quarterback before he throws.' },
+  { id: 'stunt', name: 'DL Stunt', you: 'Defensive tackle', h: 'DL1', d: 'Two linemen cross lanes after the snap to confuse the blocking.' },
+  { id: 'firezone', name: 'Fire Zone', you: 'Blitzing safety', h: 'S0', d: 'A safety blitzes while a lineman drops into coverage.' },
+  { id: 'spy', name: 'QB Spy', you: 'Spy linebacker', h: 'LB0', d: 'Shadow the quarterback. Stop scrambles and runs.' },
+  { id: 'prevent', name: 'Prevent', you: 'Deep safety', h: 'S1', d: 'Rush three, everyone else drops deep. Nothing over the top.' }
 ];
 const PLAYERS = []; let OFF = [], DEFN = [];
 let teamOff = TEAMS[0], teamDef = TEAMS[1];
@@ -386,7 +390,7 @@ function setupPlay(play, los, x0, opts) {
   PS.play = play; PS.los = los; PS.x0 = x0; PS.t = 0; PS.phase = 'presnap'; PS.carrier = null; PS.result = null; PS.events.length = 0; PS.deadT = 0; PS.crossed = false; PS.tgt = null; PS.passer = null; PS.tackler = null; PS.fallT = 0;
   ball.state = 'held'; ball.tried.clear(); ball.deflected = false; landRing.visible = false;
   const gun = play.form === 'gun', inside = x => (x > x0 ? -1 : 1);
-  const place = (p, x, z, face) => { p.pos.set(x, 0, z); p.vel.set(0, 0, 0); p.face = face === undefined ? 0 : face; p.fall = 0; p.stun = 0; p.down = false; p.eng = null; p.engBy = []; p.pose = ''; p.route = null; p.ri = 0; p.settle = false; p.cover = null; p.job = ''; p.drop = null; p.react = 0; p.tried = false; p.jukeT = 0; p.armT = 0; p.missT = 0; p.blockT = 0; p.tackleCD = 0; p.free = 0; p.human = false; p.diveT = 0; p.diveCD = 0; p.swatT = 0; p.winded = false; p.stam = 1; p.getUp = undefined; p.bt = null; p.btT = 0; p.throwT = 0; p.seen.copy(p.pos); p.m.root.visible = true; };
+  const place = (p, x, z, face) => { p.pos.set(x, 0, z); p.vel.set(0, 0, 0); p.face = face === undefined ? 0 : face; p.fall = 0; p.stun = 0; p.down = false; p.eng = null; p.engBy = []; p.pose = ''; p.route = null; p.ri = 0; p.settle = false; p.cover = null; p.job = ''; p.drop = null; p.react = 0; p.tried = false; p.jukeT = 0; p.armT = 0; p.missT = 0; p.blockT = 0; p.tackleCD = 0; p.free = 0; p.human = false; p.stunt = undefined; p.zr = 7; p.deep = false; p.diveT = 0; p.diveCD = 0; p.swatT = 0; p.winded = false; p.stam = 1; p.getUp = undefined; p.bt = null; p.btT = 0; p.throwT = 0; p.seen.copy(p.pos); p.m.root.visible = true; };
   const off = Object.fromEntries(OFF.map(p => [p.slot, p])), def = Object.fromEntries(DEFN.map(p => [p.slot, p]));
   const mul = 1 + RATE.rec * .012;
   for (const p of OFF) { p.maxSpd = SPD[p.role] * (p.role === 'WR' || p.role === 'TE' ? mul : p.role === 'RB' ? 1 + RATE.back * .015 : 1); }
@@ -413,18 +417,26 @@ function setupPlay(play, los, x0, opts) {
   def.S0.cover = off.SL; def.S0.job = 'man'; def.S0.cush = 3;
   def.LB2.cover = off.TE; def.LB2.job = 'man'; def.LB2.cush = 1.5;
   def.S1.job = 'deep';
-  const r = Math.random(); PS.defCall = opts.defCall || (r < .28 * D.rush ? 'blitz' : r < .55 ? 'spy' : 'zone'); PS.press = press;
   def.LB1.job = 'man'; def.LB1.cover = off.RB; def.LB1.cush = 2;
-  def.LB0.job = PS.defCall === 'blitz' ? 'rush' : PS.defCall === 'spy' ? 'spy' : 'zone'; def.LB0.drop = V3(x0 + 3, 0, los + 8);
+  def.LB0.job = 'zone'; def.LB0.drop = V3(x0 + 3, 0, los + 8); def.LB0.zr = 7;
+  // the computer mixes its calls up; long yardage late brings out the prevent
+  const long = G.togo >= 12, pick = () => { const w = [['man', .24], ['cover2', .2], ['cover3', .2], ['blitz', .12 * D.rush], ['stunt', .09], ['firezone', .07], ['spy', .06], ['prevent', long ? .1 : .02]]; let t = Math.random() * w.reduce((a, x) => a + x[1], 0); for (const [k, v] of w) { if ((t -= v) <= 0) return k; } return 'man'; };
+  PS.defCall = opts.dcall || opts.defCall || pick(); PS.press = press;
+  const Z = (p, x, dz, r, deep) => { p.job = 'zone'; p.cover = null; p.drop = V3(clamp(x, -HALF_W + 2, HALF_W - 2), 0, los + dz); p.zr = r; p.deep = !!deep; };
+  const dc = PS.defCall, xs = Math.sign(off.X.pos.x - x0) || 1;
+  if (dc === 'cover2') { Z(def.S0, x0 - xs * 11, 15, 13, 1); Z(def.S1, x0 + xs * 11, 15, 13, 1); Z(def.CB0, x0 + xs * 13, 5, 8); Z(def.CB1, x0 - xs * 13, 5, 8); Z(def.LB0, x0 + xs * 5, 8, 7); Z(def.LB1, x0, 9, 7); Z(def.LB2, x0 - xs * 5, 8, 7); }
+  else if (dc === 'cover3') { Z(def.CB0, x0 + xs * 17, 16, 12, 1); Z(def.CB1, x0 - xs * 17, 16, 12, 1); Z(def.S1, x0, 18, 13, 1); Z(def.S0, x0 - xs * 8, 7, 7); Z(def.LB0, x0 + xs * 11, 4, 7); Z(def.LB1, x0, 8, 7); Z(def.LB2, x0 - xs * 11, 4, 7); }
+  else if (dc === 'blitz') { def.LB0.job = 'rush'; if (Math.random() < .4) def.LB1.job = 'rush'; }
+  else if (dc === 'stunt') { def.DL1.stunt = def.DL2.pos.x; def.DL2.stunt = def.DL1.pos.x; def.DL1.free = .7; def.DL2.free = .7; }
+  else if (dc === 'firezone') { def.LB0.job = 'rush'; def.S0.job = 'rush'; def.S0.cover = null; Z(def.DL3, x0 - xs * 5, 6, 7); place(def.S0, x0 - 6, los + 6, Math.PI); }
+  else if (dc === 'spy') def.LB0.job = 'spy';
+  else if (dc === 'prevent') { Z(def.DL3, x0, 5, 8); Z(def.LB0, x0 + 7, 9, 8); Z(def.LB1, x0, 11, 8); Z(def.LB2, x0 - 7, 9, 8); Z(def.CB0, x0 + xs * 16, 20, 14, 1); Z(def.CB1, x0 - xs * 16, 20, 14, 1); Z(def.S0, x0 - 7, 25, 15, 1); Z(def.S1, x0 + 7, 25, 15, 1); }
   // a human defender takes one spot depending on the call
-  if (opts.dcall) {
-    const dc = opts.dcall;
-    if (dc === 'man') { PS.dctrl = def.S1; def.LB0.job = 'zone'; }
-    else if (dc === 'zone') { PS.dctrl = def.LB1; def.LB0.job = 'man'; def.LB0.cover = off.RB; def.LB0.cush = 2; def.S0.job = 'deep'; def.S0.cover = null; place(def.S0, x0 - 9, los + 13, Math.PI); }
-    else if (dc === 'blitz') { PS.dctrl = def.LB0; def.LB0.job = 'rush'; }
-    else { PS.dctrl = def.LB0; def.LB0.job = 'spy'; }
-    PS.dctrl.cover = null; PS.dctrl.stam = 1; if (PS.dctrl.job !== 'rush') PS.dctrl.job = 'human'; PS.dctrl.human = true;
-  }
+  PS.dctrl2 = null; PS.ctrl2 = null;
+  const human = p => { p.cover = null; p.stam = 1; if (p.job !== 'rush') p.job = 'human'; p.human = true; };
+  if (opts.dcall) { PS.dctrl = def[(DCALLS.find(c => c.id === opts.dcall) || DCALLS[0]).h]; human(PS.dctrl); }
+  if (opts.def2) { PS.dctrl2 = PS.dctrl === def.CB0 ? def.CB1 : def.CB0; human(PS.dctrl2); }
+  if (opts.off2) { PS.ctrl2 = off.X; PS.ctrl2.stam = 1; PS.ctrl2.human = true; }
   // blocking assignments: each rusher gets the nearest lineman; spare blockers help
   const rushers = DEFN.filter(d => d.job === 'rush'), ol = OFF.filter(p => p.role === 'OL');
   for (const o of ol) o.blk = null;
@@ -516,7 +528,7 @@ function catchBall(p) {
   ball.state = 'held'; ball.holder = p; PS.carrier = p; landRing.visible = false; p.pose = 'carry';
   if (p.side === 0) {
     G.stats.comp++; PS.yac0 = p.pos.z; PS.catchZ = p.pos.z; PS.phase = 'run'; PS.events.push('CATCH'); AU.catchBall(); AU.crowdSwell(.5);
-    if (PS.ctrl !== p) { G.switchCtrl(p); }
+    if (PS.ctrl !== p && PS.ctrl2 !== p) { G.switchCtrl(p); }
   } else {
     PS.phase = 'run'; PS.events.push('INT'); AU.catchBall(); AU.boo(); PS.ctrl = null; G.cine = true; G.banner('INTERCEPTED', 'bad');
   }
@@ -525,8 +537,8 @@ function catchBall(p) {
 }
 
 // ---------------- moves: juke + stiff arm ----------------
-function juke(dir) { const p = PS.ctrl; if (!p || PS.carrier !== p || p.jukeT > -1.2) return; p.jukeT = .38; p.jukeDir = dir; AU.juke(); for (const d of DEFN) { const dd = Math.hypot(d.pos.x - p.pos.x, d.pos.z - p.pos.z); if (dd < 2.3) d.missT = .35; } } // a juke only fools defenders who are right on you
-function stiffArm() { const p = PS.ctrl; if (!p || PS.carrier !== p || p.armT > -1.6) return; p.armT = .55; AU.grunt(); }
+function juke(dir, who) { const p = who || PS.ctrl; if (!p || PS.carrier !== p || p.jukeT > -1.2) return; p.jukeT = .38; p.jukeDir = dir; AU.juke(); for (const d of DEFN) { const dd = Math.hypot(d.pos.x - p.pos.x, d.pos.z - p.pos.z); if (dd < 2.3) d.missT = .35; } } // a juke only fools defenders who are right on you
+function stiffArm(who) { const p = who || PS.ctrl; if (!p || PS.carrier !== p || p.armT > -1.6) return; p.armT = .55; AU.grunt(); }
 
 // ---------------- one simulation step ----------------
 function moveCtrl(p, inp, dt) {
@@ -553,7 +565,7 @@ function moveCtrl(p, inp, dt) {
 }
 function dive(p) { if (!p || p.down || p.fall > 0 || p.diveT > 0 || PS.t < (p.diveCD || 0) || PS.phase === 'presnap') return; p.diveT = .32; p.diveCD = PS.t + 1.8; const f = [Math.sin(p.face), Math.cos(p.face)]; p.vel.set(f[0] * 10.5, 0, f[1] * 10.5); AU.grunt(); }
 function swat(p) { if (!p || p.down) return; p.swatT = PS.t + .5; p.pose = 'catch'; setTimeout(() => { if (p.pose === 'catch') p.pose = ''; }, 450); }
-function stepSim(dt, inp, dinp) {
+function stepSim(dt, inp, dinp, inp2, dinp2) {
   PS.t += dt; const los = PS.los, qb = by('QB'), rb = by('RB');
   for (const p of PLAYERS) { p.stun = Math.max(0, p.stun - dt); p.react -= dt; p.jukeT -= dt; p.armT -= dt; p.missT -= dt; p.throwT = Math.max(0, p.throwT - dt * 3); if (p.throwT <= 0 && p.pose === 'throw') p.pose = ''; }
   // ----- ball
@@ -580,14 +592,16 @@ function stepSim(dt, inp, dinp) {
     else if (qb.pos.distanceTo(rb.pos) < 1.25 || PS.t > 1.5) { ball.holder = rb; PS.carrier = rb; PS.phase = 'run'; rb.pose = 'carry'; qb.pose = ''; AU.thud(.25); }
   }
   // ----- the players humans control
-  const ctrl = PS.ctrl, dctrl = PS.dctrl;
+  const ctrl = PS.ctrl, dctrl = PS.dctrl, ctrl2 = PS.ctrl2, dctrl2 = PS.dctrl2, humanP = p => p && (p === ctrl || p === dctrl || p === ctrl2 || p === dctrl2);
   if (ctrl && inp) moveCtrl(ctrl, inp, dt);
   if (dctrl && dinp) moveCtrl(dctrl, dinp, dt);
+  if (ctrl2 && inp2) moveCtrl(ctrl2, inp2, dt);
+  if (dctrl2 && dinp2) moveCtrl(dctrl2, dinp2, dt);
   if (ctrl === qb && ball.holder === qb && qb.pos.z > los + .3 && PS.phase === 'live') { PS.phase = 'run'; PS.carrier = qb; PS.events.push('SCRAMBLE'); for (const d of DEFN) d.react = .15; }
   // ----- AI
   const carrier = PS.carrier, running = PS.phase === 'run', air = PS.phase === 'air';
   for (const p of PLAYERS) {
-    if (p === ctrl || p === dctrl || p.down || p.fall > 0) continue;
+    if (humanP(p) && !(p === ctrl2 && !inp2) && !(p === dctrl2 && !dinp2) || p.down || p.fall > 0) continue;
     if (PS.phase === 'presnap' || PS.phase === 'dead') { p.vel.multiplyScalar(.85); continue; }
     if (p.stun > 0) { p.vel.multiplyScalar(Math.pow(.15, dt)); continue; }
     if (p.eng) { engagedMove(p, dt); continue; }
@@ -599,7 +613,7 @@ function stepSim(dt, inp, dinp) {
     if (p.down) { p.vel.set(0, 0, 0); p.fall = Math.min(1, p.fall + dt * 3.2); continue; }
     if (p.fall > 0) { p.fall = Math.min(1, p.fall + dt * 3.2); p.vel.multiplyScalar(Math.pow(.05, dt)); if (p.fall >= 1 && p !== carrier) { p.down = true; p.getUp = 1.2; } }
     p.pos.x += p.vel.x * dt; p.pos.z += p.vel.z * dt;
-    if (p !== ctrl && p !== dctrl && Math.hypot(p.vel.x, p.vel.z) > .5) faceTo(p, Math.atan2(p.vel.x, p.vel.z), dt);
+    if (!humanP(p) && Math.hypot(p.vel.x, p.vel.z) > .5) faceTo(p, Math.atan2(p.vel.x, p.vel.z), dt);
     if (p.getUp !== undefined && p.down && p !== carrier && PS.phase !== 'dead') { p.getUp -= dt; if (p.getUp <= 0) { p.down = false; p.fall = 0; p.getUp = undefined; p.stun = .3; } }
   }
   // separation between bodies (blocks hold their own spacing)
@@ -618,14 +632,14 @@ function stepSim(dt, inp, dinp) {
       d.tackleCD = PS.t + .6;
       let p = carrier.side === 0 ? (d.human ? (d.diveT > 0 ? .9 : .8) : D.tackle) : .8;
       const cs = Math.hypot(carrier.vel.x, carrier.vel.z); p -= cs > 8 ? .08 : 0;
-      if (carrier === ctrl) {
+      if (carrier === ctrl || carrier === ctrl2) {
         if (d.missT > 0) p -= .4 + RATE.back * .015; else if (carrier.jukeT > 0) p -= .15;
         if (carrier.armT > 0) { const f = Math.cos(Math.atan2(-dx, -dz) - carrier.face); if (f > .1) { p -= .5; d.stun = .9; d.vel.set(-dx / dist * 4, 0, -dz / dist * 4); AU.thud(.7); bumpCam(.15); continue; } }
       }
       if (carrier.role === 'RB' || carrier.side === 1) p -= .05;
       if (Math.random() < p) { tackle(carrier, d); break; }
       d.stun = .85; d.fall = .01; d.fallDir = 1; d.vel.multiplyScalar(.3); carrier.vel.multiplyScalar(.7); AU.thud(.5); PS.events.push('MISS');
-      if (carrier === ctrl) { bumpCam(.25); G.hitStop(.06); }
+      if (carrier === viewP()) { bumpCam(.25); G.hitStop(.06); }
     }
   } }
   // dead-ball checks
@@ -649,7 +663,7 @@ function tackle(carrier, d) {
   carrier.vel.set(v.x * .3, 0, v.z * .3 + (d.side === 1 ? -.5 : .5)); d.vel.set((carrier.pos.x - d.pos.x) * 2, 0, (carrier.pos.z - d.pos.z) * 2);
   const hard = Math.hypot(v.x, v.z) + Math.hypot(d.vel.x, d.vel.z);
   AU.tackle(clamp(hard / 14, .3, 1)); AU.crowdSwell(.3);
-  if (carrier === PS.ctrl) { G.camFall = { t: 0, roll: (Math.random() < .5 ? -1 : 1) * rnd(.4, .9), from: d.pos.clone() }; bumpCam(.6); G.hitStop(.12); }
+  if (carrier === viewP()) { G.camFall = { t: 0, roll: (Math.random() < .5 ? -1 : 1) * rnd(.4, .9), from: d.pos.clone() }; bumpCam(.6); G.hitStop(.12); }
   const sackish = carrier.role === 'QB' && carrier.pos.z < PS.los && ball.holder === carrier && !PS.crossed;
   if (sackish) PS.events.push('SACK');
   burst(carrier.pos.x, .1, carrier.pos.z, 26, 0x5a8a3a, 4, 3, .8);
@@ -755,6 +769,7 @@ function defenseAI(p, dt, qb, rb, carrier, running, air) {
   }
   if (p.job === 'rush') {
     if (p.missT > 0) return;
+    if (p.stunt !== undefined && PS.t < .55) { steer(p, p.stunt, PS.los + .2, spd * .8, dt); return; }
     const tgt = ball.holder && ball.holder.side === 0 ? ball.holder : qb;
     // rushers who are free: angle at the passer, using the blocker list to avoid walking into a block they've shed
     pursue(p, tgt, dt, spd * (PS.t < .3 ? .6 : .85)); return; // rushers close a bit slower so you have time to read
@@ -779,8 +794,9 @@ function coverMove(p, dt, qb, rb) {
   }
   if (p.job === 'spy') { if (qb.pos.z > los - .5 || PS.phase === 'run') { pursue(p, qb, dt, spd); return; } steer(p, qb.pos.x, los + 4.5, spd * .8, dt, true); return; }
   if (p.job === 'zone') {
-    const dp = p.drop || V3(PS.x0, 0, los + 8); let near = null, nd = 7;
-    for (const o of OFF) { if (!o.route) continue; const d = Math.hypot(o.pos.x - dp.x, o.pos.z - dp.z); if (d < nd) { nd = d; near = o; } }
+    const dp = p.drop || V3(PS.x0, 0, los + 8), zr = p.zr || 7; let near = null, nd = zr;
+    for (const o of OFF) { if (!o.route && !(o.role === 'WR' || o.role === 'TE')) continue; const d = Math.hypot(o.pos.x - dp.x, o.pos.z - dp.z); if (d < nd) { nd = d; near = o; } }
+    if (p.deep) { const tz = Math.max(dp.z, near ? near.pos.z + 3 : dp.z), tx = near ? lerp(dp.x, near.pos.x, .7) : dp.x; steer(p, tx, tz, spd * .95, dt, true); return; }
     if (near) steer(p, lerp(dp.x, near.pos.x, .6), lerp(dp.z, near.pos.z, .6), spd, dt, true); else steer(p, dp.x, dp.z, spd, dt, true); return;
   }
   steer(p, p.pos.x, p.pos.z, 0, dt);
@@ -927,7 +943,8 @@ function choosePlay(play, opts) {
   setupPlay(play, G.los, G.x0, opts); if (!off || (MP.on && !localIsOff())) clearRouteLines();
   G.yaw = off ? 0 : Math.PI; G.pitch = off ? (play.type === 'run' ? -.06 : -.1) : -.12; G.state = 'presnap'; G.power = 0; G.charging = false; G.cine = false; G.camFall = null; G.stamina = 1; G.blend = 0;
   const dc = opts && opts.dcall && DCALLS.find(d => d.id === opts.dcall);
-  $('prompt').innerHTML = !off ? `You’re the <b>${dc ? dc.you.toLowerCase() : 'defender'}</b>. Run into the ball carrier to tackle · <b>Space</b> dives · <b>click</b> to swat a pass`
+  const rl = myRole();
+  $('prompt').innerHTML = rl === 'off2' ? 'You’re the <b>X receiver</b> (wide left). Run your route and get open · Shift sprints' : rl === 'def2' ? 'You’re a <b>cornerback</b>. Stick to the receiver in front of you · <b>Space</b> dives · <b>click</b> swats' : !off ? `You’re the <b>${dc ? dc.you.toLowerCase() : 'defender'}</b>. Run into the ball carrier to tackle · <b>Space</b> dives · <b>click</b> to swat a pass`
     : isTouch() ? 'Tap <b>SNAP</b> to start the play' : 'Click to grab the mouse, then press <b>SPACE</b> to snap';
   lockPointer();
   tip('snap', play.type === 'run' ? 'Run play: after the snap the ball is handed to you. Follow your blockers through the hole.' : 'Glowing lines show each receiver’s route. Press <b>Space</b> to snap.');
@@ -1140,7 +1157,7 @@ addEventListener('keydown', e => {
   if (e.target.tagName === 'INPUT') return; AU.init(); keys[e.code] = true;
   if (e.code === 'Escape' || e.code === 'KeyP') { if (inPlay()) pause(); else if (G.state === 'paused') resume(); else closeOv(); return; }
   if (G.state === 'playcall' && /^Digit[1-8]$/.test(e.code) && !$('playcall').classList.contains('hide') && !$('pcList').classList.contains('hide')) { const n = +e.code.slice(5) - 1; if (G.mode === 'mp') { if (localIsOff() ? n < PLAYS.length : n < DCALLS.length) mpChoose(n); } else choosePlay(PLAYS[n]); return; }
-  if (e.code === 'Space') { e.preventDefault(); if (G.state === 'presnap' && localIsOff()) act('snap'); else if (G.state === 'live' && !localIsOff()) act('dive'); else if (G.state === 'live' && PS.ctrl && PS.carrier === PS.ctrl) act('juke', [keys.KeyA || keys.ArrowLeft ? -1 : keys.KeyD || keys.ArrowRight ? 1 : (G.jk = -(G.jk || 1))]); }
+  if (e.code === 'Space') { e.preventDefault(); if (G.state === 'presnap' && myRole() === 'off1') act('snap'); else if (G.state === 'live' && !localIsOff()) act('dive'); else if (G.state === 'live' && viewP() && PS.carrier === viewP()) act('juke', [keys.KeyA || keys.ArrowLeft ? -1 : keys.KeyD || keys.ArrowRight ? 1 : (G.jk = -(G.jk || 1))]); }
   if (e.code === 'KeyE' && G.state === 'live' && localIsOff()) act('arm');
   if ((e.code === 'Enter' || e.code === 'Space') && !$('oppOv').classList.contains('hide')) { e.preventDefault(); G.oppNext && G.oppNext(); }
 });
@@ -1151,7 +1168,7 @@ cv.addEventListener('mousedown', e => {
   if (!locked() && inPlay()) { lockPointer(); return; }
   if (e.button === 2) { if (G.state === 'live' && localIsOff()) act('arm'); return; }
   if (e.button !== 0) return; mouseDown = true;
-  if (G.state === 'presnap') { if (localIsOff()) act('snap'); mouseDown = false; return; }
+  if (G.state === 'presnap') { if (myRole() === 'off1') act('snap'); mouseDown = false; return; }
   if (G.state === 'live' && !localIsOff()) { act('swat'); return; }
   if (G.state === 'live' && canThrow()) { G.charging = true; G.power = 0; }
   if (G.state === 'fg' && FG.phase === 'aim' && localIsOff()) { G.charging = true; FG.t = 0; }
@@ -1161,7 +1178,7 @@ cv.addEventListener('contextmenu', e => e.preventDefault());
 addEventListener('mousemove', e => { if (!locked()) return; look(e.movementX, e.movementY); });
 document.addEventListener('pointerlockchange', () => { if (!locked() && inPlay() && !isTouch() && !G.noPauseOnUnlock) pause(); G.noPauseOnUnlock = false; });
 function look(dx, dy) { if (Math.abs(dx) > 300 || Math.abs(dy) > 300) return; const s = .0021 * save.set.sens; G.yaw -= dx * s; G.pitch -= dy * s * (save.set.inv ? -1 : 1); G.pitch = clamp(G.pitch, -1.2, 1.15); }
-function canThrow() { const qb = PS.ctrl; return localIsOff() && qb && ball.holder === qb && qb.role === 'QB' && PS.phase === 'live' && qb.pos.z <= PS.los + .2; }
+function canThrow() { const qb = PS.ctrl; return myRole() === 'off1' && qb && ball.holder === qb && qb.role === 'QB' && PS.phase === 'live' && qb.pos.z <= PS.los + .2; }
 function releaseThrow() {
   if (!G.charging) return; G.charging = false;
   if (G.state === 'live' && canThrow()) { act('throw', [Math.max(.12, G.power), G.yaw, G.pitch]); G.power = 0; landRing.visible = false; arcLine.visible = false; }
@@ -1174,7 +1191,7 @@ cv.addEventListener('touchstart', e => { AU.init(); for (const t of e.changedTou
 cv.addEventListener('touchmove', e => { for (const t of e.changedTouches) { if (t.identifier === TS.id) { TS.dx = clamp((t.clientX - TS.x) / 50, -1, 1); TS.dy = clamp((t.clientY - TS.y) / 50, -1, 1); $('knob').style.transform = `translate(${TS.dx * 34}px,${TS.dy * 34}px)`; } if (t.identifier === TS.look) { look((t.clientX - TS.lx) * 2.2, (t.clientY - TS.ly) * 2.2); TS.lx = t.clientX; TS.ly = t.clientY; } } e.preventDefault(); }, { passive: false });
 cv.addEventListener('touchend', e => { for (const t of e.changedTouches) { if (t.identifier === TS.id) { TS.id = null; TS.dx = TS.dy = 0; $('stick').style.display = 'none'; $('knob').style.transform = ''; } if (t.identifier === TS.look) TS.look = null; } }, { passive: false });
 const tbtn = (id, down, up) => { const el = $(id); el.addEventListener('touchstart', e => { e.preventDefault(); e.stopPropagation(); AU.init(); el.classList.add('on'); down(); }, { passive: false }); el.addEventListener('touchend', e => { e.preventDefault(); el.classList.remove('on'); up && up(); }, { passive: false }); };
-tbtn('tAct', () => { if (G.state === 'presnap' && localIsOff()) act('snap'); else if (G.state === 'live' && !localIsOff()) act('swat'); else if (G.state === 'live' && canThrow()) { G.charging = true; G.power = 0; } else if (G.state === 'fg' && FG.phase === 'aim' && localIsOff()) { G.charging = true; FG.t = 0; } }, () => releaseThrow());
+tbtn('tAct', () => { if (G.state === 'presnap' && myRole() === 'off1') act('snap'); else if (G.state === 'live' && !localIsOff()) act('swat'); else if (G.state === 'live' && canThrow()) { G.charging = true; G.power = 0; } else if (G.state === 'fg' && FG.phase === 'aim' && localIsOff()) { G.charging = true; FG.t = 0; } }, () => releaseThrow());
 tbtn('tSprint', () => { keys.ShiftLeft = true; }, () => { keys.ShiftLeft = false; });
 tbtn('tJuke', () => { if (G.state === 'live') { if (!localIsOff()) act('dive'); else act('juke', [TS.dx < -.2 ? -1 : TS.dx > .2 ? 1 : (G.jk = -(G.jk || 1))]); } });
 tbtn('tArm', () => { if (G.state === 'live' && localIsOff()) act('arm'); });
@@ -1261,11 +1278,11 @@ function hud(dt) {
     const out = Math.abs(L.p.x) > HALF_W || L.p.z > 60; ringMat.color.set(out ? 0xff5a5a : 0xffffff); arcMat.color.set(out ? 0xff5a5a : 0xffffff); setArc(p0, v0, 1.5);
   } else { arcLine.visible = false; if (ball.state !== 'air') landRing.visible = false; }
   // receiver markers
-  const showM = save.set.marks && localIsOff() && (G.state === 'live' && PS.phase === 'live' && ball.holder && ball.holder.role === 'QB' && PS.play.type !== 'run');
+  const showM = save.set.marks && myRole() === 'off1' && (G.state === 'live' && PS.phase === 'live' && ball.holder && ball.holder.role === 'QB' && PS.play.type !== 'run');
   for (const p of OFF) { if (!p.mark) continue; p.mark.visible = showM && !!p.route; if (!p.mark.visible) continue; let sep = 99; for (const d of DEFN) { const dd = Math.hypot(d.pos.x - p.pos.x, d.pos.z - p.pos.z); if (dd < sep) sep = dd; } p.mark.position.set(p.pos.x, 2.75, p.pos.z); p.mark.material.color.set(sep > 3 ? 0x5cff8a : sep > 1.6 ? 0xffd34d : 0xff5a6a); }
   // stamina
   const vp = viewP(), defending = MP.on && !localIsOff() && G.state === 'live' && vp;
-  const carrying = G.state === 'live' && PS.ctrl && PS.carrier === PS.ctrl && localIsOff(); if (vp) G.stamina = vp.stam === undefined ? 1 : vp.stam;
+  const carrying = G.state === 'live' && vp && PS.carrier === vp && localIsOff(); if (vp) G.stamina = vp.stam === undefined ? 1 : vp.stam;
   $('stam').classList.toggle('hide', !(carrying || defending)); $('stamI').style.width = (G.stamina * 100).toFixed(0) + '%';
   $('moves').classList.toggle('hide', !(carrying || defending) || isTouch());
   $('mvJ').innerHTML = defending ? '<kbd>Space</kbd> Dive tackle' : '<kbd>Space</kbd> Juke'; $('mvS').innerHTML = defending ? '<kbd>Click</kbd> Swat the ball' : '<kbd>E</kbd> Stiff arm';
@@ -1302,7 +1319,7 @@ document.querySelectorAll('[data-back]').forEach(b => b.addEventListener('click'
 on('sePlay', () => { const se = save.season; if (se.done) { save.season = null; store(); return showSeason(); } newGame('season', se.sched[se.week]); });
 on('seBack', () => toTitle()); on('teamBack', () => toTitle());
 on('oppGo', () => G.oppNext && G.oppNext());
-on('goNext', () => { if ($('goNext').dataset.mp) { delete $('goNext').dataset.mp; mpLeave(); return toTitle(); } if (G.mode === 'season') showSeason(); else if (G.mode === 'drill') newGame('drill', 7); else on && newGame('quick', 1 + ((Math.random() * (TEAMS.length - 1)) | 0)); });
+on('goNext', () => { const m = $('goNext').dataset.mp; if (m === 'rematch') { delete $('goNext').dataset.mp; return mpHostStart(); } if (m) { delete $('goNext').dataset.mp; mpLeave(); return toTitle(); } if (G.mode === 'season') showSeason(); else if (G.mode === 'drill') newGame('drill', 7); else on && newGame('quick', 1 + ((Math.random() * (TEAMS.length - 1)) | 0)); });
 on('goMenu', () => { if (MP.on) mpLeave(); toTitle(); });
 on('pResume', () => resume()); on('pSet', () => { buildSettings(); showScreen('setOv'); }); on('pQuit', () => { if (MP.on) mpLeave(); G.state = 'menu'; toTitle(); });
 
@@ -1323,8 +1340,8 @@ function update(rdt) {
     const inp = G.state === 'live' ? readInput() : { x: 0, z: 0 };
     if (G.charging) G.power = Math.min(1, G.power + dt / .95);
     acc += dt; let n = 0;
-    const linp = Object.assign(inp, { yaw: G.yaw }), rin = MP.on && MP.host ? (MP.rin || { x: 0, z: 0 }) : null, offIn = !MP.on ? linp : localIsOff() ? linp : rin, defIn = !MP.on ? null : localIsOff() ? rin : linp;
-    while (acc >= STEP && n < 6) { if (G.state === 'live' && PS.phase !== 'dead') stepSim(STEP, offIn, defIn); else if (G.state === 'dead') { for (const p of PLAYERS) { p.vel.multiplyScalar(.9); p.pos.x += p.vel.x * STEP; p.pos.z += p.vel.z * STEP; if (p.fall > 0 && p.fall < 1) p.fall = Math.min(1, p.fall + STEP * 3); } if ((ball.state === 'air' || ball.state === 'loose') && FG.phase !== 'flight') { ball.vel.y -= GRAV * STEP; ball.pos.addScaledVector(ball.vel, STEP); if (ball.pos.y < .12) { ball.pos.y = .12; ball.vel.multiplyScalar(.4); ball.vel.y = Math.abs(ball.vel.y) * .3; } } } acc -= STEP; n++; }
+    const linp = Object.assign(inp, { yaw: G.yaw }), IN = MP.on && MP.host ? mpInputs(linp) : [linp, null, null, null];
+    while (acc >= STEP && n < 6) { if (G.state === 'live' && PS.phase !== 'dead') stepSim(STEP, IN[0], IN[1], IN[2], IN[3]); else if (G.state === 'dead') { for (const p of PLAYERS) { p.vel.multiplyScalar(.9); p.pos.x += p.vel.x * STEP; p.pos.z += p.vel.z * STEP; if (p.fall > 0 && p.fall < 1) p.fall = Math.min(1, p.fall + STEP * 3); } if ((ball.state === 'air' || ball.state === 'loose') && FG.phase !== 'flight') { ball.vel.y -= GRAV * STEP; ball.pos.addScaledVector(ball.vel, STEP); if (ball.pos.y < .12) { ball.pos.y = .12; ball.vel.multiplyScalar(.4); ball.vel.y = Math.abs(ball.vel.y) * .3; } } } acc -= STEP; n++; }
     if (G.state === 'dead') { G.deadT += rdt; if (G.deadT > 2.1 && G.after) afterPlay(); }
   }
   if (G.state === 'fg' || (G.state === 'dead' && FG.phase === 'flight')) fgUpdate(dt);
@@ -1407,72 +1424,94 @@ async function mpJoin() {
   if (code.length !== 4) { $('mpErr').textContent = 'Codes are 4 letters.'; return; }
   $('mpErr').textContent = 'Connecting…'; if (!await dbInit()) { $('mpErr').textContent = 'Can’t reach the game server right now.'; return; }
   const m = await DB.get('nr/' + code + '/m'); if (!m || m.g !== 'gf') { $('mpErr').textContent = 'No game with that code.'; return; }
-  const ps = await DB.get('nr/' + code + '/p') || {}; MP.me = mpUid();
-  if (Object.keys(ps).filter(k => k !== MP.me).length >= 2) { $('mpErr').textContent = 'That game already has two players.'; return; }
-  MP.code = code; MP.host = false; MP.side = 1; MP.on = true;
+  const ps = await DB.get('nr/' + code + '/p') || {}; mpUid();
+  const others = Object.entries(ps).filter(([k]) => k !== MP.me).map(([, v]) => v);
+  if (others.length >= 4) { $('mpErr').textContent = 'That game is full (4 players).'; return; }
+  const n0 = others.filter(p => p.s === 0).length, n1 = others.filter(p => p.s === 1).length;
+  MP.code = code; MP.host = false; MP.side = n1 < n0 ? 1 : n0 < n1 ? 0 : 1; MP.on = true;
   for (const s of ['p/', 'i/']) await DB.onDc(mpPath(s + MP.me));
-  await DB.put(mpPath('p/' + MP.me), { n: save.mpName, t: mpTeam(), s: 1, j: Date.now() });
+  await DB.put(mpPath('p/' + MP.me), { n: save.mpName, t: mpTeam(), s: MP.side, j: Date.now() });
   mpWatchLobby(); $('mpErr').textContent = ''; mpShowLobby(true);
 }
 function mpWatchLobby() {
-  unsubs.push(DB.watch(mpPath('p'), v => { MP.players = v || {}; mpLobbyRender(); mpPeerCheck(); }));
-  unsubs.push(DB.watch(mpPath('m'), v => { if (!v) { if (MP.on && !MP.leaving) mpLost('The host left the game.'); return; } MP.meta = v; if (!MP.host && v.st && !MP.started) mpStartGame(v.st); }));
-  if (MP.host) unsubs.push(DB.watch(mpPath('i'), v => { if (!v) return; for (const [id, s] of Object.entries(v)) if (id !== MP.me && typeof s === 'string') mpHostInput(s); }));
+  unsubs.push(DB.watch(mpPath('p'), v => { MP.players = v || {}; if (MP.players[MP.me]) MP.side = MP.players[MP.me].s; mpLobbyRender(); mpPeerCheck(); }));
+  unsubs.push(DB.watch(mpPath('m'), v => { if (!v) { if (MP.on && !MP.leaving) mpLost('The host left the game.'); return; } MP.meta = v; if (!MP.host && v.st && v.st.t !== MP.stT) mpStartGame(v.st); }));
+  if (MP.host) unsubs.push(DB.watch(mpPath('i'), v => { if (!v) return; for (const [id, s] of Object.entries(v)) if (id !== MP.me && typeof s === 'string') mpHostInput(id, s); }));
   else unsubs.push(DB.watch(mpPath('s'), v => { if (typeof v === 'string') mpGuestSnap(v); }));
 }
+// each side: players in join order; the first is the captain (calls plays, plays QB / the main defender)
+function mpSides() { const ps = Object.entries(MP.players || {}).map(([id, v]) => Object.assign({ id }, v)); return [0, 1].map(s => ps.filter(p => p.s === s).sort((a, b) => a.j - b.j)); }
 function mpLobbyRender() {
-  const ps = Object.values(MP.players || {}).sort((a, b) => a.s - b.s);
-  $('mpCodeBig').textContent = MP.code;
-  $('mpList').innerHTML = ps.map(p => { const t = TEAMS[p.t] || TEAMS[0]; return `<li><i style="background:${t.c1};border-color:${t.c2}"></i><b>${escH(p.n)}</b><span>${t.city} ${t.name}${p.s === 0 ? ' · host' : ''}</span></li>`; }).join('') + (ps.length < 2 ? '<li class="wait">Waiting for your friend to join with the code…</li>' : '');
-  const same = ps.length === 2 && ps[0].t === ps[1].t;
-  $('mpNote').textContent = ps.length < 2 ? 'Send your friend the code above.' : same ? 'You both picked the same team. One of you pick another.' : MP.host ? 'Ready when you are.' : 'Waiting for the host to start…';
-  $('mpStart').disabled = !MP.host || ps.length < 2 || same; $('mpStart').classList.toggle('hide', !MP.host);
+  const sides = mpSides(); $('mpCodeBig').textContent = MP.code;
+  const row = (p, s) => { const t = TEAMS[(sides[s][0] || p).t] || TEAMS[0]; return `<li><i style="background:${t.c1};border-color:${t.c2}"></i><b>${escH(p.n)}</b><span>${p === sides[s][0] ? 'captain · QB / play caller' : 'receiver / cornerback'}${p.id === MP.me ? ' · you' : ''}</span></li>`; };
+  $('mpList').innerHTML = [0, 1].map(s => { const cap = sides[s][0], t = cap ? TEAMS[cap.t] : null; return `<li class="sideh"><b>${s === 0 ? 'Home' : 'Away'}${t ? ' · ' + t.city + ' ' + t.name : ''}</b>${sides[s].some(p => p.id === MP.me) || sides[s].length >= 2 ? '' : `<button class="sw" data-s="${s}">Switch here</button>`}</li>` + sides[s].map(p => row(p, s)).join('') + (sides[s].length ? '' : '<li class="wait">Waiting for a player…</li>'); }).join('');
+  $('mpList').querySelectorAll('.sw').forEach(b => b.onclick = () => { AU.click(); DB.update(mpPath('p/' + MP.me), { s: +b.dataset.s, j: Date.now() }); });
+  const same = sides[0][0] && sides[1][0] && sides[0][0].t === sides[1][0].t, ready = sides[0].length >= 1 && sides[1].length >= 1 && sides[0].length <= 2 && sides[1].length <= 2;
+  const amCap = sides[MP.side] && sides[MP.side][0] && sides[MP.side][0].id === MP.me;
+  $('mpNote').textContent = !ready ? 'Send the code to your friends. Up to 2 players per team.' : same ? 'Both captains picked the same team. One of you pick another.' : MP.host ? 'Ready when you are.' : 'Waiting for the host to start…';
+  $('mpTeamH').textContent = amCap ? 'Your team (you’re the captain)' : 'Your team (your captain picks)';
+  $('mpStart').disabled = !MP.host || !ready || same; $('mpStart').classList.toggle('hide', !MP.host);
   $('mpQ').disabled = !MP.host;
 }
 const escH = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 function mpPeerCheck() {
-  if (!MP.started) return; const peer = Object.keys(MP.players || {}).find(k => k !== MP.me);
-  if (!peer && G.state !== 'over') { if (MP.host) { G.banner('OPPONENT LEFT', 'bad', 'You win by forfeit'); setTimeout(() => mpEnd(true), 1500); } }
+  if (!MP.started || G.state === 'over' || !MP.host) return;
+  const here = new Set(Object.keys(MP.players || {}));
+  for (const s of [0, 1]) MP.members[s] = MP.members[s].filter(id => here.has(id));
+  for (const s of [0, 1]) if (!MP.members[s].length) { G.banner('TEAM LEFT', 'bad', (s === 0 ? 'Home' : 'Away') + ' team left the game'); setTimeout(() => mpEnd(1 - s), 1500); return; }
 }
 function mpLost(msg) { G.banner('GAME OVER', 'bad', msg); setTimeout(() => { mpLeave(); toTitle(); }, 2200); }
 function mpLeave() {
   MP.leaving = true; unsubs.forEach(f => { try { f(); } catch (e) { } }); unsubs.length = 0;
   if (DB && MP.on) { if (MP.host) { DB.remove(mpPath()); DB.cancelDc(mpPath()); } else { DB.remove(mpPath('p/' + MP.me)); DB.remove(mpPath('i/' + MP.me)); } }
-  Object.assign(MP, { on: false, host: false, started: false, code: '', calls: {}, snaps: [], gotSetup: -1, myCall: -1, ract: 0, acts: [], actSeq: 0, rin: null, leaving: false, off: null, lastFlowOff: -1 });
+  Object.assign(MP, { on: false, host: false, started: false, code: '', calls: {}, snaps: [], gotSetup: -1, myCall: -1, ract: {}, rins: {}, acts: [], actSeq: 0, leaving: false, off: null, lastFlowOff: -1, stT: 0 });
   G.mode = '';
 }
 function mpStartGame(st) {
-  MP.started = true; const ps = Object.values(MP.players || {}).sort((a, b) => a.s - b.s);
-  MP.T = [ps[0] ? ps[0].t : 0, ps[1] ? ps[1].t : 1]; MP.names = [ps[0] ? ps[0].n : 'Host', ps[1] ? ps[1].n : 'Guest'];
-  save.set.qlen = st.q || save.set.qlen;
+  MP.started = true; MP.stT = st.t; const sides = mpSides();
+  MP.members = sides.map(l => l.map(p => p.id)); MP.T = [sides[0][0] ? sides[0][0].t : 0, sides[1][0] ? sides[1][0].t : 1];
+  MP.names = sides.map(l => l.map(p => p.n).join(' & ') || '—');
+  MP.side = (MP.players[MP.me] || {}).s || 0; MP.rank = Math.max(0, MP.members[MP.side].indexOf(MP.me));
+  Object.assign(MP, { gotSetup: -1, lastFlowOff: -1, calls: {}, myCall: -1, snaps: [], shownCall: -1, setup: null });
+  save.set.qlen = st.q || save.set.qlen; delete $('goNext').dataset.mp;
   newGame('mp', MP.T[1], st);
 }
 function mpHostStart() {
   if (!MP.host) return; const st = { t: Date.now(), q: +$('mpQ').value || 4, first: MP.forceFirst !== undefined ? MP.forceFirst : Math.random() < .5 ? 0 : 1 };
   DB.update(mpPath('m'), { st }); mpStartGame(st);
 }
+// which player a person controls this play
+function roleOf(id) { for (const s of [0, 1]) { const r = (MP.members[s] || []).indexOf(id); if (r >= 0) return (s === G.off ? 'off' : 'def') + (r + 1); } return ''; }
+function rolePlayer(role) { return { off1: PS.ctrl, off2: PS.ctrl2, def1: PS.dctrl, def2: PS.dctrl2 }[role] || null; }
+function mpInputs(linp) { // [offense captain, defense captain, second receiver, second defender]
+  const out = { off1: null, def1: null, off2: null, def2: null };
+  for (const s of [0, 1]) for (const id of MP.members[s] || []) { const r = roleOf(id); out[r] = id === MP.me ? linp : (MP.rins[id] || { x: 0, z: 0 }); }
+  return [out.off1 || { x: 0, z: 0 }, out.def1 || { x: 0, z: 0 }, out.off2, out.def2];
+}
 
 // ---------------- shared helpers ----------------
 const STATES = ['menu', 'playcall', 'presnap', 'live', 'dead', 'fg', 'over', 'intro', 'opp'], PHASES = ['presnap', 'snap', 'live', 'air', 'run', 'tackled', 'dead'], BSTATES = ['held', 'snap', 'air', 'loose', 'pitch', 'kick'], POSES = ['', 'stance', 'block', 'throw', 'carry', 'catch', 'celebrate'];
 const b36 = n => Math.round(n).toString(36), p36 = s => parseInt(s, 36) || 0;
 const localIsOff = () => !MP.on || G.off === MP.side;
-function viewP() { return MP.on && !localIsOff() ? PS.dctrl : PS.ctrl; }
+const myRole = () => !MP.on ? 'off1' : (localIsOff() ? 'off' : 'def') + ((MP.rank || 0) + 1);
+const isCaptain = () => !MP.on || !MP.rank;
+function viewP() { return MP.on ? rolePlayer(myRole()) : PS.ctrl; }
 // every button press goes through here: done right away on the host (or in single player), sent to the host by the guest
 function act(k, a) {
   a = a || [];
-  if (MP.on && !MP.host) { MP.actSeq++; MP.acts.push([MP.actSeq, k, ...a]); if (MP.acts.length > 8) MP.acts.shift(); mpSendInput(true); if (k === 'juke' && PS.ctrl) { PS.ctrl.jukeT = .38; PS.ctrl.jukeDir = a[0]; AU.juke(); } if (k === 'dive' && PS.dctrl) dive(PS.dctrl); if (k === 'swat' && PS.dctrl) swat(PS.dctrl); return; }
-  doAct(k, a, true);
+  if (MP.on && !MP.host) { MP.actSeq++; MP.acts.push([MP.actSeq, k, ...a]); if (MP.acts.length > 8) MP.acts.shift(); mpSendInput(true); const me = viewP(); if (k === 'juke' && me) { me.jukeT = .38; me.jukeDir = a[0]; AU.juke(); } if (k === 'dive' && me) dive(me); if (k === 'swat' && me) swat(me); return; }
+  doAct(k, a, myRole());
 }
-function doAct(k, a, local) {
-  const offHuman = local ? localIsOff() : !localIsOff();
-  if (k === 'snap' && offHuman && G.state === 'presnap') doSnap();
-  else if (k === 'throw' && offHuman && G.state === 'live') { if (throwBall(+a[0], +a[1], +a[2])) G.power = 0; }
-  else if (k === 'juke' && offHuman && G.state === 'live') juke(+a[0]);
-  else if (k === 'arm' && offHuman && G.state === 'live') stiffArm();
-  else if (k === 'dive' && !offHuman && G.state === 'live') dive(PS.dctrl);
-  else if (k === 'swat' && !offHuman && G.state === 'live') swat(PS.dctrl);
-  else if (k === 'kick' && offHuman && G.state === 'fg') kickFG(+a[0], +a[1], +a[2]);
-  else if (k === 'call' && G.state === 'playcall') mpPick(offHuman ? 'off' : 'def', a[0]);
+function doAct(k, a, role) {
+  const p = rolePlayer(role), off = role.startsWith('off');
+  if (k === 'snap' && role === 'off1' && G.state === 'presnap') doSnap();
+  else if (k === 'throw' && role === 'off1' && G.state === 'live') { if (throwBall(+a[0], +a[1], +a[2])) G.power = 0; }
+  else if (k === 'juke' && off && G.state === 'live') juke(+a[0], p);
+  else if (k === 'arm' && off && G.state === 'live') stiffArm(p);
+  else if (k === 'dive' && !off && G.state === 'live') dive(p);
+  else if (k === 'swat' && !off && G.state === 'live') swat(p);
+  else if (k === 'kick' && role === 'off1' && G.state === 'fg') kickFG(+a[0], +a[1], +a[2]);
+  else if (k === 'call' && G.state === 'playcall' && (role === 'off1' || role === 'def1')) mpPick(off ? 'off' : 'def', a[0]);
 }
 
 // ---------------- host: play calling, possessions, end of game ----------------
@@ -1495,6 +1534,7 @@ function mpShowCall() {
     $('pcList').querySelectorAll('.pc').forEach(b => { drawDefArt(b.querySelector('canvas'), DCALLS[+b.dataset.i]); b.onclick = () => mpChoose(+b.dataset.i); });
   }
   $('pcWait').classList.add('hide'); $('pcList').classList.remove('hide');
+  if (!isCaptain()) { $('pcList').classList.add('hide'); $('pcWait').classList.remove('hide'); $('pcWait').textContent = off ? 'Your captain is calling the play. You’ll be the X receiver: run your route, get open.' : 'Your captain is calling the defense. You’ll be a cornerback: stick to your man.'; }
   showScreen('playcall');
 }
 function mpChoose(v) { AU.click(); $('pcList').classList.add('hide'); $('pcWait').classList.remove('hide'); $('pcWait').textContent = 'Waiting for your opponent to call their play…'; MP.myCall = MP.callSeq; act('call', [v]); }
@@ -1507,8 +1547,9 @@ function mpBegin() {
   if (o === 'fg') { MP.setup = { seq: MP.setupSeq, k: 'fg' }; return startFG(); }
   if (o === 'punt') { MP.setup = { seq: MP.setupSeq, k: 'punt' }; return doPunt(); }
   const pi = clamp(+o || 0, 0, PLAYS.length - 1), di = clamp(+MP.calls.def || 0, 0, DCALLS.length - 1);
-  choosePlay(PLAYS[pi], { dcall: DCALLS[di].id });
-  MP.setup = { seq: MP.setupSeq, k: 'play', p: pi, d: di, press: PS.press ? 1 : 0, dc: ['blitz', 'spy', 'zone'].indexOf(PS.defCall) };
+  const o2 = (MP.members[G.off] || []).length > 1 ? 1 : 0, d2 = (MP.members[1 - G.off] || []).length > 1 ? 1 : 0;
+  choosePlay(PLAYS[pi], { dcall: DCALLS[di].id, off2: !!o2, def2: !!d2 });
+  MP.setup = { seq: MP.setupSeq, k: 'play', p: pi, d: di, press: PS.press ? 1 : 0, o2, d2 };
 }
 function mpPossess(ownYard) { // the other team gets the ball
   G.off = 1 - G.off; mpRebuild(); startDrive(ownYard);
@@ -1524,33 +1565,34 @@ function mpAfter(n) {
   if (G.clock <= 0) return endQuarter(next);
   next();
 }
-function mpEnd(forfeit) {
+function mpEnd(forfeitWinner) {
   G.state = 'over'; document.exitPointerLock && document.exitPointerLock(); $('hud').classList.add('hide');
-  const me = MP.side, won = forfeit ? true : G.sc[me] > G.sc[1 - me], tie = !forfeit && G.sc[0] === G.sc[1];
-  $('goT').textContent = forfeit ? 'YOU WIN' : tie ? 'TIE' : won ? 'VICTORY' : 'DEFEAT'; $('goT').className = won || tie ? 'good' : 'bad';
+  const forfeit = typeof forfeitWinner === 'number', me = MP.side, won = forfeit ? forfeitWinner === me : G.sc[me] > G.sc[1 - me], tie = !forfeit && G.sc[0] === G.sc[1];
+  $('goT').textContent = forfeit ? (won ? 'YOU WIN' : 'GAME OVER') : tie ? 'TIE' : won ? 'VICTORY' : 'DEFEAT'; $('goT').className = won || tie ? 'good' : 'bad';
   $('goS').textContent = `${TEAMS[MP.T[0]].abbr} ${G.sc[0]} – ${G.sc[1]} ${TEAMS[MP.T[1]].abbr}${forfeit ? ' · opponent left' : ''}`;
   const st = G.S[me];
-  $('goStats').innerHTML = [['Your passing', `${st.comp}/${st.att}, ${st.pass} yds`], ['Your rushing', `${st.rush} yds`], ['Touchdowns', st.td], ['Interceptions thrown', st.int], ['Sacks taken', st.sack], ['Opponent', MP.names[1 - me]]].map(([a, b]) => `<div><span>${a}</span><b>${escH(b)}</b></div>`).join('');
-  $('goNext').textContent = 'MENU'; $('goNext').dataset.mp = '1';
+  $('goStats').innerHTML = [['Your passing', `${st.comp}/${st.att}, ${st.pass} yds`], ['Your rushing', `${st.rush} yds`], ['Touchdowns', st.td], ['Interceptions thrown', st.int], ['Sacks taken', st.sack], ['Opponents', MP.names[1 - me]]].map(([a, b]) => `<div><span>${a}</span><b>${escH(b)}</b></div>`).join('');
+  $('goNext').textContent = MP.host ? 'REMATCH' : 'MENU'; $('goNext').dataset.mp = MP.host ? 'rematch' : 'menu';
+  $('goStats').innerHTML += MP.host ? '' : '<p class="cp">Waiting for the host to start a rematch…</p>';
   showScreen('overOv'); AU.musicOn = true; AU.crowdTo(.2); if (won) { AU.crowdSwell(1); AU.good(); }
   save.rec.games++; if (won) save.rec.wins++; store();
 }
 
 // ---------------- host: what the guest tells us ----------------
-function mpHostInput(s) {
-  const [mv, acts] = s.split('|'), a = mv.split(',');
-  MP.rin = { x: +a[0] || 0, z: +a[1] || 0, sprint: a[2] === '1', yaw: +a[3] || 0, pitch: +a[4] || 0, rp: a[5] !== '' && a[5] !== undefined && a[5] !== 'x' ? { x: +a[5], z: +a[6] } : null, rpT: PS.t };
-  if (acts) for (const e of acts.split(';')) { const q = e.split('~'), seq = +q[0]; if (seq > MP.ract) { MP.ract = seq; doAct(q[1], q.slice(2), false); } }
+function mpHostInput(id, s) {
+  const [mv, acts] = s.split('|'), a = mv.split(','); MP.rins = MP.rins || {}; MP.ract = MP.ract && typeof MP.ract === 'object' ? MP.ract : {};
+  MP.rins[id] = { x: +a[0] || 0, z: +a[1] || 0, sprint: a[2] === '1', yaw: +a[3] || 0, pitch: +a[4] || 0, rp: a[5] !== '' && a[5] !== undefined && a[5] !== 'x' ? { x: +a[5], z: +a[6] } : null, rpT: PS.t };
+  if (acts) for (const e of acts.split(';')) { const q = e.split('~'), seq = +q[0]; if (seq > (MP.ract[id] || 0)) { MP.ract[id] = seq; doAct(q[1], q.slice(2), roleOf(id)); } }
 }
 // ---------------- host: send the field ----------------
 function mpEvent(k, args) { MP.evSeq++; MP.ev.push(MP.evSeq + '~' + k + '~' + args.map(x => typeof x === 'number' ? +x.toFixed(3) : String(x).replace(/[~;|^]/g, ' ')).join('^')); if (MP.ev.length > 14) MP.ev.shift(); }
 function mpSnap() {
   const fl = [G.off, G.down, G.togo, G.los * 10, G.fdZ * 10, G.x0 * 100, Math.max(0, G.clock) * 10, G.q, G.sc[0], G.sc[1], G.ot ? 1 : 0, MP.callSeq].map(b36).join('.');
   const idx = p => p ? PLAYERS.indexOf(p) + 1 : 0;
-  const ps = [PHASES.indexOf(PS.phase), idx(PS.carrier), idx(PS.ctrl), idx(PS.dctrl), idx(ball.holder), BSTATES.indexOf(ball.state)].map(b36).join('.');
+  const ps = [PHASES.indexOf(PS.phase), idx(PS.carrier), idx(PS.ctrl), idx(PS.dctrl), idx(ball.holder), BSTATES.indexOf(ball.state), idx(PS.ctrl2), idx(PS.dctrl2)].map(b36).join('.');
   const pl = PLAYERS.map(p => [p.pos.x * 100, p.pos.z * 100, p.face * 100, Math.max(0, POSES.indexOf(p.pose)), p.fall * 100, (p.down ? 1 : 0) | (p.stun > 0 ? 2 : 0) | (p.m.root.visible ? 0 : 4)].map(b36).join('.')).join(';');
   const bl = [ball.pos.x * 100, ball.pos.y * 100, ball.pos.z * 100, ball.vel.x * 10, ball.vel.y * 10, ball.vel.z * 10, ball.spin * 10].map(b36).join('.');
-  const su = MP.setup ? [MP.setup.seq, MP.setup.k === 'fg' ? 1 : MP.setup.k === 'punt' ? 2 : 0, MP.setup.p || 0, MP.setup.d || 0, MP.setup.press || 0, MP.setup.dc || 0].map(b36).join('.') : '';
+  const su = MP.setup ? [MP.setup.seq, MP.setup.k === 'fg' ? 1 : MP.setup.k === 'punt' ? 2 : 0, MP.setup.p || 0, MP.setup.d || 0, MP.setup.press || 0, MP.setup.o2 || 0, MP.setup.d2 || 0].map(b36).join('.') : '';
   const fg = [['', 'aim', 'flight'].indexOf(FG.phase), FG.wind * 100, FG.p * 100].map(b36).join('.');
   const lr = landRing.visible ? [landRing.position.x * 10, landRing.position.z * 10].map(b36).join('.') : '';
   return [++MP.snapSeq, b36(performance.now()), STATES.indexOf(G.state), fl, ps, pl, bl, MP.ev.join(';'), su, fg, lr].join('|');
@@ -1581,7 +1623,7 @@ function mpGuestSnap(str) {
   const su = f[8] ? f[8].split('.').map(p36) : null;
   if (su && su[0] !== MP.gotSetup) {
     MP.gotSetup = su[0];
-    if (su[1] === 0) { const play = PLAYS[su[2]]; choosePlay(play, { dcall: DCALLS[su[3]].id, press: !!su[4], defCall: ['blitz', 'spy', 'zone'][su[5]] || 'zone' }); }
+    if (su[1] === 0) { const play = PLAYS[su[2]]; choosePlay(play, { dcall: DCALLS[su[3]].id, press: !!su[4], off2: !!su[5], def2: !!su[6] }); }
     else if (su[1] === 1) { startFG(); }
   }
   const st = STATES[+f[2]] || 'dead';
@@ -1592,7 +1634,7 @@ function mpGuestSnap(str) {
   else if (st !== 'playcall' && st !== 'over') { if (st === 'fg' && G.state !== 'fg') startFG(); G.state = st; }
   // play state
   const ps = f[4].split('.').map(p36), at = i => i ? PLAYERS[i - 1] : null;
-  PS.phase = PHASES[ps[0]] || PS.phase; PS.carrier = at(ps[1]); PS.ctrl = at(ps[2]); PS.dctrl = at(ps[3]); ball.holder = at(ps[4]); ball.state = BSTATES[ps[5]] || 'held';
+  PS.phase = PHASES[ps[0]] || PS.phase; PS.carrier = at(ps[1]); PS.ctrl = at(ps[2]); PS.dctrl = at(ps[3]); PS.ctrl2 = at(ps[6]); PS.dctrl2 = at(ps[7]); ball.holder = at(ps[4]); ball.state = BSTATES[ps[5]] || 'held';
   const P = f[5].split(';').map(s => s.split('.').map(p36));
   const b = f[6].split('.').map(p36);
   MP.snaps.push({ t: ht, P, b }); if (MP.snaps.length > 20) MP.snaps.shift();
@@ -1610,6 +1652,7 @@ function mpGuestFrame(dt) {
   const rt = performance.now() - MP.off - 90; let A = S[S.length - 1], B = A;
   for (let k = S.length - 1; k > 0; k--) if (S[k - 1].t <= rt) { A = S[k - 1]; B = S[k]; break; }
   const k = B === A ? 1 : clamp((rt - A.t) / Math.max(1, B.t - A.t), 0, 1.15), mine = viewP();
+  if (mine !== MP.lastView) { if (MP.lastView && mine) { G.lastFrom = camera.position.clone(); G.blend = 1; } MP.lastView = mine; }
   for (let i = 0; i < PLAYERS.length; i++) {
     const p = PLAYERS[i], a = A.P[i], b = B.P[i]; if (!a || !b) continue;
     const x = lerp(a[0], b[0], k) / 100, z = lerp(a[1], b[1], k) / 100;
@@ -1638,14 +1681,21 @@ function mpGuestFrame(dt) {
 })();
 function drawDefArt(c, d) {
   const x = c.getContext('2d'), W = c.width, H = c.height; x.clearRect(0, 0, W, H); x.fillStyle = 'rgba(90,30,30,.5)'; x.fillRect(0, 0, W, H);
-  const sx = v => W / 2 - v * 3.2, sz = v => H - 18 - v * 3.4; x.strokeStyle = 'rgba(255,255,255,.35)'; x.beginPath(); x.moveTo(0, sz(0)); x.lineTo(W, sz(0)); x.stroke();
-  const spots = { DL: [[-3.2, 1], [-1.1, 1], [1.1, 1], [3.2, 1]], LB0: [4.5, 4.6], LB1: [0, 5], LB2: [-4.5, 4.6], CB0: [19, 6.5], CB1: [-19, 6.5], S0: [-8, 9], S1: [8, 14] };
-  const you = { man: 'S1', zone: 'LB1', blitz: 'LB0', spy: 'LB0' }[d.id];
-  x.fillStyle = '#fff'; for (const [a, b] of spots.DL) { x.beginPath(); x.arc(sx(a), sz(b), 3, 0, TAU); x.fill(); }
-  for (const k of ['LB0', 'LB1', 'LB2', 'CB0', 'CB1', 'S0', 'S1']) { const [a, b] = d.id === 'zone' && k === 'S0' ? [-9, 13] : spots[k]; x.fillStyle = k === you ? '#ffd166' : '#fff'; x.beginPath(); x.arc(sx(a), sz(b), k === you ? 5 : 3, 0, TAU); x.fill(); }
-  x.strokeStyle = '#ffd166'; x.lineWidth = 2.2; const [ya, yb] = spots[you]; x.beginPath(); x.moveTo(sx(ya), sz(yb));
-  if (d.id === 'blitz') x.lineTo(sx(0), sz(-4)); else if (d.id === 'spy') x.lineTo(sx(0), sz(2.5)); else if (d.id === 'zone') { x.arc(sx(0), sz(8), 14, 0, TAU); } else x.lineTo(sx(0), sz(20));
-  x.stroke();
+  const sx = v => W / 2 - v * 3.2, sz = v => H - 16 - v * 3, dot = (a, b, me) => { x.fillStyle = me ? '#ffd166' : '#fff'; x.beginPath(); x.arc(sx(a), sz(b), me ? 5 : 3, 0, TAU); x.fill(); };
+  x.strokeStyle = 'rgba(255,255,255,.35)'; x.lineWidth = 1; x.beginPath(); x.moveTo(0, sz(0)); x.lineTo(W, sz(0)); x.stroke();
+  const S = { DL0: [-3.2, 1], DL1: [-1.1, 1], DL2: [1.1, 1], DL3: [3.2, 1], LB0: [4.5, 4.6], LB1: [0, 5], LB2: [-4.5, 4.6], CB0: [19, 6.5], CB1: [-19, 6.5], S0: [-8, 9], S1: [8, 14] };
+  const zone = (a, b, r, deep) => { x.fillStyle = deep ? 'rgba(77,170,255,.28)' : 'rgba(255,209,102,.22)'; x.beginPath(); x.ellipse(sx(a), sz(b), r * 3.2, r * 1.6, 0, 0, TAU); x.fill(); };
+  const arrow = (from, to) => { x.strokeStyle = '#ff6a7a'; x.lineWidth = 2; x.beginPath(); x.moveTo(sx(from[0]), sz(from[1])); for (const t of to) x.lineTo(sx(t[0]), sz(t[1])); x.stroke(); };
+  const id = d.id;
+  if (id === 'cover2') { zone(-11, 16, 8, 1); zone(11, 16, 8, 1); zone(13, 5, 4); zone(-13, 5, 4); zone(5, 8, 3.5); zone(0, 9, 3.5); zone(-5, 8, 3.5); }
+  else if (id === 'cover3') { zone(17, 17, 6, 1); zone(-17, 17, 6, 1); zone(0, 18, 7, 1); zone(11, 4, 4); zone(-11, 4, 4); zone(0, 8, 3.5); zone(-8, 7, 3.5); }
+  else if (id === 'prevent') { zone(16, 20, 6, 1); zone(-16, 20, 6, 1); zone(-7, 24, 6, 1); zone(7, 24, 6, 1); zone(0, 10, 7); }
+  else { x.strokeStyle = 'rgba(255,255,255,.35)'; x.setLineDash([3, 3]); x.beginPath(); x.moveTo(sx(19), sz(6)); x.lineTo(sx(19), sz(18)); x.moveTo(sx(-19), sz(6)); x.lineTo(sx(-19), sz(18)); x.stroke(); x.setLineDash([]); zone(8, 18, 6, 1); }
+  if (id === 'blitz') arrow(S.LB0, [[1.5, -2], [0, -4]]);
+  if (id === 'stunt') { arrow(S.DL1, [[1.1, .2], [0, -4]]); arrow(S.DL2, [[-1.1, .2], [0, -4]]); }
+  if (id === 'firezone') { arrow(S.LB0, [[1.5, -2], [0, -4]]); arrow([-6, 6], [[-2, -1], [0, -4]]); zone(-5, 6, 3.5); }
+  if (id === 'spy') { x.strokeStyle = '#ffd166'; x.setLineDash([3, 3]); x.beginPath(); x.moveTo(sx(4.5), sz(4.6)); x.lineTo(sx(0), sz(3)); x.stroke(); x.setLineDash([]); }
+  for (const k in S) { if (id === 'firezone' && k === 'S0') { dot(-6, 6, d.h === 'S0'); continue; } dot(S[k][0], S[k][1], k === d.h); }
 }
 
 // boot
