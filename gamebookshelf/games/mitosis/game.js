@@ -537,9 +537,23 @@ function startDaily() {
   G.daily = { t0: G.sim.t, done: false, official: save.daily.day !== TODAY };
   beginPlay(); toast('Daily Arena #' + TODAY + (G.daily.official ? ': 3 minutes, one life. Get as big as you can!' : ' (practice run): your official score is already in.'), 4);
 }
+function startTour() {
+  if (!window.GBTour) return startDaily();
+  stopNet(); G.mode = 'solo'; G.sim = makeSim(GBTour.seed('mitosis'), { minBots: 22, mode: 'ffa' }); G.cl = null;
+  for (let k = 0; k < 120; k++) G.sim.step(DT);
+  G.me = G.sim.addHuman('me', playerName(), save.skin, { m: START_M }); G.myIdx = G.me.i;
+  G.daily = { t0: G.sim.t, done: false, official: false, tour: true };
+  beginPlay(); toast('Weekly tournament: 3 minutes, one life. Your best run this week counts.', 4);
+}
 function dailyLeft() { return G.daily ? Math.max(0, D_LEN - (G.sim.t - G.daily.t0)) : 0; }
 function dailyEnd(you, why) {
   const D = G.daily; if (!D || D.done) return; D.done = true; const score = Math.min(MAXT, Math.round((you && you.maxM) || START_M));
+  if (D.tour) {
+    $('dWho').textContent = 'Weekly tournament' + (why === 'time' ? ': time\'s up!' : ': eaten!'); $('dAgain').textContent = 'TRY AGAIN';
+    $('dHint').innerHTML = 'Saving your score…'; if (save.name) GBTour.setName(save.name);
+    GBTour.submit('mitosis', score).then(r => { $('dHint').innerHTML = (r.improved ? 'New personal best this week! ' : '') + 'Your best: <b>' + r.best.toLocaleString() + '</b> mass' + (r.online ? ' · rank <b>#' + r.rank + '</b> of ' + r.of : ' (offline, saved on this device)') + '<br><a id="dShare" href="/tournament/">See the leaderboard</a> · ends in ' + GBTour.left(); });
+    return;
+  }
   let line;
   if (D.official) { const s = save.daily; s.streak = s.last === TODAY - 1 ? (s.streak || 0) + 1 : 1; s.last = TODAY; s.day = TODAY; s.score = score; s.max = Math.max(s.max || 0, s.streak); store(); markDaily('mitosis', score); line = 'Official score for today: <b>' + score.toLocaleString() + '</b> · day streak <b>' + s.streak + '</b>'; }
   else line = 'Practice run: ' + score.toLocaleString() + '. Today\'s official score: <b>' + (save.daily.score || 0).toLocaleString() + '</b>';
@@ -615,7 +629,7 @@ function beginPlay() {
 }
 function respawn() {
   if (G.state !== 'dead') return; AU.click();
-  if (G.daily) { $('death').classList.add('hide'); startDaily(); return; }
+  if (G.daily) { $('death').classList.add('hide'); if (G.daily.tour) startTour(); else startDaily(); return; }
   const mi = G._lastF && G._lastF.mi; if (mi && mi.mode === 'royale' && !mi.join) { toast('You’ll drop in automatically when the next round starts.', 2); return; }
   $('death').classList.add('hide'); G.state = 'play'; G.alive = true; G.lifeStart = performance.now(); G.prevIds.clear();
   if (G.sim && G.me) { G.sim.spawn(G.me, START_M); G.me.lastRs = G.rs; } else { G.rs++; G.awaitSpawn = performance.now(); }
@@ -1034,6 +1048,7 @@ function closeOverlays() { for (const id of ['howOv', 'setOv', 'skinOv', 'joinOv
 function showBusy(t) { $('busyT').textContent = t; $('busy').classList.remove('hide'); }
 function hideBusy() { $('busy').classList.add('hide'); }
 function refreshTitle() {
+  { const b = $('bTour'); if (b && window.GBTour) { const m = GBTour.myBest('mitosis'); b.innerHTML = '<b>🏆 Weekly tournament</b><small>One arena all week, best run counts · ' + (m ? 'your best ' + m.toLocaleString() + ' · ' : '') + 'ends in ' + GBTour.left() + '</small>'; } }
   { const d = save.daily, done = d.day === TODAY, b = $('bDaily'); if (b) b.innerHTML = '<b>Daily Arena #' + TODAY + (done ? ' · ' + (d.score || 0).toLocaleString() + ' mass' : '') + '</b><small>Same map and bots for everyone · 3 minutes, one life' + (d.streak ? ' · 🔥 ' + d.streak + '-day streak' : '') + '</small>'; }
   $('nm').value = save.name || ''; const L = levelOf(save.xp), cur = save.xp - lvlNeed(L), need = lvlNeed(L + 1) - lvlNeed(L);
   $('lvl').textContent = 'Level ' + L; $('lvlBar').style.width = Math.round(cur / need * 100) + '%'; $('lvlXp').textContent = cur + ' / ' + need + ' XP';
@@ -1082,6 +1097,7 @@ on('bJoin', () => { $('jErr').textContent = ''; openOv('joinOv'); setTimeout(() 
 on('jGo', () => { const c = $('jCode').value.trim().toUpperCase(); if (c.length !== 4) { $('jErr').textContent = 'Codes are 4 letters.'; return; } closeOverlays(); goOnline('join', c); });
 $('jCode').addEventListener('keydown', e => { if (e.key === 'Enter') $('jGo').click(); });
 on('bDaily', () => { save.name = clean($('nm').value); store(); startDaily(); });
+on('bTour', () => { save.name = clean($('nm').value); store(); startTour(); });
 on('bSolo', () => { save.name = clean($('nm').value); store(); startSolo(); });
 on('bHow', () => openOv('howOv'));
 on('bSet', () => { buildSettings(); openOv('setOv'); });
@@ -1120,5 +1136,5 @@ if (qRoom) { $('jCode').value = qRoom.toUpperCase(); setTimeout(() => { $('jErr'
   requestAnimationFrame(f);
 })();
 })();
-try{if(/[?&]daily/.test(location.search)){const b=document.getElementById('bDaily');if(b){b.classList.add('pulse');b.scrollIntoView({block:'center'})}}}catch(e){}
+try{if(/[?&](daily|tour)/.test(location.search)){const b=document.getElementById(/tour/.test(location.search)?'bTour':'bDaily');if(b){b.classList.add('pulse');b.scrollIntoView({block:'center'})}}}catch(e){}
 

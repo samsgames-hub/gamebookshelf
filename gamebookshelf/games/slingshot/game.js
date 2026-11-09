@@ -88,10 +88,10 @@ function addPlanet(y,i){const sec=secOf(i),type=pickType(i,sec),last=planets[pla
   if(i>=40&&GR()<.24&&lastHole!==i-1){const mx=(lx+px)/2,my=(last.y+y)/2,side=mx>0?-1:1,hx=clamp(mx+side*grr(150,210),-270,270);lastHole=i;holes.push({x:hx,y:my,core:17,pull:210,k:grr(5.2e6,6.4e6),id:i});
    for(let k=0;k<2;k++)stars.push({x:lerp(mx,hx,grr(.35,.55)),y:my+grr(-50,50),got:false,ph:GR()*6})}
  }}
-function reset(){lastHole=-9;GR=MODE==='daily'?mulberry(hashS('slingshot-'+TODAY)):Math.random;G.t=0;planets=[];stars=[];rocks=[];holes=[];trail=[];P.forEach(o=>o.on=false);let y=0;for(let i=0;i<12;i++){addPlanet(y,i);y+=gapAfter(i)}
+function reset(){lastHole=-9;GR=MODE==='daily'?mulberry(hashS('slingshot-'+TODAY)):MODE==='tour'&&window.GBTour?GBTour.rng('slingshot'):Math.random;G.t=0;planets=[];stars=[];rocks=[];holes=[];trail=[];P.forEach(o=>o.on=false);let y=0;for(let i=0;i<12;i++){addPlanet(y,i);y+=gapAfter(i)}
  const p=planets[0];p.x=0;p.x0=0;p.mv=0;ship={mode:'orbit',p,a:-Math.PI/2,dir:1,w:2.4,x:0,y:0,vx:0,vy:0,ft:0,best:0,from:p,fx:0};
  Object.assign(G,{score:0,camY:0,freeze:0,sec:0});Object.assign(RUN,{stars:0,skips:0,used:0,fixes:1+S.up.thrust,shield:S.up.shield,maxSec:0});
- $('score').textContent='0';$('sub').textContent=(MODE==='daily'?'Daily #'+TODAY+' · ':'')+SECTORS[0].n;$('starsNow').textContent='0';hudFix()}
+ $('score').textContent='0';$('sub').textContent=(MODE==='daily'?'Daily #'+TODAY+' · ':MODE==='tour'?'Tournament · ':'')+SECTORS[0].n;$('starsNow').textContent='0';hudFix()}
 function gapAfter(i){return 250+Math.min(110,i*4)+GR()*70+(planets[planets.length-1]&&planets[planets.length-1].type==='gas'?30:0)}
 function hudFix(){$('fixes').innerHTML=Array.from({length:Math.max(RUN.fixes,1+S.up.thrust)},(_,i)=>'<i class="'+(i<RUN.fixes?'':'off')+'"></i>').join('')+(RUN.shield?'<span style="width:6px"></span>'+'<i class="sh"></i>'.repeat(RUN.shield):'')}
 
@@ -175,10 +175,11 @@ function die(why,kind){G.state='over';ship.mode='dead';shake(.6);flash(kind==='l
  if(kind==='lost')SFX.lost();else if(kind==='hole')SFX.hole();else{SFX.crash();burst(ship.x,ship.y,'#ffb347',50,240,.9,4);burst(ship.x,ship.y,'#ffffff',20,120,.5,2)}
  S.runs++;progress('runs',S.runs);let nb=false,official=false;
  if(MODE==='daily'){if(S.dday!==TODAY){S.dday=TODAY;S.dscore=G.score;markDaily('slingshot',G.score);S.dstreak=S.dlast===TODAY-1?(S.dstreak||0)+1:1;S.dlast=TODAY;official=true}}
- else{nb=G.score>S.best;if(nb)S.best=G.score}
+ else if(MODE==='classic'){nb=G.score>S.best;if(nb)S.best=G.score}
  save();applyVol();
- setTimeout(()=>{if(G.state!=='over')return;$('oT').textContent=MODE==='daily'?'Daily route #'+TODAY:nb&&G.score>0?'New record!':why;
+ setTimeout(()=>{if(G.state!=='over')return;$('oT').textContent=MODE==='tour'?'Weekly tournament':MODE==='daily'?'Daily route #'+TODAY:nb&&G.score>0?'New record!':why;
   $('oDaily').innerHTML=MODE==='daily'?(official?'Your official score for today. Day streak: <b>'+S.dstreak+'</b>':'Practice run. Today\'s official score: <b>'+S.dscore+'</b> · streak <b>'+S.dstreak+'</b>')+'<br><button class="ghost" id="shareD">Share today\'s route</button>':'';
+  if(MODE==='tour'&&window.GBTour){const el=$('oDaily');el.innerHTML='Saving your score…';GBTour.submit('slingshot',G.score).then(r=>{el.innerHTML=(r.improved?'New personal best this week! ':'')+'Your best: planet <b>'+r.best+'</b>'+(r.online?' · rank <b>#'+r.rank+'</b> of '+r.of:' (offline, saved on this device)')+'<br><a class="ghost tlink" href="/tournament/">Leaderboard and your name</a> · ends in '+GBTour.left()})}
   if($('shareD'))$('shareD').onclick=e=>{e.stopPropagation();const t='Slingshot daily route #'+TODAY+': planet '+S.dscore+(S.dstreak>1?' 🔥'+S.dstreak:'')+'\n'+'🪐'.repeat(Math.min(10,Math.max(1,Math.ceil(S.dscore/8))))+'\ngamebookshelf.com';try{navigator.clipboard.writeText(t).then(()=>toast('Copied. Paste it anywhere.'),()=>toast(t))}catch(err){toast(t)}};$('oS').textContent=G.score;$('oSec').textContent='planets · reached the '+SECTORS[RUN.maxSec].n;
   $('oStats').innerHTML='<div><b>+'+RUN.stars+'</b>Stars</div><div><b>'+RUN.skips+'</b>Skips</div><div><b>'+RUN.used+'</b>Corrections used</div><div><b>'+S.best+'</b>Best</div>';
   drawMissions($('missionsOver'));rollMissions();save();show('over');if(nb&&G.score>0)SFX.sector()},1000)}
@@ -260,11 +261,11 @@ function show(id){PANELS.forEach(p=>$(p).classList.toggle('hide',p!==id))}
 function openPanel(id){SFX.click();back=['start','pause','over'].find(p=>!$(p).classList.contains('hide'))||back;if(id==='shop')drawShop();if(id==='settings')loadSettings();show(id)}
 document.querySelectorAll('[data-open]').forEach(b=>b.onclick=e=>{e.stopPropagation();audio();openPanel(b.dataset.open)});
 document.querySelectorAll('[data-close]').forEach(b=>b.onclick=e=>{e.stopPropagation();SFX.click();show(back);if(back==='start')drawMenu();if(back==='over')drawMissions($('missionsOver'))});
-function drawMenu(){const dn=S.dday===TODAY;if($('mDaily'))$('mDaily').innerHTML='<b>Daily route #'+TODAY+(dn?' · planet '+S.dscore:'')+'</b><small>Same planets for everyone today'+(S.dstreak?' · 🔥 '+S.dstreak+'-day streak':'')+'</small>';drawMissions($('missionsStart'));$('bestS').textContent=(S.best?'Best: planet '+S.best+' · ':'')+S.stars+' stars to spend'}
+function drawMenu(){if($('mTour')&&window.GBTour){const b=GBTour.myBest('slingshot');$('mTour').innerHTML='<b>🏆 Weekly tournament</b><small>One route all week, best run counts · '+(b?'your best: planet '+b+' · ':'')+'ends in '+GBTour.left()+'</small>'}const dn=S.dday===TODAY;if($('mDaily'))$('mDaily').innerHTML='<b>Daily route #'+TODAY+(dn?' · planet '+S.dscore:'')+'</b><small>Same planets for everyone today'+(S.dstreak?' · 🔥 '+S.dstreak+'-day streak':'')+'</small>';drawMissions($('missionsStart'));$('bestS').textContent=(S.best?'Best: planet '+S.best+' · ':'')+S.stars+' stars to spend'}
 function start(m){if(m)MODE=m;audio();show('');document.body.classList.add('playing');G.paused=false;reset();G.state='play';applyVol()}
 function pause(on){if(G.state!=='play')return;G.paused=on;show(on?'pause':'');applyVol();SFX.click()}
 function toMenu(){G.state='menu';MODE='classic';G.paused=false;document.body.classList.remove('playing');reset();show('start');drawMenu();applyVol()}
-$('play').onclick=e=>{e.stopPropagation();start('classic')};$('mDaily').onclick=e=>{e.stopPropagation();start('daily')};$('again').onclick=e=>{e.stopPropagation();start()};
+$('play').onclick=e=>{e.stopPropagation();start('classic')};$('mDaily').onclick=e=>{e.stopPropagation();start('daily')};if($('mTour'))$('mTour').onclick=e=>{e.stopPropagation();start('tour')};$('again').onclick=e=>{e.stopPropagation();start()};
 $('resume').onclick=e=>{e.stopPropagation();pause(false)};$('restartP').onclick=e=>{e.stopPropagation();start()};
 $('quitP').onclick=e=>{e.stopPropagation();toMenu()};$('menuO').onclick=e=>{e.stopPropagation();toMenu()};
 $('pauseBtn').onclick=e=>{e.stopPropagation();audio();pause(!G.paused)};
@@ -311,5 +312,5 @@ function loop(now){requestAnimationFrame(loop);let dt=Math.min(.05,(now-last)/10
 requestAnimationFrame(loop);
 window.__SL={G,S,RUN,get ship(){return ship},get planets(){return planets},get rocks(){return rocks},get holes(){return holes},release,correct,start,pause,toMenu,step};
 
-try{if(/[?&]daily/.test(location.search)){const b=document.getElementById('mDaily');if(b){b.classList.add('pulse');b.scrollIntoView({block:'center'})}}}catch(e){}
+try{if(/[?&](daily|tour)/.test(location.search)){const b=document.getElementById(/tour/.test(location.search)?'mTour':'mDaily');if(b){b.classList.add('pulse');b.scrollIntoView({block:'center'})}}}catch(e){}
 })();

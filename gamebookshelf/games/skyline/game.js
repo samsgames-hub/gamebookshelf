@@ -167,7 +167,8 @@ let MODE={id:'classic',mods:[]};
 const has=k=>MODE.mods.includes(k);
 if(S.dlast!==undefined&&S.dlast<TODAY-1)S.dstreak=0;
 const FLOORS=[[0,'Lobby'],[5,'Offices'],[15,'Upper offices'],[25,'Sky lobby'],[35,'Hotel floors'],[45,'Observation deck'],[55,'Penthouses'],[70,'The spire'],[90,'Above the clouds']];
-function modeTag(){return MODE.id==='daily'?'Daily #'+TODAY+' · ':MODE.id==='cross'?'Crosswind · ':''}
+function tourMods(){if(!window.GBTour)return['gusty'];const r=GBTour.rng('skyline'),k=Object.keys(MODS),a=k.splice(Math.floor(r()*k.length),1)[0];let b=k[Math.floor(r()*k.length)];if(a==='narrow'&&b==='nogrow'||a==='nogrow'&&b==='narrow')b='goldrush';return[a,b]}
+function modeTag(){return MODE.id==='tour'?'Tournament wk '+GBTour.week()+' · ':MODE.id==='daily'?'Daily #'+TODAY+' · ':MODE.id==='cross'?'Crosswind · ':''}
 function floorName(n){let s='';for(const f of FLOORS)if(n>=f[0])s=f[1];return s}
 function reset(){G.base=has('narrow')?2.3:START;stack.forEach(b=>kill(b.m));falls.forEach(f=>kill(f.m));rings.forEach(r=>{scene.remove(r.m);r.m.geometry.dispose()});if(moving)kill(moving.m);
  stack=[];falls=[];rings=[];moving=null;const m=makeBlock(G.base,G.base,0,0,0);stack.push({m,w:G.base,d:G.base,x:0,z:0});
@@ -231,26 +232,28 @@ let back='start';
 function openPanel(id){SFX.click();back=['start','pause','over'].find(p=>!$(p).classList.contains('hide'))||back;if(id==='styles')drawStyles();if(id==='settings')loadSettings();show(id)}
 document.querySelectorAll('[data-open]').forEach(b=>b.onclick=e=>{e.stopPropagation();audio();openPanel(b.dataset.open)});
 document.querySelectorAll('[data-close]').forEach(b=>b.onclick=e=>{e.stopPropagation();SFX.click();show(back);if(back==='start')drawMenu();if(back==='over')drawMissions($('missionsOver'))});
-function drawMenu(){drawMissions($('missionsStart'));$('bestStart').textContent=(S.best?'Tallest tower: '+S.best+' floors · ':'')+S.coins+' coins';
+function drawMenu(){drawMissions($('missionsStart'));if($('mTour')&&window.GBTour){const tm=tourMods(),b=GBTour.myBest('skyline');$('mTour').innerHTML='<b>🏆 Weekly tournament</b><small>'+tm.map(k=>MODS[k].n).join(' + ')+' · '+(b?'your best '+b+' · ':'')+'ends in '+GBTour.left()+'</small>'}$('bestStart').textContent=(S.best?'Tallest tower: '+S.best+' floors · ':'')+S.coins+' coins';
  const dm=dailyMods(),done=S.dday===TODAY;$('mDaily').innerHTML='<b>Daily tower #'+TODAY+(done?' · '+S.dscore+' floors':'')+'</b><small>'+dm.map(k=>MODS[k].n).join(' + ')+(S.dstreak?' · 🔥 '+S.dstreak+'-day streak':'')+'</small>';
  const un=S.best>=25||S.crossBest;$('mCross').innerHTML='<b>'+(un?'':'🔒 ')+'Crosswind</b><small>'+(un?'Floors come in at an angle'+(S.crossBest?' · best '+S.crossBest:''):'Reach floor 25 to unlock')+'</small>';$('mCross').classList.toggle('locked',!un)}
-function start(id){if(id)MODE={id,mods:id==='daily'?dailyMods():id==='cross'?['cross']:[]};audio();show('');document.body.classList.add('playing');G.paused=false;reset();G.state='play';applyVol()}
+function start(id){if(id)MODE={id,mods:id==='daily'?dailyMods():id==='tour'?tourMods():id==='cross'?['cross']:[]};audio();show('');document.body.classList.add('playing');G.paused=false;reset();G.state='play';applyVol()}
 function pause(on){if(G.state!=='play')return;G.paused=on;show(on?'pause':'');applyVol();if(on)SFX.click()}
 function toMenu(){G.state='menu';MODE={id:'classic',mods:[]};G.paused=false;document.body.classList.remove('playing');reset();show('start');drawMenu();applyVol()}
 function gameOver(){G.state='over';hideCombo();SFX.fall();shake(.5);S.runs++;progress('runs',S.runs);
  let nb=false,daily='';
  if(MODE.id==='classic'){nb=G.score>S.best&&G.score>0;if(nb)S.best=G.score}
  else if(MODE.id==='cross'){nb=G.score>(S.crossBest||0)&&G.score>0;if(nb)S.crossBest=G.score}
- else{if(S.dday!==TODAY){S.dday=TODAY;S.dscore=G.score;markDaily('skyline',G.score);S.dstreak=S.dlast===TODAY-1?(S.dstreak||0)+1:1;S.dlast=TODAY;S.dmax=Math.max(S.dmax||0,S.dstreak);daily='official'}
+ else if(MODE.id==='daily'){if(S.dday!==TODAY){S.dday=TODAY;S.dscore=G.score;markDaily('skyline',G.score);S.dstreak=S.dlast===TODAY-1?(S.dstreak||0)+1:1;S.dlast=TODAY;S.dmax=Math.max(S.dmax||0,S.dstreak);daily='official'}
   nb=G.score>(S.dtop||0)&&S.dtopDay===TODAY;if(S.dtopDay!==TODAY||G.score>S.dtop){S.dtop=G.score;S.dtopDay=TODAY}}
  save();applyVol();
- setTimeout(()=>{if(G.state!=='over')return;$('overTitle').textContent=MODE.id==='daily'?'Daily tower #'+TODAY:MODE.id==='cross'?(nb?'New Crosswind record!':'Crosswind'):nb?'New tallest tower!':'Tower down';
+ setTimeout(()=>{if(G.state!=='over')return;$('overTitle').textContent=MODE.id==='tour'?'Weekly tournament':MODE.id==='daily'?'Daily tower #'+TODAY:MODE.id==='cross'?(nb?'New Crosswind record!':'Crosswind'):nb?'New tallest tower!':'Tower down';
   $('overDaily').innerHTML=MODE.id==='daily'?(daily?'Your official score for today. Day streak: <b>'+S.dstreak+'</b>':'Practice run. Today\'s official score: <b>'+S.dscore+'</b> · streak <b>'+S.dstreak+'</b>')+'<br><button class="ghost" id="shareD">Share today\'s tower</button>':'';
+  if(MODE.id==='tour'&&window.GBTour){const el=$('overDaily');el.innerHTML='Saving your score…';const sc=G.score;GBTour.submit('skyline',sc).then(r=>{el.innerHTML=(r.improved?'New personal best this week! ':'')+'Your best: <b>'+r.best+'</b> floors'+(r.online?' · rank <b>#'+r.rank+'</b> of '+r.of:' (offline, saved on this device)')+'<br><a class="ghost tlink" href="/tournament/">Leaderboard and your name</a> · ends in '+GBTour.left()})}
   if($('shareD'))$('shareD').onclick=e=>{e.stopPropagation();const t='Skyline daily tower #'+TODAY+': '+S.dscore+' floors'+(S.dstreak>1?' 🔥'+S.dstreak:'')+'\n'+'🏢'.repeat(Math.min(10,Math.ceil(S.dscore/10)))+'\ngamebookshelf.com';try{navigator.clipboard.writeText(t).then(()=>toast('Copied. Paste it anywhere.'),()=>toast(t))}catch(err){toast(t)}};$('overScore').textContent=G.score;
   $('overStats').innerHTML='<div><b>'+R.perf+'</b>Perfects</div><div><b>'+R.streak+'</b>Best streak</div><div><b>'+R.gold+'</b>Gold floors</div><div><b>+'+R.coins+'</b>Coins</div>';
   drawMissions($('missionsOver'));rollMissions();save();show('over');if(nb){flash(.25);SFX.gold()}},900)}
 $('play').onclick=e=>{e.stopPropagation();start('classic')};$('again').onclick=e=>{e.stopPropagation();start()};
 $('mDaily').onclick=e=>{e.stopPropagation();start('daily')};
+if($('mTour'))$('mTour').onclick=e=>{e.stopPropagation();start('tour')};
 $('mCross').onclick=e=>{e.stopPropagation();if(S.best<25&&!S.crossBest){SFX.click();toast('Reach floor 25 in a normal tower to unlock Crosswind');return}start('cross')};
 $('resume').onclick=e=>{e.stopPropagation();pause(false)};$('restartP').onclick=e=>{e.stopPropagation();start()};
 $('quitP').onclick=e=>{e.stopPropagation();toMenu()};$('menuO').onclick=e=>{e.stopPropagation();toMenu()};
@@ -315,5 +318,5 @@ function collectBank(){let bank;try{bank=JSON.parse(localStorage.getItem('gbs-ba
 applyQuality();reset();drawMenu();collectBank();addEventListener('focus',collectBank);skyAt(0);requestAnimationFrame(loop);
 window.__SK={G,R,S,place,start,pause,toMenu,get moving(){return moving},get stack(){return stack}};
 
-try{if(/[?&]daily/.test(location.search)){const b=document.getElementById('mDaily');if(b){b.classList.add('pulse');b.scrollIntoView({block:'center'})}}}catch(e){}
+try{if(/[?&](daily|tour)/.test(location.search)){const b=document.getElementById(/tour/.test(location.search)?'mTour':'mDaily');if(b){b.classList.add('pulse');b.scrollIntoView({block:'center'})}}}catch(e){}
 })();
