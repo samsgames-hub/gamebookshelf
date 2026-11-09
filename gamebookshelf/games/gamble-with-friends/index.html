@@ -68,6 +68,10 @@ button.b:disabled{opacity:.45}
 button.pu{cursor:pointer}.pu small{color:var(--brass);font-weight:700}
 .gold{margin-left:auto;font-weight:700;color:var(--brass)}
 .offers{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px}
+.pug{display:inline-flex;align-items:center;gap:2px}.sell{border:0;background:none;color:var(--mute);font:600 12px var(--sans);cursor:pointer;padding:4px 6px;border-radius:8px}.sell:hover{color:var(--brass);background:rgba(236,199,102,.12)}
+.give{margin-left:6px;border:1px solid var(--line);background:var(--panel);border-radius:999px;padding:4px 8px;cursor:pointer;font-size:15px}.give:hover{border-color:var(--brass)}
+.givebox{border:1px dashed var(--brass);border-radius:12px;padding:10px;margin:4px 0 8px;display:grid;gap:6px;font-size:14px}.givebox .row{display:flex;flex-wrap:wrap;gap:6px;align-items:center}.givebox .chip{background:var(--panel);border:1px solid var(--brass);color:var(--ink);opacity:1}.givebox .chip:disabled{opacity:.4}.givebox .chip:hover:not(:disabled){background:rgba(236,199,102,.2)}
+.givebox input{padding:6px 8px;border-radius:8px;border:1px solid var(--line);background:var(--page);color:var(--ink)}
 .offer{border:1px dashed var(--brass);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:6px;font-size:14px}
 .offer .oe{font-size:32px}.offer span{color:var(--mute);flex:1}
 .toast{position:fixed;left:50%;top:34%;z-index:50;transform:translateX(-50%);font:400 clamp(34px,10vw,56px) var(--slab);pointer-events:none;animation:rise 1.3s ease-out forwards;text-shadow:0 3px 12px #000a}
@@ -184,7 +188,7 @@ async function enter(c){
  me.name=nameVal();await pd.set(Object.assign({},me));
  PL[uid]=me;open_();
  unsubs.push(db.doc("rooms/"+c).onSnapshot(function(s){if(s.exists){room=s.data();top_()}},function(){}));
- unsubs.push(db.collection("rooms/"+c+"/players").onSnapshot(function(s){var n={};s.docs.forEach(function(d){n[d.id]=d.data()});n[uid]=me;PL=n;top_()},function(){}));
+ unsubs.push(db.collection("rooms/"+c+"/players").onSnapshot(function(s){var n={};s.docs.forEach(function(d){n[d.id]=d.data()});n[uid]=me;PL=n;collectGifts();top_()},function(){}));
  setInterval(tick,500);
 }
 function practice(){
@@ -212,7 +216,7 @@ function top_(){
  if(st!="won")wonSent=false;
  if(st=="won"&&!room.won&&!local&&!wonSent){wonSent=true;db.doc("rooms/"+code).update({won:true,wt:t}).catch(function(){})}
  if(st=="won"&&(me.rs||0)<sg){
-  var t0=room.wt||t,ex=Math.max(0,Math.floor((t0-G)/(G*.1))),rw=4+sg+(boss()?3:0)+Math.min(4,ex)+(has("interest")?Math.min(5,Math.floor(me.gold/5)):0);
+  var t0=room.wt||t,ex=Math.max(0,Math.floor((t0-G)/(G*.1))),rw=4+sg+(boss()?3:0)+(has("bounty")?2:0)+Math.min(4,ex)+(has("interest")?Math.min(5,Math.floor(me.gold/5)):0);
   me.gold+=rw;me.rs=sg;fx("stage",rw);sync(null,0,"cleared stage "+sg+", +"+rw+" gold");return}
  if(st=="play"&&(me.st||0)!=sg){me.st=sg;var pg=has("piggy");if(pg)me.bank+=50;sync(null,0,pg?"Piggy Bank paid 50 chips":(me.msg||"playing"));return}
  $("fill").style.width=Math.min(100,t/G*100)+"%";
@@ -220,7 +224,7 @@ function top_(){
  var ids=Object.keys(PL).sort(function(a,b){return((b==uid?me:PL[b]).bank)-((a==uid?me:PL[a]).bank)});
  $("plist").innerHTML=ids.map(function(k){var p=k==uid?me:PL[k],nm=p.name||"Player",h=0;for(var i=0;i<nm.length;i++)h=(h*31+nm.charCodeAt(i))%360;
   var em=(p.pu||[]).map(function(x){return PU[x]?PU[x].e:""}).join("");
-  return '<div class="pr"><span class="av" style="background:hsl('+h+',55%,38%)">'+esc(nm.charAt(0).toUpperCase())+'</span><div class="pn">'+esc(nm)+(k==uid?" (you)":"")+' '+em+(p.em?' '+p.em:'')+'<small>'+esc(p.msg||"")+'</small></div><b class="m">'+p.bank+' ¢</b></div>'}).join("");
+  return '<div class="pr"><span class="av" style="background:hsl('+h+',55%,38%)">'+esc(nm.charAt(0).toUpperCase())+'</span><div class="pn">'+esc(nm)+(k==uid?" (you)":"")+' '+em+(p.em?' '+p.em:'')+'<small>'+esc(p.msg||"")+'</small></div><b class="m">'+p.bank+' ¢</b>'+(k!=uid&&!local?'<button class="give" onclick="giveTo(\''+k+'\')" title="Give chips or gold">🎁</button>':'')+'</div>'+(giveK==k?giveUI(k):'')}).join("");
  var s=$("start");
  if(st=="wait")s.innerHTML='<span>'+ids.length+' in the room. Visit the shop, then:</span><button class="b" onclick="go()">Start the clock ('+room.mins+' min)</button>';
  else if(st=="won")s.innerHTML='<button class="b" onclick="nextStage()">Go to stage '+(sg+1)+'</button>';
@@ -229,6 +233,33 @@ function top_(){
  if(betList()[0]!==betS||(!hold&&!allin&&bet!==betList()[betI]))bets();pups();shop(st);
  if(tab=="po"&&!hold&&(room.round?room.round.n:0)!=shownRound&&st=="play")drawPO();
  if(!hold&&st+(me.bank<10)!=lastLock)game();
+}
+/* gifts: you can send chips or gold to a teammate. The gift sits on your own player record until they collect it,
+   so it can never be lost or paid twice (every gift has an id they remember). */
+var giveK="";
+function giveTo(k){giveK=giveK==k?"":k;top_()}
+function giveUI(k){
+ var p=PL[k]||{},nm=esc(p.name||"Player"),C=[50,100,250,500].map(function(x){var y=x*Math.max(1,betList()[0]/10);return y}),G=[1,3,5];
+ return '<div class="givebox"><b>Give '+nm+'</b> <span class="note" style="margin:0">'+(has("spirit")?"🤝 Team Spirit adds 20% to chips":"")+'</span><div class="row">'+C.map(function(x){return '<button class="chip" '+(me.bank<x?'disabled':'')+' onclick="give(\''+k+'\','+x+',\'c\')">'+chipTxt(x)+' ¢</button>'}).join("")+
+  '<input id="giveN" type="number" min="1" placeholder="amount" style="width:90px"><button class="chip" onclick="give(\''+k+'\',+$(\'giveN\').value,\'c\')">Send ¢</button></div><div class="row">'+G.map(function(x){return '<button class="chip" '+(me.gold<x?'disabled':'')+' onclick="give(\''+k+'\','+x+',\'g\')">'+x+' 🪙</button>'}).join("")+'<button class="chip" onclick="giveK=\'\';top_()">Cancel</button></div></div>';
+}
+function give(k,a,kind){
+ a=Math.floor(+a||0);if(a<1)return;var p=PL[k];if(!p)return;
+ if(kind=="g"){if(me.gold<a){hint("Not enough gold.");return}me.gold-=a}else{if(hold){hint("Finish your round first.");return}if(me.bank<a){hint("Not enough chips.");return}me.bank-=a}
+ var amt=kind=="c"&&has("spirit")?Math.floor(a*1.2):a;
+ me.gifts=(me.gifts||[]).filter(function(g){return Date.now()-g.t<15*60000});
+ me.gifts.push({id:uid+"-"+Date.now()+"-"+Math.floor(Math.random()*1e4),to:k,a:amt,k:kind,t:Date.now()});
+ giveK="";tone(784,0,.1,"triangle");tone(988,.08,.14,"triangle");pop("Sent "+(kind=="g"?amt+" gold":amt+" ¢"),"good");
+ sync(null,0,"gave "+(p.name||"a teammate")+" "+(kind=="g"?amt+" gold":amt+" chips")+" 🎁");
+}
+function collectGifts(){
+ var got=me.got||[],any=0;
+ for(var k in PL){if(k==uid)continue;(PL[k].gifts||[]).forEach(function(g){
+  if(g.to!=uid||got.indexOf(g.id)>=0)return;got.push(g.id);any=1;
+  if(g.k=="g")me.gold+=g.a;else me.bank+=g.a;
+  fx("win",0);pop("🎁 "+(PL[k].name||"A teammate")+" sent "+(g.k=="g"?g.a+" gold":g.a+" ¢"),"good");confetti(12);
+ })}
+ if(any){me.got=got.slice(-60);sync(null,0,"got a gift 🎁")}
 }
 function esc(s){return String(s).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
 function go(){
@@ -273,11 +304,12 @@ function has(id){return(me.pu||[]).indexOf(id)>=0}
 function done(g,w,b){
  var gain=w-b;
  if(gain>0){
-  var m=0;if(has("clover"))m+=.1;if(has("streak"))m+=Math.min(.3,.05*(me.sk||0));if(has("charm")&&w>=5*b)m+=.25;if(me.ex)m+=1;
+  var m=0;if(has("clutch")&&room.deadline&&room.deadline-Date.now()<30000)m+=.2;if(has("clover"))m+=.1;if(has("streak"))m+=Math.min(.3,.05*(me.sk||0));if(has("charm")&&w>=5*b)m+=.25;if(me.ex)m+=1;
   w+=Math.floor(gain*m);if(gain>=100&&has("tip"))me.gold+=1;me.sk=(me.sk||0)+1;
  }else if(w<b)me.sk=0;
  me.ex=0;
  if(w==0&&has("net"))w+=Math.floor(b*.15);
+ if(w<b&&has("cashback"))w+=Math.floor((b-w)*.05);
  if(w<b)me.ll=b-w;
  var bs=boss();me.bank+=w;if(w<b&&bs&&bs.tax)me.bank=Math.max(0,me.bank-Math.floor(b*.1));hold=0;
  if(me.bank<10&&has("wind")){me.pu.splice(me.pu.indexOf("wind"),1);me.bank+=100}
@@ -296,7 +328,7 @@ function drawBJ(){
 function deal(){
  if(status()!="play"||!take(bet))return;
  bj={bet:bet,p:[draw(),draw()],d:[draw(),draw()],over:false,m:"Hit or stand?"};
- if(val(bj.p)==21)end("Blackjack! Pays 3 to 2.",Math.floor(bj.bet*2.5));else drawBJ();
+ if(val(bj.p)==21)end(has("counter")?"Blackjack! Card Counter pays 2 to 1.":"Blackjack! Pays 3 to 2.",has("counter")?bj.bet*3:Math.floor(bj.bet*2.5));else drawBJ();
 }
 function end(m,w){bj.over=true;bj.m=m;done("blackjack",w,bj.bet);drawBJ()}
 function hit(){bj.p.push(draw());var v=val(bj.p);if(v>21)end("Bust. The house wins.",0);else if(v==21)stand();else drawBJ()}
@@ -341,53 +373,65 @@ function rspin(){
  e.textContent=n;e.style.background=col(n)=="red"?"#c0392b":col(n)=="green"?"#1f8f4a":"#222";
  var w=0;
  if(kind=="red"||kind=="black"){if(col(n)==kind)w=b*2}
- else if(kind=="green"){if(n==0)w=b*36}
+ else if(kind=="green"){if(n==0)w=b*(has("lucky7")?41:36)}
  else if(kind=="even"){if(n>0&&n%2==0)w=b*2}
  else if(kind=="odd"){if(n%2==1)w=b*2}
- else if(+num===n)w=b*36;
+ else if(+num===n)w=b*(has("lucky7")?41:36);
  $("rm").textContent=w?"Landed on "+n+". You win "+(w-b)+" ¢!":"Landed on "+n+". House takes it.";
  done("roulette",w,b);
 }
 
 /* Plinko */
-var PKM=[6,2,1.1,1,0.4,1,1.1,2,6],pk=false,PW=340,PD=34,PT=26,PY=30;
+var PKM=[6,2,1.1,1,0.4,1,1.1,2,6],PKB=[],pkN=1,pkRun=false,pkLast=[],PW=340,PD=34,PT=26,PY=30;
 function pkX(i,k){return PW/2+(k-i/2)*PD}
 function pkY(i){return PT+i*PY}
+function pkMul(k){var m=PKM[k];if(has("magnet")&&k==4)m=1;if(has("bouncy")&&m==6)m=8;return m}
 function drawPK(){
- $("game").innerHTML='<canvas id="pkc" width="340" height="320" style="display:block;margin:0 auto;max-width:100%"></canvas><div class="msg" id="pm">Drop a ball. The edges pay the most.</div><div class="row" style="justify-content:center"><button class="b" id="pkb" onclick="plink()">Drop ball</button></div>';
- pkDraw(-1,null);
+ var n=[1,3,5,10];
+ $("game").innerHTML='<canvas id="pkc" width="340" height="320" style="display:block;margin:0 auto;max-width:100%"></canvas><div class="msg" id="pm">'+(pkLast.length?pkSum():'Drop a ball, or a handful. The edges pay the most.')+'</div>'+
+  '<div class="row" style="justify-content:center">'+n.map(function(x){return '<button class="chip'+(pkN==x?' on':'')+'" onclick="pkN='+x+';drawPK()">'+x+' ball'+(x>1?'s':'')+'</button>'}).join("")+'</div>'+
+  '<div class="row" style="justify-content:center"><button class="b" id="pkb" onclick="plink()">Drop '+(pkN>1?pkN+' balls ('+chipTxt(bet*pkN)+' ¢)':'ball')+'</button></div>';
+ pkDraw();
 }
-function pkDraw(hl,ball){
+function pkSum(){var t=0,b=0;pkLast.forEach(function(r){t+=r[0];b+=r[1]});var net=t-b;return pkLast.length+' ball'+(pkLast.length>1?'s':'')+': '+(net>0?'you’re up '+net+' ¢':net<0?'you’re down '+(-net)+' ¢':'even')+' ('+pkLast.map(function(r){return r[2]+'×'}).slice(-10).join(', ')+')'}
+function pkDraw(){
  var c=$("pkc");if(!c)return;var x=c.getContext("2d");x.clearRect(0,0,340,320);
  x.fillStyle="rgba(255,255,255,.8)";
  for(var i=0;i<8;i++)for(var k=0;k<=i;k++){x.beginPath();x.arc(pkX(i,k),pkY(i),3.5,0,7);x.fill()}
  x.font="bold 12px Figtree,sans-serif";x.textAlign="center";
+ var now=performance.now();
  for(var k=0;k<9;k++){
-  var bx=pkX(8,k),by=pkY(8)+10;
-  x.fillStyle=k==hl?"#ecc766":PKM[k]>=2?"#b9322b":PKM[k]>=1?"#2a5db0":"#2b2b2b";
+  var bx=pkX(8,k),by=pkY(8)+10,mu=pkMul(k),hl=PKB.some(function(o){return o.done&&o.k==k&&now-o.dt<450});
+  x.fillStyle=hl?"#ecc766":mu>=2?"#b9322b":mu>=1?"#2a5db0":"#2b2b2b";
   x.fillRect(bx-15,by,30,26);
-  x.fillStyle=k==hl?"#2a1700":"#fff";x.fillText(PKM[k]+"×",bx,by+17);
+  x.fillStyle=hl?"#2a1700":"#fff";x.fillText(mu+"×",bx,by+17);
  }
- if(ball){x.beginPath();x.arc(ball[0],ball[1],7,0,7);x.fillStyle="#ecc766";x.fill();x.lineWidth=2;x.strokeStyle="#7a4d0c";x.stroke()}
+ PKB.forEach(function(o){if(o.done||o.t<0)return;var i=o.i,x0=pkX(i,o.path[i]),x1=pkX(i+1,o.path[i+1]),y0=pkY(i),y1=pkY(i+1),t=o.t;
+  x.beginPath();x.arc(x0+(x1-x0)*t,y0+(y1-y0)*t*t-10-Math.sin(Math.PI*t)*6,7,0,7);x.fillStyle="#ecc766";x.fill();x.lineWidth=2;x.strokeStyle="#7a4d0c";x.stroke()});
 }
 function plink(){
- if(pk||status()!="play"||!take(bet))return;
- pk=true;var b=bet,k=0,path=[0],i=0,t=0;
- for(var j=0;j<8;j++){k+=Math.random()<.5?1:0;path.push(k)}
- var pb=$("pkb");if(pb)pb.disabled=true;
- function step(){
-  t+=.09;if(t>=1){t=0;i++}
-  if(i>=8){
-   var mu=(has("magnet")&&k==4)?1:PKM[k],w=Math.floor(b*mu);pk=false;pkDraw(k,null);
-   var m=$("pm");if(m)m.textContent=mu+"×: "+(w>b?"you win "+(w-b)+" ¢!":w==b?"bet returned.":"you lose "+(b-w)+" ¢.");
-   var pb2=$("pkb");if(pb2)pb2.disabled=false;
-   done("plinko",w,b);return;
-  }
-  var x0=pkX(i,path[i]),x1=pkX(i+1,path[i+1]),y0=pkY(i),y1=pkY(i+1);
-  pkDraw(-1,[x0+(x1-x0)*t,y0+(y1-y0)*t*t-10-Math.sin(Math.PI*t)*6]);
-  requestAnimationFrame(step);
+ if(status()!="play")return;
+ var n=allin?1:pkN,dropped=0;
+ if(dropped===0&&PKB.filter(function(o){return !o.done}).length===0)pkLast=[];
+ for(var d=0;d<n;d++){
+  if(!take(bet)){if(!dropped)return;break}
+  var path=[0],k=0;for(var j=0;j<8;j++){k+=Math.random()<.5?1:0;path.push(k)}
+  PKB.push({b:bet,path:path,k:k,i:0,t:-d*.45,done:false});dropped++;
  }
- step();
+ hold=1;
+ if(!pkRun){pkRun=true;requestAnimationFrame(pkStep)}
+}
+function pkStep(){
+ var live=0,now=performance.now();
+ PKB.forEach(function(o){
+  if(o.done)return;live++;o.t+=.09;if(o.t>=1){o.t=0;o.i++}
+  if(o.i>=8){o.done=true;o.dt=now;var mu=pkMul(o.k),w=Math.floor(o.b*mu);pkLast.push([w,o.b,mu]);
+   var still=PKB.some(function(q){return !q.done});hold=still?1:0;done("plinko",w,o.b);if(still)hold=1;
+   var m=$("pm");if(m)m.textContent=pkSum();}
+ });
+ PKB=PKB.filter(function(o){return !o.done||now-o.dt<450});
+ pkDraw();
+ if(live||PKB.length)requestAnimationFrame(pkStep);else pkRun=false;
 }
 /* Dice */
 var dm="under",dc=50;
@@ -398,7 +442,7 @@ function drawDI(){
 function dinfo(){var e=$("dinfo");if(e)e.textContent=dc+"%, pays "+(97/dc).toFixed(2)+"×"}
 function droll(){
  if(status()!="play"||!take(bet))return;
- var b=bet,r=Math.floor(Math.random()*100),win=dm=="under"?r<dc:r>=100-dc,w=win?Math.floor(b*97/dc):0;
+ var b=bet,r=Math.floor(Math.random()*100),win=dm=="under"?r<dc:r>=100-dc,w=win?Math.floor(b*97/dc*(has("loaded")?1.1:1)):0;
  var n=$("dn"),m=$("dmsg");if(n)n.textContent=r;
  if(m)m.textContent=win?"Rolled "+r+". You win "+(w-b)+" ¢!":"Rolled "+r+". Not this time.";
  done("dice",w,b);
@@ -442,10 +486,10 @@ function crTick(){
 }
 function crOut(){if(cr)crEnd(true,cr.m)}
 function crEnd(win,m){
- clearInterval(cr.iv);var b=cr.b,w=win?Math.floor(b*m):0;cr=null;
+ clearInterval(cr.iv);var b=cr.b,w=win?Math.floor(b*m):has("parachute")?Math.floor(b*.25):0;cr=null;
  var e=$("crn"),s=$("crm"),g=$("crgo"),c=$("crco");
  if(e){e.textContent=m.toFixed(2)+"×";e.style.color=win?"#ecc766":"#ff8a7a"}
- if(s)s.textContent=win?"Cashed out at "+m.toFixed(2)+"×. "+(w>b?"You win "+(w-b)+" ¢!":"Bet returned."):"Crashed at "+m.toFixed(2)+"×. Bet lost.";
+ if(s)s.textContent=win?"Cashed out at "+m.toFixed(2)+"×. "+(w>b?"You win "+(w-b)+" ¢!":"Bet returned."):"Crashed at "+m.toFixed(2)+"×. "+(w?"🪂 Parachute saved "+w+" ¢.":"Bet lost.");
  if(g)g.disabled=false;if(c)c.disabled=true;
  done("crash",w,b);
 }
@@ -461,10 +505,20 @@ var PU={totem:{e:"🗿",n:"Totem",d:"Use it to reverse your last loss.",p:6,use:
  pockets:{e:"🎒",n:"Deep Pockets",d:"Carry 2 more power-ups (it takes one slot itself).",p:5},
  candle:{e:"🕯️",n:"Lucky Candle",d:"Slots: two of a kind returns your whole bet.",p:5},
  magnet:{e:"🧲",n:"Magnet Pegs",d:"Plinko: the middle slot pays 1× instead of 0.4×.",p:5},
- squad:{e:"🧯",n:"Bomb Squad",d:"Mines: only 2 mines instead of 3.",p:6}};
+ squad:{e:"🧯",n:"Bomb Squad",d:"Mines: only 2 mines instead of 3.",p:6},
+ cashback:{e:"💳",n:"Cashback",d:"Get 5% of every lost bet back.",p:6},
+ bounty:{e:"🎯",n:"Bounty Hunter",d:"+2 extra gold every time a stage clears.",p:7},
+ clutch:{e:"⏱️",n:"Clutch",d:"In the last 30 seconds of the clock, wins pay +20%.",p:6},
+ counter:{e:"🃏",n:"Card Counter",d:"Blackjack: a natural 21 pays 2 to 1 instead of 3 to 2.",p:6},
+ parachute:{e:"🪂",n:"Parachute",d:"Crash: if it crashes before you cash out, keep 25% of your bet.",p:6},
+ lucky7:{e:"7️⃣",n:"Lucky Number",d:"Roulette: single numbers and green pay 40× instead of 35×.",p:6},
+ bouncy:{e:"🏀",n:"Bouncy Balls",d:"Plinko: the edge slots pay 8× instead of 6×.",p:7},
+ loaded:{e:"🎲",n:"Loaded Dice",d:"Dice: every win pays 10% more.",p:6},
+ rainy:{e:"☔",n:"Rainy Day Fund",d:"Use it for chips worth 15% of your stack (at least 150).",p:6,use:1},
+ spirit:{e:"🤝",n:"Team Spirit",d:"Chips you give a teammate arrive with a 20% bonus.",p:5}};
 function pups(){
  me.pu=(me.pu||[]).filter(function(id){return PU[id]});
- var h=(me.pu||[]).map(function(id){var p=PU[id];return p.use?'<button class="pu" title="'+p.d+'" onclick="useP(\''+id+'\')">'+p.e+' '+p.n+' <small>use</small></button>':'<span class="pu" title="'+p.d+'">'+p.e+' '+p.n+'</span>'}).join(" ");
+ var h=(me.pu||[]).map(function(id){var p=PU[id],sell='<button class="sell" title="Sell for '+sellP(id)+' gold" onclick="sellPU(\''+id+'\')">sell '+sellP(id)+'🪙</button>';return '<span class="pug">'+(p.use?'<button class="pu" title="'+p.d+'" onclick="useP(\''+id+'\')">'+p.e+' '+p.n+' <small>use</small></button>':'<span class="pu" title="'+p.d+'">'+p.e+' '+p.n+'</span>')+sell+'</span>'}).join(" ");
  $("pups").innerHTML='<span class="betlabel">Power-ups</span>'+(h||'<span style="color:var(--mute)">none yet</span>')+(me.ex?' <span class="pu">🎟️ Double Down armed</span>':'')+'<span class="gold">🪙 '+me.gold+' gold</span>';
 }
 function shop(st){
@@ -475,6 +529,12 @@ function shop(st){
   return '<div class="offer"><div class="oe">'+p.e+'</div><b>'+p.n+'</b><span>'+p.d+'</span><button class="b" '+(no?'disabled':'')+' onclick="buy(\''+k+'\')">'+(own?'Owned':full?'Slots full':'Buy for '+p.p+' gold')+'</button></div>'}).join("")+'</div><div class="fr"><button class="b g" '+(me.gold<2?'disabled':'')+' onclick="reroll()">Reroll offers (2 gold)</button><span class="note" style="margin:0">Slots '+(me.pu||[]).length+'/'+maxS()+'</span></div></div>';
 }
 function maxS(){return 4+(has("pockets")?2:0)}
+function sellP(id){return Math.max(1,Math.floor(PU[id].p*.7))}
+function sellPU(id){
+ var i=(me.pu||[]).indexOf(id);if(i<0)return;
+ if(id=="pockets"&&me.pu.length-1>4){hint("Sell other power-ups first: Deep Pockets is holding their slots.");return}
+ var g=sellP(id);me.pu.splice(i,1);me.gold+=g;tone(880,0,.08,"triangle");tone(660,.08,.1,"triangle");pop("+"+g+" gold","good");hint();sync(null,0,"sold "+PU[id].n+" for "+g+" gold");
+}
 function reroll(){if(me.gold<2)return;var sg=room.stage||1;me.rr=(me.rrs==sg?me.rr:0)+1;me.rrs=sg;me.gold-=2;sync(null,0,"rerolled the shop")}
 function buy(id){var p=PU[id];if(me.gold<p.p||me.pu.length>=maxS()||has(id))return;me.gold-=p.p;me.pu.push(id);sync(null,0,"bought "+p.n)}
 function useP(id){
@@ -483,6 +543,7 @@ function useP(id){
  else if(id=="warp"){if(status()!="play"){hint("Use it while the clock is running.");return}me.pu.splice(i,1);room.deadline+=30000;if(!local)db.doc("rooms/"+code).update({deadline:room.deadline}).catch(function(){});hint();sync(null,0,"⏳ Time Warp added 30 seconds")}
  else if(id=="dd"){if(me.ex){hint("Already armed.");return}me.ex=1;me.pu.splice(i,1);hint();sync(null,0,"🎟️ Double Down armed")}
  else if(id=="voucher"){me.pu.splice(i,1);me.bank+=150;hint();sync(null,0,"🧾 Chip Voucher paid 150 chips")}
+ else if(id=="rainy"){var rd=Math.max(150,Math.floor(me.bank*.15));me.pu.splice(i,1);me.bank+=rd;hint();sync(null,0,"☔ Rainy Day Fund paid "+rd+" chips")}
 }
 /* Hold'em vs the house, shared board */
 var HN=["High card","Pair","Two pair","Three of a kind","Straight","Flush","Full house","Four of a kind","Straight flush"];
@@ -527,7 +588,7 @@ function calm(){try{return window.matchMedia("(prefers-reduced-motion:reduce)").
 function pop(txt,cls){if(calm())return;var d=document.createElement("div");d.className="toast "+cls;d.textContent=txt;document.body.appendChild(d);setTimeout(function(){d.remove()},1400)}
 function confetti(n){if(calm())return;for(var i=0;i<n;i++){var d=document.createElement("div");d.className="conf";d.textContent=["🪙","✨","🎉","♠️","♦️"][i%5];d.style.left=Math.random()*100+"vw";d.style.animationDelay=Math.random()*.6+"s";document.body.appendChild(d);(function(x){setTimeout(function(){x.remove()},2700)})(d)}}
 function fx(k,n){
- if(k=="win"){tone(523,0,.12,"triangle");tone(659,.1,.12,"triangle");tone(784,.2,.2,"triangle");pop("+"+n+" ¢","good");if(n>=300)confetti(24)}
+ if(k=="win"){tone(523,0,.12,"triangle");tone(659,.1,.12,"triangle");tone(784,.2,.2,"triangle");if(n)pop("+"+n+" ¢","good");if(n>=300)confetti(24)}
  else if(k=="lose"){tone(196,0,.25,"sawtooth",.07);pop("−"+(-n)+" ¢","bad")}
  else if(k=="push")tone(440,0,.1);
  else if(k=="stage"){[523,659,784,1047].forEach(function(f,i){tone(f,i*.12,.25,"triangle")});pop("Stage cleared!","good");confetti(50)}
