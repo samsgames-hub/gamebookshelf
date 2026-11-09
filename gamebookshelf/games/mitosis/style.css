@@ -136,3 +136,12 @@ body.touch #modeBar{top:64px}
 .ic.teams{background:radial-gradient(circle at 28% 40%,#ff5c6c 0 22%,transparent 23%),radial-gradient(circle at 70% 35%,#4da3ff 0 22%,transparent 23%),radial-gradient(circle at 50% 75%,#5ee68a 0 22%,transparent 23%)}
 .ic.royale{background:radial-gradient(circle,#5ee6c8 0 24%,transparent 25%,transparent 52%,#ff6e82 53% 60%,transparent 61%)}
 @media (max-width:900px){#modeBar .tm{min-width:0;padding:6px 8px;font-size:12px}#modeBar .tm b{display:none}#modeBar .rb b{font-size:14px}}
+
+.dailyb{display:block;width:100%;margin-top:10px;text-align:left;padding:10px 14px;border-radius:12px;border:1px solid rgba(120,255,170,.35);background:rgba(80,255,150,.08);color:inherit;cursor:pointer;font:inherit}
+.dailyb b{display:block;font-size:15px}.dailyb small{display:block;font-size:12px;opacity:.75;margin-top:2px}
+#dTimer{display:block;font-style:normal;font-weight:800;font-size:20px;margin-top:4px;color:#9effc4;font-variant-numeric:tabular-nums}#dTimer.low{color:#ff8a7a;animation:pulse .6s infinite alternate}#dTimer.hide{display:none}
+@keyframes pulse{to{opacity:.5}}
+#dShare{margin-top:8px}
+#dShare{margin-top:10px;padding:8px 14px;border-radius:10px;border:1px solid rgba(120,255,170,.4);background:rgba(80,255,150,.1);color:#bfffd8;font:600 13px inherit;cursor:pointer}
+
+.pulse{animation:dpulse 1.2s ease-in-out infinite}@keyframes dpulse{50%{box-shadow:0 0 0 6px rgba(255,214,102,.35),0 0 24px rgba(255,214,102,.45)}}

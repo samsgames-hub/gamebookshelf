@@ -26,6 +26,12 @@ a{color:inherit;text-decoration:none}button{font:inherit;color:inherit}
 .bar nav{display:flex;gap:4px}
 .bar nav a{padding:8px 14px;border-radius:8px;color:var(--muted);font-weight:500}
 .bar nav a:hover{color:var(--text);background:var(--s1)}
+/* daily link + strip */
+.dnav{position:relative}#dBadge{display:inline-grid;place-items:center;min-width:18px;height:18px;padding:0 5px;margin-left:6px;border-radius:999px;background:var(--go);color:#06110b;font:700 11px var(--ui);vertical-align:1px}#dBadge:empty{display:none}
+.dstrip{display:flex;align-items:center;gap:14px;margin:26px 0 0;padding:14px 18px;border-radius:14px;background:linear-gradient(90deg,rgba(47,214,123,.14),rgba(76,201,255,.08));border:1px solid rgba(47,214,123,.35);transition:border-color .15s}
+.dstrip:hover{border-color:var(--go)}.dstrip .dic{font-size:26px}.dstrip .dtx{flex:1}.dstrip b{display:block;font:700 22px var(--disp)}.dstrip small{color:var(--muted)}
+.dstrip .dots2{display:flex;gap:5px}.dstrip .dots2 i{width:12px;height:12px;border-radius:50%;background:var(--s2);border:1px solid var(--line)}.dstrip .dots2 i.on{background:var(--go);border-color:var(--go)}
+.dstrip .go{font-weight:600;color:var(--go);white-space:nowrap}
 /* hero */
 .hero{position:relative;height:min(72vh,660px);min-height:460px;overflow:hidden;background:#05070b}
 .slide{position:absolute;inset:0;opacity:0;visibility:hidden;transition:opacity .7s ease,visibility 0s .7s}
@@ -125,11 +131,12 @@ footer{max-width:1280px;margin:0 auto;padding:0 32px 40px;color:var(--muted);fon
 <body>
 <header class="bar">
   <a class="brand" href="#top" aria-label="Home"><i aria-hidden="true"></i><span id="siteName">Game Bookshelf</span></a>
-  <nav aria-label="Main"><a href="#games">Games</a><a href="#about">About</a></nav>
+  <nav aria-label="Main"><a href="#games">Games</a><a href="daily/" class="dnav">Daily<span id="dBadge"></span></a><a href="#about">About</a></nav>
 </header>
 <span id="top"></span>
 <section class="hero" id="hero" aria-roledescription="carousel" aria-label="Featured games"></section>
 <main>
+  <a class="dstrip" id="dStrip" href="daily/"></a>
   <div class="sec" id="games"><h2>All games</h2><span id="count"></span></div>
   <div class="grid" id="grid"></div>
 </main>
@@ -288,6 +295,16 @@ show(0);
 <script>
 // public visit total from GoatCounter; stays hidden if it can't load
 fetch('https://gamebookshelf.goatcounter.com/counter/TOTAL.json').then(r=>r.ok?r.json():null).then(d=>{if(!d||!d.count)return;const e=document.getElementById('visits');e.innerHTML='<b></b> visits so far';e.firstChild.textContent=d.count;e.hidden=false}).catch(()=>{});
+</script>
+<script>
+/* today's dailies: how many are left (reads each game's own save on this site) */
+(function(){try{var E=new Date(2026,10,9),n=new Date(),T=Math.round((new Date(n.getFullYear(),n.getMonth(),n.getDate())-E)/864e5)+1;
+ function r(k){try{return JSON.parse(localStorage.getItem(k)||'null')}catch(e){return null}}
+ var t=r('tumbler1'),sk=r('skyline2'),sl=r('slingshot2'),mx=r('mx-save'),h=r('gbs-daily')||{},td=h[T]||{};
+ var done=[!!(t&&t.daily&&t.daily.day===T&&t.daily.done)||td.tumbler!==undefined,!!(sk&&sk.dday===T)||td.skyline!==undefined,!!(sl&&sl.dday===T)||td.slingshot!==undefined,!!(mx&&mx.daily&&mx.daily.day===T)||td.mitosis!==undefined];
+ var c=done.filter(Boolean).length,left=4-c;document.getElementById('dBadge').textContent=left?left:'';
+ document.getElementById('dStrip').innerHTML='<span class="dic">'+(left?'📅':'🏆')+'</span><span class="dtx"><b>'+(left?"Today's dailies: "+c+' of 4 done':'Clean sweep today!')+'</b><small>Tumbler, Skyline, Slingshot and Mitosis each have a daily challenge, the same for everyone.</small></span><span class="dots2">'+done.map(function(d){return '<i class="'+(d?'on':'')+'"></i>'}).join('')+'</span><span class="go">'+(left?'Play →':'See results →')+'</span>';
+}catch(e){}})();
 </script>
 </body>
 </html>

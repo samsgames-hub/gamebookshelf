@@ -158,6 +158,9 @@ function dayIndex(){const d=new Date(),a=new Date(d.getFullYear(),d.getMonth(),d
 function hashS(t){let h=2166136261;for(let i=0;i<t.length;i++){h^=t.charCodeAt(i);h=Math.imul(h,16777619)}return h>>>0}
 function mulberry(a){return()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
 const TODAY=dayIndex();
+/* tell the site's daily page this daily was played */
+function markDaily(game,score){try{const k='gbs-daily',d=JSON.parse(localStorage.getItem(k)||'{}');d[TODAY]=d[TODAY]||{};if(d[TODAY][game]===undefined)d[TODAY][game]=score;const ks=Object.keys(d).filter(x=>/^\d+$/.test(x)).map(Number).sort((a,b)=>a-b);while(ks.length>60)delete d[ks.shift()];localStorage.setItem(k,JSON.stringify(d))}catch(e){}}
+
 const MODS={fast:{n:'Rush hour',d:'floors slide 25% faster'},narrow:{n:'Tight lot',d:'you start on a narrower lot'},goldrush:{n:'Gold rush',d:'a gold floor every 5 floors'},gusty:{n:'Gusty day',d:'wind from the first floor'},nogrow:{n:'No second chances',d:'Perfect streaks never grow floors back'},cross:{n:'Crosswind',d:'floors come in at an angle'}};
 function dailyMods(){const r=mulberry(hashS('skyline-'+TODAY)),k=Object.keys(MODS),a=k.splice(Math.floor(r()*k.length),1)[0];let b=k[Math.floor(r()*k.length)];if(a==='narrow'&&b==='nogrow'||a==='nogrow'&&b==='narrow')b='goldrush';return[a,b]}
 let MODE={id:'classic',mods:[]};
@@ -238,7 +241,7 @@ function gameOver(){G.state='over';hideCombo();SFX.fall();shake(.5);S.runs++;pro
  let nb=false,daily='';
  if(MODE.id==='classic'){nb=G.score>S.best&&G.score>0;if(nb)S.best=G.score}
  else if(MODE.id==='cross'){nb=G.score>(S.crossBest||0)&&G.score>0;if(nb)S.crossBest=G.score}
- else{if(S.dday!==TODAY){S.dday=TODAY;S.dscore=G.score;S.dstreak=S.dlast===TODAY-1?(S.dstreak||0)+1:1;S.dlast=TODAY;S.dmax=Math.max(S.dmax||0,S.dstreak);daily='official'}
+ else{if(S.dday!==TODAY){S.dday=TODAY;S.dscore=G.score;markDaily('skyline',G.score);S.dstreak=S.dlast===TODAY-1?(S.dstreak||0)+1:1;S.dlast=TODAY;S.dmax=Math.max(S.dmax||0,S.dstreak);daily='official'}
   nb=G.score>(S.dtop||0)&&S.dtopDay===TODAY;if(S.dtopDay!==TODAY||G.score>S.dtop){S.dtop=G.score;S.dtopDay=TODAY}}
  save();applyVol();
  setTimeout(()=>{if(G.state!=='over')return;$('overTitle').textContent=MODE.id==='daily'?'Daily tower #'+TODAY:MODE.id==='cross'?(nb?'New Crosswind record!':'Crosswind'):nb?'New tallest tower!':'Tower down';
@@ -311,4 +314,6 @@ function collectBank(){let bank;try{bank=JSON.parse(localStorage.getItem('gbs-ba
  const n=b.coins;S.coins+=n;delete bank.skyline;try{localStorage.setItem('gbs-bank',JSON.stringify(bank))}catch(e){}save();drawMenu();setTimeout(()=>toast('Vault payout from Tumbler: +'+n+' coins'),600)}
 applyQuality();reset();drawMenu();collectBank();addEventListener('focus',collectBank);skyAt(0);requestAnimationFrame(loop);
 window.__SK={G,R,S,place,start,pause,toMenu,get moving(){return moving},get stack(){return stack}};
+
+try{if(/[?&]daily/.test(location.search)){const b=document.getElementById('mDaily');if(b){b.classList.add('pulse');b.scrollIntoView({block:'center'})}}}catch(e){}
 })();

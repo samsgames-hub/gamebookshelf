@@ -37,7 +37,10 @@ const EPOCH=new Date(2026,10,9);
 function dayIndex(){const d=new Date(),a=new Date(d.getFullYear(),d.getMonth(),d.getDate());return Math.round((a-EPOCH)/864e5)+1}
 function hashS(t){let h=2166136261;for(let i=0;i<t.length;i++){h^=t.charCodeAt(i);h=Math.imul(h,16777619)}return h>>>0}
 function mulberry(a){return()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
-const TODAY=dayIndex();let MODE='classic';
+const TODAY=dayIndex();
+/* tell the site's daily page this daily was played */
+function markDaily(game,score){try{const k='gbs-daily',d=JSON.parse(localStorage.getItem(k)||'{}');d[TODAY]=d[TODAY]||{};if(d[TODAY][game]===undefined)d[TODAY][game]=score;const ks=Object.keys(d).filter(x=>/^\d+$/.test(x)).map(Number).sort((a,b)=>a-b);while(ks.length>60)delete d[ks.shift()];localStorage.setItem(k,JSON.stringify(d))}catch(e){}}
+let MODE='classic';
 if(S.dlast!==undefined&&S.dlast<TODAY-1)S.dstreak=0;
 /* ================= planets (painted once onto their own canvas) ================= */
 function paintPlanet(p){const pad=1.45,sz=Math.ceil(p.r*pad*2*2),c=document.createElement('canvas');c.width=c.height=sz;const g=c.getContext('2d'),m=sz/2,r=p.r*2;
@@ -171,7 +174,7 @@ function useShield(){if(RUN.shield<=0)return false;RUN.shield--;hudFix();SFX.shi
 function die(why,kind){G.state='over';ship.mode='dead';shake(.6);flash(kind==='lost'?.05:.35);
  if(kind==='lost')SFX.lost();else if(kind==='hole')SFX.hole();else{SFX.crash();burst(ship.x,ship.y,'#ffb347',50,240,.9,4);burst(ship.x,ship.y,'#ffffff',20,120,.5,2)}
  S.runs++;progress('runs',S.runs);let nb=false,official=false;
- if(MODE==='daily'){if(S.dday!==TODAY){S.dday=TODAY;S.dscore=G.score;S.dstreak=S.dlast===TODAY-1?(S.dstreak||0)+1:1;S.dlast=TODAY;official=true}}
+ if(MODE==='daily'){if(S.dday!==TODAY){S.dday=TODAY;S.dscore=G.score;markDaily('slingshot',G.score);S.dstreak=S.dlast===TODAY-1?(S.dstreak||0)+1:1;S.dlast=TODAY;official=true}}
  else{nb=G.score>S.best;if(nb)S.best=G.score}
  save();applyVol();
  setTimeout(()=>{if(G.state!=='over')return;$('oT').textContent=MODE==='daily'?'Daily route #'+TODAY:nb&&G.score>0?'New record!':why;
@@ -307,4 +310,6 @@ function loop(now){requestAnimationFrame(loop);let dt=Math.min(.05,(now-last)/10
  draw()}
 requestAnimationFrame(loop);
 window.__SL={G,S,RUN,get ship(){return ship},get planets(){return planets},get rocks(){return rocks},get holes(){return holes},release,correct,start,pause,toMenu,step};
+
+try{if(/[?&]daily/.test(location.search)){const b=document.getElementById('mDaily');if(b){b.classList.add('pulse');b.scrollIntoView({block:'center'})}}}catch(e){}
 })();

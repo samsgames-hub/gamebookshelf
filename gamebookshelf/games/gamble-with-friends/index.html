@@ -72,6 +72,7 @@ button.pu{cursor:pointer}.pu small{color:var(--brass);font-weight:700}
 .give{margin-left:6px;border:1px solid var(--line);background:var(--panel);border-radius:999px;padding:4px 8px;cursor:pointer;font-size:15px}.give:hover{border-color:var(--brass)}
 .givebox{border:1px dashed var(--brass);border-radius:12px;padding:10px;margin:4px 0 8px;display:grid;gap:6px;font-size:14px}.givebox .row{display:flex;flex-wrap:wrap;gap:6px;align-items:center}.givebox .chip{background:var(--panel);border:1px solid var(--brass);color:var(--ink);opacity:1}.givebox .chip:disabled{opacity:.4}.givebox .chip:hover:not(:disabled){background:rgba(236,199,102,.2)}
 .givebox input{padding:6px 8px;border-radius:8px;border:1px solid var(--line);background:var(--page);color:var(--ink)}
+.vault{border-color:#8a6a20;background:linear-gradient(rgba(236,199,102,.08),transparent)}.vault .keys{float:right;font-size:13px;color:var(--brass)}.offer.vo{border-style:solid}
 .offer{border:1px dashed var(--brass);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:6px;font-size:14px}
 .offer .oe{font-size:32px}.offer span{color:var(--mute);flex:1}
 .toast{position:fixed;left:50%;top:34%;z-index:50;transform:translateX(-50%);font:400 clamp(34px,10vw,56px) var(--slab);pointer-events:none;animation:rise 1.3s ease-out forwards;text-shadow:0 3px 12px #000a}
@@ -192,8 +193,8 @@ async function enter(c){
  setInterval(tick,500);
 }
 /* a vault payout from Tumbler (the daily safe on this site) arrives as bonus gold in your next game */
-function bankGold(){var bank;try{bank=JSON.parse(localStorage.getItem("gbs-bank")||"{}")}catch(e){return}var b=bank&&bank.gwf;if(!b||!b.gold)return;var n=b.gold;delete bank.gwf;try{localStorage.setItem("gbs-bank",JSON.stringify(bank))}catch(e){}
- me.gold=(me.gold||0)+n;setTimeout(function(){pop("🔐 Tumbler vault payout: +"+n+" gold","good");try{if(!local)sync(null,0,"brought "+n+" gold from Tumbler 🔐")}catch(e){}},900)}
+function bankGold(){var bank;try{bank=JSON.parse(localStorage.getItem("gbs-bank")||"{}")}catch(e){return}var b=bank&&bank.gwf;if(!b||!(b.gold||b.keys))return;var n=b.gold||0,kk=b.keys||0;delete bank.gwf;try{localStorage.setItem("gbs-bank",JSON.stringify(bank))}catch(e){}
+ if(kk)setKeys(keys()+kk);me.gold=(me.gold||0)+n;setTimeout(function(){pop("🔐 Vault payout: "+(n?"+"+n+" gold":"")+(n&&kk?", ":"")+(kk?"+"+kk+" vault key"+(kk>1?"s":""):""),"good");try{if(!local)sync(null,0,"brought "+n+" gold from Tumbler 🔐")}catch(e){}},900)}
 function practice(){
  local=true;code="SOLO";me={name:nameVal(),bank:1000,gold:5,pu:[],ll:0,st:0,rs:0,pr:0,msg:"practicing"};PL={local:me};uid="local";bankGold();
  room={mult:3,stage:1,base:1000,mins:10,deadline:0,won:false};open_();setInterval(tick,500);
@@ -220,7 +221,7 @@ function top_(){
  if(st=="won"&&!room.won&&!local&&!wonSent){wonSent=true;db.doc("rooms/"+code).update({won:true,wt:t}).catch(function(){})}
  if(st=="won"&&(me.rs||0)<sg){
   var t0=room.wt||t,ex=Math.max(0,Math.floor((t0-G)/(G*.1))),rw=4+sg+(boss()?3:0)+(has("bounty")?2:0)+Math.min(4,ex)+(has("interest")?Math.min(5,Math.floor(me.gold/5)):0);
-  me.gold+=rw;me.rs=sg;fx("stage",rw);sync(null,0,"cleared stage "+sg+", +"+rw+" gold");return}
+  me.gold+=rw;me.rs=sg;if(has("golden"))me.bank+=300;fx("stage",rw);sync(null,0,"cleared stage "+sg+", +"+rw+" gold"+(has("golden")?" and 300 chips 🎫":""));return}
  if(st=="play"&&(me.st||0)!=sg){me.st=sg;var pg=has("piggy");if(pg)me.bank+=50;sync(null,0,pg?"Piggy Bank paid 50 chips":(me.msg||"playing"));return}
  $("fill").style.width=Math.min(100,t/G*100)+"%";
  $("goaltxt").textContent="Stage "+sg+(boss()?" 👹 Boss: "+boss().n+" ("+boss().d+")":"")+": team total "+t.toLocaleString()+" of "+G.toLocaleString()+" chips";
@@ -307,12 +308,13 @@ function has(id){return(me.pu||[]).indexOf(id)>=0}
 function done(g,w,b){
  var gain=w-b;
  if(gain>0){
-  var m=0;if(has("clutch")&&room.deadline&&room.deadline-Date.now()<30000)m+=.2;if(has("clover"))m+=.1;if(has("streak"))m+=Math.min(.3,.05*(me.sk||0));if(has("charm")&&w>=5*b)m+=.25;if(me.ex)m+=1;
+  var m=0;if(has("safecracker"))m+=.25;if(has("clutch")&&room.deadline&&room.deadline-Date.now()<30000)m+=.2;if(has("clover"))m+=.1;if(has("streak"))m+=Math.min(.3,.05*(me.sk||0));if(has("charm")&&w>=5*b)m+=.25;if(me.ex)m+=1;
   w+=Math.floor(gain*m);if(gain>=100&&has("tip"))me.gold+=1;me.sk=(me.sk||0)+1;
  }else if(w<b)me.sk=0;
  me.ex=0;
  if(w==0&&has("net"))w+=Math.floor(b*.15);
  if(w<b&&has("cashback"))w+=Math.floor((b-w)*.05);
+ if(w<b&&has("insurance"))w+=Math.floor((b-w)*.3);
  if(w<b)me.ll=b-w;
  var bs=boss();me.bank+=w;if(w<b&&bs&&bs.tax)me.bank=Math.max(0,me.bank-Math.floor(b*.1));hold=0;
  if(me.bank<10&&has("wind")){me.pu.splice(me.pu.indexOf("wind"),1);me.bank+=100}
@@ -518,7 +520,11 @@ var PU={totem:{e:"🗿",n:"Totem",d:"Use it to reverse your last loss.",p:6,use:
  bouncy:{e:"🏀",n:"Bouncy Balls",d:"Plinko: the edge slots pay 8× instead of 6×.",p:7},
  loaded:{e:"🎲",n:"Loaded Dice",d:"Dice: every win pays 10% more.",p:6},
  rainy:{e:"☔",n:"Rainy Day Fund",d:"Use it for chips worth 15% of your stack (at least 150).",p:6,use:1},
- spirit:{e:"🤝",n:"Team Spirit",d:"Chips you give a teammate arrive with a 20% bonus.",p:5}};
+ spirit:{e:"🤝",n:"Team Spirit",d:"Chips you give a teammate arrive with a 20% bonus.",p:5},
+ golden:{e:"🎫",n:"Golden Ticket",d:"Vault exclusive. Every stage you clear also pays you 300 chips.",p:8,v:1},
+ safecracker:{e:"🔓",n:"Safecracker",d:"Vault exclusive. Every win pays 25% more.",p:8,v:1},
+ skeleton:{e:"🗝️",n:"Skeleton Key",d:"Vault exclusive. Rerolling the shop is free.",p:8,v:1},
+ insurance:{e:"🛡️",n:"Vault Insurance",d:"Vault exclusive. Get 30% of every lost bet back.",p:8,v:1}};
 function pups(){
  me.pu=(me.pu||[]).filter(function(id){return PU[id]});
  var h=(me.pu||[]).map(function(id){var p=PU[id],sell='<button class="sell" title="Sell for '+sellP(id)+' gold" onclick="sellPU(\''+id+'\')">sell '+sellP(id)+'🪙</button>';return '<span class="pug">'+(p.use?'<button class="pu" title="'+p.d+'" onclick="useP(\''+id+'\')">'+p.e+' '+p.n+' <small>use</small></button>':'<span class="pu" title="'+p.d+'">'+p.e+' '+p.n+'</span>')+sell+'</span>'}).join(" ");
@@ -526,10 +532,10 @@ function pups(){
 }
 function shop(st){
  var e=$("shop");if(st!="wait"&&st!="won"){e.innerHTML="";return}
- var f=rng((room.stage||1)*977+hsh(uid)+((me.rrs==(room.stage||1)?me.rr:0)||0)*131),ks=Object.keys(PU),o=[];
+ var f=rng((room.stage||1)*977+hsh(uid)+((me.rrs==(room.stage||1)?me.rr:0)||0)*131),ks=Object.keys(PU).filter(function(k){return !PU[k].v}),o=[];
  while(o.length<3){var k=ks[Math.floor(f()*ks.length)];if(o.indexOf(k)<0)o.push(k)}
  e.innerHTML='<div class="panel"><h3>Shop</h3><div class="offers">'+o.map(function(k){var p=PU[k],own=has(k),full=(me.pu||[]).length>=maxS(),no=own||full||me.gold<p.p;
-  return '<div class="offer"><div class="oe">'+p.e+'</div><b>'+p.n+'</b><span>'+p.d+'</span><button class="b" '+(no?'disabled':'')+' onclick="buy(\''+k+'\')">'+(own?'Owned':full?'Slots full':'Buy for '+p.p+' gold')+'</button></div>'}).join("")+'</div><div class="fr"><button class="b g" '+(me.gold<2?'disabled':'')+' onclick="reroll()">Reroll offers (2 gold)</button><span class="note" style="margin:0">Slots '+(me.pu||[]).length+'/'+maxS()+'</span></div></div>';
+  return '<div class="offer"><div class="oe">'+p.e+'</div><b>'+p.n+'</b><span>'+p.d+'</span><button class="b" '+(no?'disabled':'')+' onclick="buy(\''+k+'\')">'+(own?'Owned':full?'Slots full':'Buy for '+p.p+' gold')+'</button></div>'}).join("")+'</div><div class="fr"><button class="b g" '+(me.gold<2&&!has("skeleton")?'disabled':'')+' onclick="reroll()">'+(has("skeleton")?'Reroll offers (free)':'Reroll offers (2 gold)')+'</button><span class="note" style="margin:0">Slots '+(me.pu||[]).length+'/'+maxS()+'</span></div></div>'+vaultHTML();
 }
 function maxS(){return 4+(has("pockets")?2:0)}
 function sellP(id){return Math.max(1,Math.floor(PU[id].p*.7))}
@@ -538,7 +544,14 @@ function sellPU(id){
  if(id=="pockets"&&me.pu.length-1>4){hint("Sell other power-ups first: Deep Pockets is holding their slots.");return}
  var g=sellP(id);me.pu.splice(i,1);me.gold+=g;tone(880,0,.08,"triangle");tone(660,.08,.1,"triangle");pop("+"+g+" gold","good");hint();sync(null,0,"sold "+PU[id].n+" for "+g+" gold");
 }
-function reroll(){if(me.gold<2)return;var sg=room.stage||1;me.rr=(me.rrs==sg?me.rr:0)+1;me.rrs=sg;me.gold-=2;sync(null,0,"rerolled the shop")}
+function reroll(){var c=has("skeleton")?0:2;if(me.gold<c)return;var sg=room.stage||1;me.rr=(me.rrs==sg?me.rr:0)+1;me.rrs=sg;me.gold-=c;sync(null,0,"rerolled the shop")}
+/* the vault: power-ups you can only unlock with vault keys, earned by opening the daily safe in Tumbler */
+function keys(){try{return +localStorage.getItem("gwf-keys")||0}catch(e){return 0}}
+function setKeys(n){try{localStorage.setItem("gwf-keys",String(Math.max(0,n)))}catch(e){}}
+function vaultHTML(){var k=keys(),full=(me.pu||[]).length>=maxS(),ids=Object.keys(PU).filter(function(i){return PU[i].v});
+ return '<div class="panel vault"><h3>🔐 The Vault <span class="keys">'+k+' key'+(k==1?'':'s')+'</span></h3>'+(k?'':'<p class="note" style="margin:0 0 8px">Open the daily safe in <a href="../tumbler/index.html" target="_blank" rel="noopener">Tumbler</a> to earn vault keys. Keys stay with you between games.</p>')+'<div class="offers">'+ids.map(function(i){var p=PU[i],own=has(i),no=own||full||k<1;
+  return '<div class="offer vo"><div class="oe">'+p.e+'</div><b>'+p.n+'</b><span>'+p.d.replace("Vault exclusive. ","")+'</span><button class="b" '+(no?'disabled':'')+' onclick="buyV(\''+i+'\')">'+(own?'Owned':full?'Slots full':'Unlock: 1 🔑')+'</button></div>'}).join("")+'</div></div>'}
+function buyV(id){var p=PU[id],k=keys();if(!p||!p.v||k<1||me.pu.length>=maxS()||has(id))return;setKeys(k-1);me.pu.push(id);tone(660,0,.1,"triangle");tone(990,.1,.2,"triangle");pop("🔓 "+p.n+" unlocked","good");sync(null,0,"unlocked "+p.n+" from the vault 🔐")}
 function buy(id){var p=PU[id];if(me.gold<p.p||me.pu.length>=maxS()||has(id))return;me.gold-=p.p;me.pu.push(id);sync(null,0,"bought "+p.n)}
 function useP(id){
  var i=me.pu.indexOf(id);if(i<0)return;

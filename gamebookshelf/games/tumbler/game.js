@@ -112,7 +112,9 @@ function submit(){if(busy)return;audio();const st=P.st;
 function shakeRow(){const row=document.querySelector('.row[data-r="'+P.st.guesses.length+'"]');if(row&&S.set.shake){row.classList.remove('shake');void row.offsetWidth;row.classList.add('shake')}sfx.buzz()}
 
 /* ---------- endings ---------- */
-function record(won){const n=P.st.guesses.length;
+/* tell the site's daily page this daily was played */
+function markDaily(game,score){try{const k='gbs-daily',d=JSON.parse(localStorage.getItem(k)||'{}');d[TODAY]=d[TODAY]||{};if(d[TODAY][game]===undefined)d[TODAY][game]=score;const ks=Object.keys(d).filter(x=>/^\d+$/.test(x)).map(Number).sort((a,b)=>a-b);while(ks.length>60)delete d[ks.shift()];localStorage.setItem(k,JSON.stringify(d))}catch(e){}}
+function record(won){const n=P.st.guesses.length;if(P.kind==='daily')markDaily('tumbler',won?n:'X');
  if(P.kind==='daily'){const s=S.stats;if(s.lastDay===TODAY)return;s.lastDay=TODAY;s.played++;if(won){s.wins++;s.dist[n-1]++;s.streak=s.lastWin===TODAY-1?s.streak+1:1;s.lastWin=TODAY;s.max=Math.max(s.max,s.streak)}else s.streak=0}
  else{const s=S.pstats;s.played++;if(won){s.wins++;s.streak++;s.max=Math.max(s.max,s.streak)}else s.streak=0}save()}
 function win(r){record(true);const row=document.querySelector('.row[data-r="'+r+'"]');row&&row.classList.add('win');
@@ -132,10 +134,10 @@ const GAMES={skyline:{n:'Skyline',unit:'coins',k:'coins',url:'../skyline/index.h
 function payout(){const st=S.daily;if(!st.done)return null;const n=st.guesses.length,streak=Math.min(5,Math.max(0,(S.stats.streak||1)-1));
  const base=st.won?[0,150,120,95,75,60,45][n]:15,mult=st.won?1+streak*.1:1;return{coins:Math.round(base*mult),stars:Math.round(base*mult/4),gold:Math.max(1,Math.round(base*mult/25)),streakBonus:st.won?streak*10:0}}
 function claim(g){const pay=payout();if(!pay||S.claimed&&S.claimed.day===TODAY)return;let bank={};try{bank=JSON.parse(localStorage.getItem('gbs-bank')||'{}')}catch(e){}
- const k=GAMES[g].k;bank[g]=bank[g]||{};bank[g][k]=(bank[g][k]||0)+pay[k];bank[g].from='Tumbler';try{localStorage.setItem('gbs-bank',JSON.stringify(bank))}catch(e){}
+ const k=GAMES[g].k;bank[g]=bank[g]||{};bank[g][k]=(bank[g][k]||0)+pay[k];bank[g].from='Tumbler';if(P.st.won){bank.gwf=bank.gwf||{};bank.gwf.keys=(bank.gwf.keys||0)+1}try{localStorage.setItem('gbs-bank',JSON.stringify(bank))}catch(e){}
  S.claimed={day:TODAY,g,amt:pay[k]};save();sfx.coins();sparks(40);showStats()}
 function payoutHTML(){if(P.kind!=='daily'||!P.st.done)return'';const pay=payout(),c=S.claimed&&S.claimed.day===TODAY?S.claimed:null;
- if(c){const G2=GAMES[c.g];return '<div class="pay done"><b>Vault payout sent</b><span>+'+c.amt+' '+G2.unit+' are waiting in '+G2.n+'.'+(c.g==='gwf'?' You get it when you start or join your next game.':'')+'</span><a class="ghost" href="'+G2.url+'">Open '+G2.n+' '+G2.ic+'</a></div>'}
+ if(c){const G2=GAMES[c.g];return '<div class="pay done"><b>Vault payout sent</b><span>+'+c.amt+' '+G2.unit+' are waiting in '+G2.n+'.'+(S.daily.won?' Plus a vault key for Gamble With Friends.':'')+(c.g==='gwf'?' You get it when you start or join your next game.':'')+'</span><a class="ghost" href="'+G2.url+'">Open '+G2.n+' '+G2.ic+'</a></div>'}
  return '<div class="pay"><b>'+(P.st.won?'Vault payout':'Consolation prize')+'</b><span>'+(P.st.won?'Choose where to spend it'+(pay.streakBonus?' (includes +'+pay.streakBonus+'% streak bonus)':''):'Better luck tomorrow. Pick one:')+'</span><div class="pb"><button data-claim="skyline">'+GAMES.skyline.ic+' Skyline<br><b>+'+pay.coins+' coins</b></button><button data-claim="slingshot">'+GAMES.slingshot.ic+' Slingshot<br><b>+'+pay.stars+' stars</b></button><button data-claim="gwf">'+GAMES.gwf.ic+' Gamble<br><b>+'+pay.gold+' gold</b></button></div></div>'}
 
 /* ---------- overlays ---------- */

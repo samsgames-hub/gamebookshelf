@@ -54,3 +54,5 @@ body.playing #start{display:none}
 .mode b{display:block;font-size:15px}.mode small{display:block;font-weight:500;font-size:12px;opacity:.75;margin-top:2px}
 .mode.locked{opacity:.6}
 #overDaily b{color:var(--gold)}#overDaily .ghost{margin-top:8px}
+
+.pulse{animation:dpulse 1.2s ease-in-out infinite}@keyframes dpulse{50%{box-shadow:0 0 0 6px rgba(255,214,102,.35),0 0 24px rgba(255,214,102,.45)}}

@@ -468,7 +468,7 @@ const G = {
   mouse: { x: 0, y: 0 }, split: 0, rs: 0, ejHeld: false, paused: false, t: 0, lastIn: '', inT: 0, you: null, alive: false, deadAt: 0, lastMass: 0, toastT: 0, lifeXp: 0, warn: 0, dprs: 1, W: 0, H: 0,
   prevIds: new Map(), attractFollow: -1, attractT: 0, connecting: false, touch: false, jx: 0, jy: 0, jOn: false
 };
-window.__MX = { G, AU, get save() { return save; }, NET, makeSim, SKINS };
+window.__MX = { G, AU, get save() { return save; }, NET, makeSim, SKINS, toMenu: () => toMenu() };
 
 function resize() {
   const dpr = Math.min(save.set.q ? 2 : 1, window.devicePixelRatio || 1); G.dpr = dpr;
@@ -522,13 +522,38 @@ function bump(n) { if (save.set.shake) G.shake = Math.max(G.shake, n); }
 //  MODES: attract (title), solo, host, client
 // =====================================================================================
 function startAttract() { G.mode = 'attract'; G.sim = makeSim((Math.random() * 1e9) | 0, { attract: 1, minBots: 22 }); G.cl = null; G.me = null; for (let k = 0; k < 160; k++) G.sim.step(DT); G.acc = 0; }
-function startSolo() {
+// ---------------- Daily Arena: same map and bots for everyone, 3 minutes, one life ----------------
+const D_EPOCH = new Date(2026, 10, 9);
+const TODAY = (() => { const d = new Date(), a = new Date(d.getFullYear(), d.getMonth(), d.getDate()); return Math.round((a - D_EPOCH) / 864e5) + 1; })();
+const D_LEN = 180;
+function dHash(t) { let h = 2166136261; for (let i = 0; i < t.length; i++) { h ^= t.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; }
+save.daily = save.daily || {}; if (save.daily.last !== undefined && save.daily.last < TODAY - 1) save.daily.streak = 0;
+/* tell the site's daily page that this daily was played (shared by every game on gamebookshelf.com) */
+function markDaily(game, score) { try { const k = 'gbs-daily', d = JSON.parse(localStorage.getItem(k) || '{}'); d[TODAY] = d[TODAY] || {}; if (d[TODAY][game] === undefined) d[TODAY][game] = score; const keys = Object.keys(d).map(Number).sort((a, b) => a - b); while (keys.length > 60) delete d[keys.shift()]; localStorage.setItem(k, JSON.stringify(d)); } catch (e) { } }
+function startDaily() {
+  stopNet(); G.mode = 'solo'; G.sim = makeSim(dHash('mitosis-' + TODAY), { minBots: 20, mode: 'ffa' }); G.cl = null;
+  for (let k = 0; k < 120; k++) G.sim.step(DT);
+  G.me = G.sim.addHuman('me', playerName(), save.skin, { m: START_M }); G.myIdx = G.me.i;
+  G.daily = { t0: G.sim.t, done: false, official: save.daily.day !== TODAY };
+  beginPlay(); toast('Daily Arena #' + TODAY + (G.daily.official ? ': 3 minutes, one life. Get as big as you can!' : ' (practice run): your official score is already in.'), 4);
+}
+function dailyLeft() { return G.daily ? Math.max(0, D_LEN - (G.sim.t - G.daily.t0)) : 0; }
+function dailyEnd(you, why) {
+  const D = G.daily; if (!D || D.done) return; D.done = true; const score = Math.min(MAXT, Math.round((you && you.maxM) || START_M));
+  let line;
+  if (D.official) { const s = save.daily; s.streak = s.last === TODAY - 1 ? (s.streak || 0) + 1 : 1; s.last = TODAY; s.day = TODAY; s.score = score; s.max = Math.max(s.max || 0, s.streak); store(); markDaily('mitosis', score); line = 'Official score for today: <b>' + score.toLocaleString() + '</b> · day streak <b>' + s.streak + '</b>'; }
+  else line = 'Practice run: ' + score.toLocaleString() + '. Today\'s official score: <b>' + (save.daily.score || 0).toLocaleString() + '</b>';
+  $('dWho').textContent = 'Daily Arena #' + TODAY + (why === 'time' ? ': time\'s up!' : ': eaten!');
+  $('dAgain').textContent = 'PRACTICE AGAIN'; $('dHint').innerHTML = line + '<br><button id="dShare" type="button">Share today\'s arena</button>';
+  $('dShare').onclick = () => { const t = 'Mitosis daily arena #' + TODAY + ': ' + (save.daily.score || score).toLocaleString() + ' mass' + (save.daily.streak > 1 ? ' 🔥' + save.daily.streak : '') + '\n' + '🟢'.repeat(Math.min(10, Math.max(1, Math.ceil((save.daily.score || score) / 400)))) + '\ngamebookshelf.com'; try { navigator.clipboard.writeText(t).then(() => toast('Copied. Paste it anywhere.', 2, 'good'), () => toast(t, 4)); } catch (e) { toast(t, 4); } };
+}
+function startSolo() { G.daily = null;
   stopNet(); G.mode = 'solo'; G.sim = makeSim((Math.random() * 1e9) | 0, { minBots: 20, mode: save.mode || 'ffa' }); G.cl = null;
   for (let k = 0; k < 120; k++) G.sim.step(DT);
   G.me = G.sim.addHuman('me', playerName(), save.skin, { m: START_M }); G.myIdx = G.me.i; beginPlay();
 }
 function playerName() { return clean($('nm').value) || 'Cell'; }
-async function goOnline(kind, code) {
+async function goOnline(kind, code) { G.daily = null;
   AU.init(); save.name = clean($('nm').value); store();
   showBusy(kind === 'join' ? 'Joining arena ' + code + '…' : 'Finding an arena…');
   stopNet(); let ok;
@@ -590,11 +615,12 @@ function beginPlay() {
 }
 function respawn() {
   if (G.state !== 'dead') return; AU.click();
+  if (G.daily) { $('death').classList.add('hide'); startDaily(); return; }
   const mi = G._lastF && G._lastF.mi; if (mi && mi.mode === 'royale' && !mi.join) { toast('You’ll drop in automatically when the next round starts.', 2); return; }
   $('death').classList.add('hide'); G.state = 'play'; G.alive = true; G.lifeStart = performance.now(); G.prevIds.clear();
   if (G.sim && G.me) { G.sim.spawn(G.me, START_M); G.me.lastRs = G.rs; } else { G.rs++; G.awaitSpawn = performance.now(); }
 }
-function toMenu() {
+function toMenu() { const wasDaily = G.daily && !G.daily.done; if (wasDaily && G.state === 'play' && G.alive) { G.daily.done = true; }
   if (G.state === 'play' && G.alive) finishLife(curYou(), '');
   stopNet(); G.state = 'menu'; G.paused = false; document.body.classList.remove('playing');
   $('hud').classList.add('hide'); $('death').classList.add('hide'); $('pause').classList.add('hide'); $('title').classList.remove('hide'); refreshTitle(); startAttract();
@@ -644,6 +670,7 @@ function finishLife(you, killer) {
   if (!killer && killer !== '') return;
   const mm = Math.floor(you.life / 60), ss = you.life % 60;
   const roy = (G._lastF && G._lastF.mi && G._lastF.mi.mode === 'royale');
+  if (killer === '__time') killer = 'time';
   $('dWho').textContent = killer === 'the ring' ? 'The ring got you' : killer ? 'Eaten by ' + killer : 'You were absorbed';
   $('dAgain').textContent = roy ? 'NEXT ROUND' : 'PLAY AGAIN'; $('dHint').textContent = roy ? 'You’ll drop back in automatically when the next round starts. Keep watching!' : 'Press Space or Enter to play again.';
   $('dStats').innerHTML = [['Top mass', you.maxM.toLocaleString(), nb.includes('mass')], ['Cells eaten', you.cells, nb.includes('cells')], ['Pellets', you.pel], ['Time alive', mm + ':' + String(ss).padStart(2, '0'), nb.includes('life')], ['Best rank', you.best < 99 ? '#' + you.best : '–']].map(([a, b, n]) => `<div><span>${a}</span><b>${b}${n ? '<i>NEW BEST</i>' : ''}</b></div>`).join('');
@@ -652,6 +679,7 @@ function finishLife(you, killer) {
   if (L1 > L0) setTimeout(() => AU.level(), 700);
   $('death').classList.remove('hide');
   renderMissions($('dMis'));
+  if (G.daily) dailyEnd(you, killer === 'time' ? 'time' : 'eaten');
 }
 function missionTick(you, final) {
   const done = [];
@@ -898,6 +926,9 @@ function hud(F, own, dt) {
     if (you.alive && you.rank && you.rank < (G.lastRank || 99) && you.rank <= 3 && G.state === 'play') { toast(you.rank === 1 ? 'You’re #1 in the arena!' : 'Top ' + you.rank + '!', 2, 'good'); AU.tone && AU.c && AU.tone(784, .3, 'triangle', .1, 1046); }
     if (you.alive) G.lastRank = you.rank;
     if (G.state === 'play' && you.alive) missionTick(you, false);
+    if (G.daily && !G.daily.done) { const left = dailyLeft(), el = $('dTimer'); el.classList.remove('hide'); el.textContent = Math.floor(left / 60) + ':' + String(Math.floor(left % 60)).padStart(2, '0'); el.classList.toggle('low', left < 20);
+      if (left <= 0 && G.state === 'play') { G.alive = false; G.state = 'dead'; G.paused = true; AU.level(); G.flash = .3; finishLife(you, '__time'); } }
+    else $('dTimer').classList.add('hide');
     AU.energy = clamp(Math.log10(Math.max(10, you.mass)) - 1.2, 0, 1) * .8 + (G.warn > .3 ? .2 : 0);
   }
   // leaderboard
@@ -1003,6 +1034,7 @@ function closeOverlays() { for (const id of ['howOv', 'setOv', 'skinOv', 'joinOv
 function showBusy(t) { $('busyT').textContent = t; $('busy').classList.remove('hide'); }
 function hideBusy() { $('busy').classList.add('hide'); }
 function refreshTitle() {
+  { const d = save.daily, done = d.day === TODAY, b = $('bDaily'); if (b) b.innerHTML = '<b>Daily Arena #' + TODAY + (done ? ' · ' + (d.score || 0).toLocaleString() + ' mass' : '') + '</b><small>Same map and bots for everyone · 3 minutes, one life' + (d.streak ? ' · 🔥 ' + d.streak + '-day streak' : '') + '</small>'; }
   $('nm').value = save.name || ''; const L = levelOf(save.xp), cur = save.xp - lvlNeed(L), need = lvlNeed(L + 1) - lvlNeed(L);
   $('lvl').textContent = 'Level ' + L; $('lvlBar').style.width = Math.round(cur / need * 100) + '%'; $('lvlXp').textContent = cur + ' / ' + need + ' XP';
   drawSkinPrev($('skinPrev'), save.skin); $('skinName').textContent = SKINS[save.skin][0];
@@ -1049,6 +1081,7 @@ on('bPriv', () => goOnline('private'));
 on('bJoin', () => { $('jErr').textContent = ''; openOv('joinOv'); setTimeout(() => $('jCode').focus(), 50); });
 on('jGo', () => { const c = $('jCode').value.trim().toUpperCase(); if (c.length !== 4) { $('jErr').textContent = 'Codes are 4 letters.'; return; } closeOverlays(); goOnline('join', c); });
 $('jCode').addEventListener('keydown', e => { if (e.key === 'Enter') $('jGo').click(); });
+on('bDaily', () => { save.name = clean($('nm').value); store(); startDaily(); });
 on('bSolo', () => { save.name = clean($('nm').value); store(); startSolo(); });
 on('bHow', () => openOv('howOv'));
 on('bSet', () => { buildSettings(); openOv('setOv'); });
@@ -1087,3 +1120,5 @@ if (qRoom) { $('jCode').value = qRoom.toUpperCase(); setTimeout(() => { $('jErr'
   requestAnimationFrame(f);
 })();
 })();
+try{if(/[?&]daily/.test(location.search)){const b=document.getElementById('bDaily');if(b){b.classList.add('pulse');b.scrollIntoView({block:'center'})}}}catch(e){}
+
