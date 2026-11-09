@@ -184,15 +184,18 @@ async function enter(c){
  if(!rs.exists){err("No room with that code.");return}
  code=c;room=rs.data();
  var pd=db.doc("rooms/"+c+"/players/"+uid),ps=await pd.get();
- me=Object.assign({gold:5,pu:[],ll:0,st:0,rs:0,pr:0},ps.exists?ps.data():{bank:1000,msg:"joined",t:Date.now()});me.pu=(me.pu||[]).filter(function(id){return PU[id]});
+ me=Object.assign({gold:5,pu:[],ll:0,st:0,rs:0,pr:0},ps.exists?ps.data():{bank:1000,msg:"joined",t:Date.now()});me.pu=(me.pu||[]).filter(function(id){return PU[id]});bankGold();
  me.name=nameVal();await pd.set(Object.assign({},me));
  PL[uid]=me;open_();
  unsubs.push(db.doc("rooms/"+c).onSnapshot(function(s){if(s.exists){room=s.data();top_()}},function(){}));
  unsubs.push(db.collection("rooms/"+c+"/players").onSnapshot(function(s){var n={};s.docs.forEach(function(d){n[d.id]=d.data()});n[uid]=me;PL=n;collectGifts();top_()},function(){}));
  setInterval(tick,500);
 }
+/* a vault payout from Tumbler (the daily safe on this site) arrives as bonus gold in your next game */
+function bankGold(){var bank;try{bank=JSON.parse(localStorage.getItem("gbs-bank")||"{}")}catch(e){return}var b=bank&&bank.gwf;if(!b||!b.gold)return;var n=b.gold;delete bank.gwf;try{localStorage.setItem("gbs-bank",JSON.stringify(bank))}catch(e){}
+ me.gold=(me.gold||0)+n;setTimeout(function(){pop("🔐 Tumbler vault payout: +"+n+" gold","good");try{if(!local)sync(null,0,"brought "+n+" gold from Tumbler 🔐")}catch(e){}},900)}
 function practice(){
- local=true;code="SOLO";me={name:nameVal(),bank:1000,gold:5,pu:[],ll:0,st:0,rs:0,pr:0,msg:"practicing"};PL={local:me};uid="local";
+ local=true;code="SOLO";me={name:nameVal(),bank:1000,gold:5,pu:[],ll:0,st:0,rs:0,pr:0,msg:"practicing"};PL={local:me};uid="local";bankGold();
  room={mult:3,stage:1,base:1000,mins:10,deadline:0,won:false};open_();setInterval(tick,500);
 }
 function open_(){$("lobby").className="hide";$("room").className="";$("code").textContent=code;bets();top_();game()}

@@ -49,3 +49,8 @@ button:focus-visible{outline:3px solid var(--paper);outline-offset:3px}
 .sty button{margin:0;padding:8px 14px;font-size:14px;white-space:nowrap}
 .sty button[disabled]{opacity:.45;cursor:default}
 body.playing #start{display:none}
+.modesel{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+.mode{margin:0;text-align:left;background:rgba(255,255,255,.08);color:var(--paper);padding:10px 12px;border:1px solid rgba(255,255,255,.12)}
+.mode b{display:block;font-size:15px}.mode small{display:block;font-weight:500;font-size:12px;opacity:.75;margin-top:2px}
+.mode.locked{opacity:.6}
+#overDaily b{color:var(--gold)}#overDaily .ghost{margin-top:8px}

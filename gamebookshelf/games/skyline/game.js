@@ -152,42 +152,71 @@ function rollMissions(){S.missions=S.missions.map(m=>{if(m.p>=m.n){S.mlv[m.k]=(S
 let stack=[],moving=null,falls=[],rings=[];
 const G={state:'menu',score:0,combo:0,t:0,speed:SPEED0,camY:0,shake:0,freeze:0,wind:0,paused:false};
 const R={coins:0,perf:0,streak:0,gold:0};
+/* ---- modes: Classic, Daily tower (same tower for everyone, changes at midnight) and Crosswind ---- */
+const EPOCH=new Date(2026,10,9);
+function dayIndex(){const d=new Date(),a=new Date(d.getFullYear(),d.getMonth(),d.getDate());return Math.round((a-EPOCH)/864e5)+1}
+function hashS(t){let h=2166136261;for(let i=0;i<t.length;i++){h^=t.charCodeAt(i);h=Math.imul(h,16777619)}return h>>>0}
+function mulberry(a){return()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+const TODAY=dayIndex();
+const MODS={fast:{n:'Rush hour',d:'floors slide 25% faster'},narrow:{n:'Tight lot',d:'you start on a narrower lot'},goldrush:{n:'Gold rush',d:'a gold floor every 5 floors'},gusty:{n:'Gusty day',d:'wind from the first floor'},nogrow:{n:'No second chances',d:'Perfect streaks never grow floors back'},cross:{n:'Crosswind',d:'floors come in at an angle'}};
+function dailyMods(){const r=mulberry(hashS('skyline-'+TODAY)),k=Object.keys(MODS),a=k.splice(Math.floor(r()*k.length),1)[0];let b=k[Math.floor(r()*k.length)];if(a==='narrow'&&b==='nogrow'||a==='nogrow'&&b==='narrow')b='goldrush';return[a,b]}
+let MODE={id:'classic',mods:[]};
+const has=k=>MODE.mods.includes(k);
+if(S.dlast!==undefined&&S.dlast<TODAY-1)S.dstreak=0;
 const FLOORS=[[0,'Lobby'],[5,'Offices'],[15,'Upper offices'],[25,'Sky lobby'],[35,'Hotel floors'],[45,'Observation deck'],[55,'Penthouses'],[70,'The spire'],[90,'Above the clouds']];
+function modeTag(){return MODE.id==='daily'?'Daily #'+TODAY+' · ':MODE.id==='cross'?'Crosswind · ':''}
 function floorName(n){let s='';for(const f of FLOORS)if(n>=f[0])s=f[1];return s}
-function reset(){stack.forEach(b=>kill(b.m));falls.forEach(f=>kill(f.m));rings.forEach(r=>{scene.remove(r.m);r.m.geometry.dispose()});if(moving)kill(moving.m);
- stack=[];falls=[];rings=[];moving=null;const m=makeBlock(START,START,0,0,0);stack.push({m,w:START,d:START,x:0,z:0});
+function reset(){G.base=has('narrow')?2.3:START;stack.forEach(b=>kill(b.m));falls.forEach(f=>kill(f.m));rings.forEach(r=>{scene.remove(r.m);r.m.geometry.dispose()});if(moving)kill(moving.m);
+ stack=[];falls=[];rings=[];moving=null;const m=makeBlock(G.base,G.base,0,0,0);stack.push({m,w:G.base,d:G.base,x:0,z:0});
  Object.assign(G,{score:0,combo:0,speed:SPEED0,wind:0,freeze:0});Object.assign(R,{coins:0,perf:0,streak:0,gold:0});
- $('score').textContent='0';$('coinsNow').textContent='0';$('floorName').textContent=floorName(0);skyAt(0);spawn()}
-function isGold(n){return n>=8&&n%9===0}
+ $('score').textContent='0';$('coinsNow').textContent='0';$('floorName').textContent=modeTag()+floorName(0);skyAt(0);spawn()}
+function isGold(n){return has('goldrush')?n>=5&&n%5===0:n>=8&&n%9===0}
+const windAt=()=>has('gusty')?1:25;
 function spawn(){const top=stack[stack.length-1],n=stack.length,axis=n%2,y=n*H,range=4.4,gold=isGold(n);
- const m=makeBlock(top.w,top.d,axis?top.x:-range,y,axis?-range:top.z,gold);
- moving={m,w:top.w,d:top.d,x:axis?top.x:-range,z:axis?-range:top.z,axis,t:0,range,dir:1,gold};
- G.speed=Math.min(5.6,SPEED0+n*.05);
- if(n===25)announce('The wind is picking up');if(n===50)announce('Gale force winds');if(gold)announce('Gold floor!',1)}
+ if(has('cross')){const dz=n%2?1:-1,x0=top.x-range,z0=top.z-range*dz,m=makeBlock(top.w,top.d,x0,y,z0,gold);
+  moving={m,w:top.w,d:top.d,x:x0,z:z0,cross:true,dz,ox:top.x,oz:top.z,t:0,range,dir:1,gold}}
+ else{const m=makeBlock(top.w,top.d,axis?top.x:-range,y,axis?-range:top.z,gold);
+  moving={m,w:top.w,d:top.d,x:axis?top.x:-range,z:axis?-range:top.z,axis,t:0,range,dir:1,gold}}
+ G.speed=Math.min(5.6,SPEED0+n*.05)*(has('fast')?1.25:1);
+ if(n===windAt()&&has('gusty'))announce('Gusty day');else if(n===25)announce('The wind is picking up');if(n===50)announce('Gale force winds');if(gold)announce('Gold floor!',1)}
 function announce(t,short){const e=$('event');e.textContent=t;e.classList.add('on');clearTimeout(e._t);e._t=setTimeout(()=>e.classList.remove('on'),short?900:1600);if(/wind/i.test(t))SFX.wind()}
 let toastT=0;function toast(t){const e=$('toast');e.textContent=t;e.classList.add('on');clearTimeout(toastT);toastT=setTimeout(()=>e.classList.remove('on'),2200)}
 function addCoins(n){R.coins+=n;S.coins+=n;$('coinsNow').textContent=R.coins;progress('coins',R.coins)}
 function shake(v){if(S.set.shake)G.shake=Math.max(G.shake,v)}
 function flash(v){const f=$('flash');f.style.transition='none';f.style.opacity=v;requestAnimationFrame(()=>{f.style.transition='opacity .35s';f.style.opacity=0})}
 
-function place(){if(!moving||G.state!=='play'||G.paused)return;const top=stack[stack.length-1],M=moving,ax=M.axis;
+function place(){if(!moving||G.state!=='play'||G.paused)return;if(moving.cross)return placeCross();const top=stack[stack.length-1],M=moving,ax=M.axis;
  const off=ax?M.z-top.z:M.x-top.x,size=ax?top.d:top.w,over=Math.abs(off);
  if(over>=size){falls.push({m:M.m,vx:ax?0:Math.sign(off)*1.5,vz:ax?Math.sign(off)*1.5:0,vy:0,rx:(Math.random()-.5)*3,rz:(Math.random()-.5)*3});moving=null;gameOver();return}
  let w=M.w,d=M.d,x=M.x,z=M.z,perfect=over<PERFECT,grew=false;
  if(perfect){G.combo++;R.perf++;R.streak=Math.max(R.streak,G.combo);x=top.x;z=top.z;
-  if(G.combo>=3){grew=true;if(ax)d=Math.min(START,d+.15);else w=Math.min(START,w+.15)}
+  if(G.combo>=3&&!has('nogrow')){grew=true;if(ax)d=Math.min(G.base,d+.15);else w=Math.min(G.base,w+.15)}
   SFX.perfect(G.combo);if(grew)SFX.grow();G.freeze=.06;shake(.18);flash(.12);showCombo();
   addCoins(1+(G.combo>=3?Math.min(G.combo-2,4):0));progress('perf',R.perf);progress('streak',R.streak)}
  else{G.combo=0;const keep=size-over;
   if(ax){const nz=top.z+off/2,cz=nz+Math.sign(off)*(keep/2+over/2);fallPiece(w,over,x,M.m.position.y,cz,ax,off,M.gold);d=keep;z=nz}
   else{const nx=top.x+off/2,cx=nx+Math.sign(off)*(keep/2+over/2);fallPiece(over,d,cx,M.m.position.y,z,ax,off,M.gold);w=keep;x=nx}
   SFX.cut();SFX.thud();shake(.12+over*.15);hideCombo()}
- kill(M.m);const m=makeBlock(w,d,x,M.m.position.y,z,M.gold);m.scale.y=.75;m.userData.sq=0;
+ landed(M,w,d,x,z,perfect)}
+function landed(M,w,d,x,z,perfect){kill(M.m);const m=makeBlock(w,d,x,M.m.position.y,z,M.gold);m.scale.y=.75;m.userData.sq=0;
  const nb={m,w,d,x,z};stack.push(nb);moving=null;G.score++;addCoins(1);
  if(M.gold){R.gold++;progress('gold',R.gold);const g=perfect?15:6;addCoins(g);SFX.gold();toast('Gold floor  +'+g+' coins');burst(x,m.position.y+.5,z,40,0xffd166,3,.12,4)}
  if(perfect){ripple(x,z,w,d,M.gold?0xffd166:0xffffff);edgeBurst(nb,26,0xffffff)}else edgeBurst(nb,14,0xd8cdbd);
  const sc=$('score');sc.textContent=G.score;sc.classList.add('pop');setTimeout(()=>sc.classList.remove('pop'),120);
- $('floorName').textContent=floorName(G.score);progress('floor',G.score);skyAt(G.score);spawn()}
+ $('floorName').textContent=modeTag()+floorName(G.score);progress('floor',G.score);skyAt(G.score);spawn()}
+/* Crosswind: the floor slides in diagonally, so the overhang is trimmed on two sides at once (an L-shaped cut) */
+function placeCross(){const top=stack[stack.length-1],M=moving,ox=M.x-top.x,oz=M.z-top.z,ax=Math.abs(ox),az=Math.abs(oz);
+ if(ax>=top.w||az>=top.d){falls.push({m:M.m,vx:Math.sign(ox)*1.5,vz:Math.sign(oz)*1.5,vy:0,rx:(Math.random()-.5)*3,rz:(Math.random()-.5)*3});moving=null;gameOver();return}
+ let w=M.w,d=M.d,x=M.x,z=M.z;const perfect=ax<PERFECT&&az<PERFECT;
+ if(perfect){G.combo++;R.perf++;R.streak=Math.max(R.streak,G.combo);x=top.x;z=top.z;let grew=false;
+  if(G.combo>=3&&!has('nogrow')){grew=true;w=Math.min(G.base,w+.12);d=Math.min(G.base,d+.12)}
+  SFX.perfect(G.combo);if(grew)SFX.grow();G.freeze=.06;shake(.18);flash(.12);showCombo();
+  addCoins(2+(G.combo>=3?Math.min(G.combo-2,4):0));progress('perf',R.perf);progress('streak',R.streak)}
+ else{G.combo=0;const kw=top.w-ax,kd=top.d-az,nx=top.x+ox/2,nz=top.z+oz/2,y=M.m.position.y;
+  if(ax>.001)fallPiece(ax,M.d,nx+Math.sign(ox)*(kw/2+ax/2),y,M.z,0,ox,M.gold);
+  if(az>.001)fallPiece(kw,az,nx,y,nz+Math.sign(oz)*(kd/2+az/2),1,oz,M.gold);
+  w=kw;d=kd;x=nx;z=nz;SFX.cut();SFX.thud();shake(.12+(ax+az)*.1);hideCombo()}
+ landed(M,w,d,x,z,perfect)}
 function fallPiece(w,d,x,y,z,ax,off,gold){const m=makeBlock(w,d,x,y,z,gold);falls.push({m,vx:ax?0:Math.sign(off)*1.4,vz:ax?Math.sign(off)*1.4:0,vy:1,rx:ax?Math.sign(off)*2.5:0,rz:ax?0:-Math.sign(off)*2.5,hit:false})}
 function ripple(x,z,w,d,col){const g=new THREE.EdgesGeometry(new THREE.BoxGeometry(w,.02,d)),m=new THREE.LineSegments(g,new THREE.LineBasicMaterial({color:col,transparent:true}));m.position.set(x,(stack.length-.5)*H,z);scene.add(m);rings.push({m,t:0})}
 function showCombo(){const c=$('combo');c.textContent=G.combo>=3?'Perfect ×'+G.combo+' · growing':G.combo>1?'Perfect ×'+G.combo:'Perfect';c.classList.add('on')}
@@ -199,23 +228,34 @@ let back='start';
 function openPanel(id){SFX.click();back=['start','pause','over'].find(p=>!$(p).classList.contains('hide'))||back;if(id==='styles')drawStyles();if(id==='settings')loadSettings();show(id)}
 document.querySelectorAll('[data-open]').forEach(b=>b.onclick=e=>{e.stopPropagation();audio();openPanel(b.dataset.open)});
 document.querySelectorAll('[data-close]').forEach(b=>b.onclick=e=>{e.stopPropagation();SFX.click();show(back);if(back==='start')drawMenu();if(back==='over')drawMissions($('missionsOver'))});
-function drawMenu(){drawMissions($('missionsStart'));$('bestStart').textContent=(S.best?'Tallest tower: '+S.best+' floors · ':'')+S.coins+' coins'}
-function start(){audio();show('');document.body.classList.add('playing');G.paused=false;reset();G.state='play';applyVol()}
+function drawMenu(){drawMissions($('missionsStart'));$('bestStart').textContent=(S.best?'Tallest tower: '+S.best+' floors · ':'')+S.coins+' coins';
+ const dm=dailyMods(),done=S.dday===TODAY;$('mDaily').innerHTML='<b>Daily tower #'+TODAY+(done?' · '+S.dscore+' floors':'')+'</b><small>'+dm.map(k=>MODS[k].n).join(' + ')+(S.dstreak?' · 🔥 '+S.dstreak+'-day streak':'')+'</small>';
+ const un=S.best>=25||S.crossBest;$('mCross').innerHTML='<b>'+(un?'':'🔒 ')+'Crosswind</b><small>'+(un?'Floors come in at an angle'+(S.crossBest?' · best '+S.crossBest:''):'Reach floor 25 to unlock')+'</small>';$('mCross').classList.toggle('locked',!un)}
+function start(id){if(id)MODE={id,mods:id==='daily'?dailyMods():id==='cross'?['cross']:[]};audio();show('');document.body.classList.add('playing');G.paused=false;reset();G.state='play';applyVol()}
 function pause(on){if(G.state!=='play')return;G.paused=on;show(on?'pause':'');applyVol();if(on)SFX.click()}
-function toMenu(){G.state='menu';G.paused=false;document.body.classList.remove('playing');reset();show('start');drawMenu();applyVol()}
+function toMenu(){G.state='menu';MODE={id:'classic',mods:[]};G.paused=false;document.body.classList.remove('playing');reset();show('start');drawMenu();applyVol()}
 function gameOver(){G.state='over';hideCombo();SFX.fall();shake(.5);S.runs++;progress('runs',S.runs);
- const nb=G.score>S.best&&G.score>0;if(nb)S.best=G.score;save();applyVol();
- setTimeout(()=>{if(G.state!=='over')return;$('overTitle').textContent=nb?'New tallest tower!':'Tower down';$('overScore').textContent=G.score;
+ let nb=false,daily='';
+ if(MODE.id==='classic'){nb=G.score>S.best&&G.score>0;if(nb)S.best=G.score}
+ else if(MODE.id==='cross'){nb=G.score>(S.crossBest||0)&&G.score>0;if(nb)S.crossBest=G.score}
+ else{if(S.dday!==TODAY){S.dday=TODAY;S.dscore=G.score;S.dstreak=S.dlast===TODAY-1?(S.dstreak||0)+1:1;S.dlast=TODAY;S.dmax=Math.max(S.dmax||0,S.dstreak);daily='official'}
+  nb=G.score>(S.dtop||0)&&S.dtopDay===TODAY;if(S.dtopDay!==TODAY||G.score>S.dtop){S.dtop=G.score;S.dtopDay=TODAY}}
+ save();applyVol();
+ setTimeout(()=>{if(G.state!=='over')return;$('overTitle').textContent=MODE.id==='daily'?'Daily tower #'+TODAY:MODE.id==='cross'?(nb?'New Crosswind record!':'Crosswind'):nb?'New tallest tower!':'Tower down';
+  $('overDaily').innerHTML=MODE.id==='daily'?(daily?'Your official score for today. Day streak: <b>'+S.dstreak+'</b>':'Practice run. Today\'s official score: <b>'+S.dscore+'</b> · streak <b>'+S.dstreak+'</b>')+'<br><button class="ghost" id="shareD">Share today\'s tower</button>':'';
+  if($('shareD'))$('shareD').onclick=e=>{e.stopPropagation();const t='Skyline daily tower #'+TODAY+': '+S.dscore+' floors'+(S.dstreak>1?' 🔥'+S.dstreak:'')+'\n'+'🏢'.repeat(Math.min(10,Math.ceil(S.dscore/10)))+'\ngamebookshelf.com';try{navigator.clipboard.writeText(t).then(()=>toast('Copied. Paste it anywhere.'),()=>toast(t))}catch(err){toast(t)}};$('overScore').textContent=G.score;
   $('overStats').innerHTML='<div><b>'+R.perf+'</b>Perfects</div><div><b>'+R.streak+'</b>Best streak</div><div><b>'+R.gold+'</b>Gold floors</div><div><b>+'+R.coins+'</b>Coins</div>';
   drawMissions($('missionsOver'));rollMissions();save();show('over');if(nb){flash(.25);SFX.gold()}},900)}
-$('play').onclick=e=>{e.stopPropagation();start()};$('again').onclick=e=>{e.stopPropagation();start()};
+$('play').onclick=e=>{e.stopPropagation();start('classic')};$('again').onclick=e=>{e.stopPropagation();start()};
+$('mDaily').onclick=e=>{e.stopPropagation();start('daily')};
+$('mCross').onclick=e=>{e.stopPropagation();if(S.best<25&&!S.crossBest){SFX.click();toast('Reach floor 25 in a normal tower to unlock Crosswind');return}start('cross')};
 $('resume').onclick=e=>{e.stopPropagation();pause(false)};$('restartP').onclick=e=>{e.stopPropagation();start()};
 $('quitP').onclick=e=>{e.stopPropagation();toMenu()};$('menuO').onclick=e=>{e.stopPropagation();toMenu()};
 $('pauseBtn').onclick=e=>{e.stopPropagation();audio();pause(!G.paused)};
 function input(e){if(e&&e.target&&e.target.closest&&e.target.closest('.panel,button'))return;audio();if(G.state==='play'&&!G.paused)place()}
 addEventListener('pointerdown',input);
 addEventListener('keydown',e=>{audio();
- if(e.code==='Space'||e.code==='Enter'){e.preventDefault();if(e.repeat)return;if(G.state==='play'&&!G.paused)place();else if(G.state==='over'&&!$('over').classList.contains('hide'))start();else if(G.state==='menu'&&!$('start').classList.contains('hide'))start();else if(G.paused)pause(false)}
+ if(e.code==='Space'||e.code==='Enter'){e.preventDefault();if(e.repeat)return;if(G.state==='play'&&!G.paused)place();else if(G.state==='over'&&!$('over').classList.contains('hide'))start();else if(G.state==='menu'&&!$('start').classList.contains('hide'))start('classic');else if(G.paused)pause(false)}
  else if(e.code==='Escape'||e.code==='KeyP'){if(G.state==='play')pause(!G.paused)}
  else if(e.code==='KeyR'&&(G.state==='play'||G.state==='over'))start()});
 addEventListener('visibilitychange',()=>{if(document.hidden&&G.state==='play'&&!G.paused)pause(true)});
@@ -245,9 +285,9 @@ function loop(now){requestAnimationFrame(loop);let dt=Math.min(.05,(now-last)/10
  G.t+=dt;
  if(G.freeze>0){G.freeze-=dt;dt*=.05}
  if(moving&&G.state==='play'){const M=moving;let sp=G.speed;
-  if(G.score>=25){const k=G.score>=50?.55:.35;sp*=1+k*Math.sin(G.t*1.9)*Math.sin(G.t*.73+1)}
+  if(G.score>=windAt()){const k=G.score>=50?.55:.35;sp*=1+k*Math.sin(G.t*1.9)*Math.sin(G.t*.73+1)}
   M.t+=dt*sp*M.dir;if(M.t>M.range*2){M.t=M.range*2;M.dir=-1}if(M.t<0){M.t=0;M.dir=1}
-  const p=-M.range+M.t;if(M.axis)M.z=p;else M.x=p;M.m.position.set(M.x,M.m.position.y+(G.score>=25?Math.sin(G.t*9)*.002:0),M.z)}
+  const p=-M.range+M.t;if(M.cross){M.x=M.ox+p;M.z=M.oz+p*M.dz}else if(M.axis)M.z=p;else M.x=p;M.m.position.set(M.x,M.m.position.y+(G.score>=windAt()?Math.sin(G.t*9)*.002:0),M.z)}
  for(let i=falls.length-1;i>=0;i--){const f=falls[i];f.vy-=22*dt;f.m.position.x+=f.vx*dt;f.m.position.z+=f.vz*dt;f.m.position.y+=f.vy*dt;f.m.rotation.x+=f.rx*dt;f.m.rotation.z+=f.rz*dt;
   if(!f.hit&&f.m.position.y<-1){f.hit=true;burst(f.m.position.x,-1.4,f.m.position.z,10,0x9a9080,2,.12,2)}
   if(f.m.position.y<G.camY-40||f.m.position.y<-6){kill(f.m);falls.splice(i,1)}}

@@ -128,15 +128,15 @@ function sparks(n){if(!S.set.shake)return;const r=$('safe').getBoundingClientRec
 
 /* ---------- vault payout: a daily win pays out in the other games on this site ----------
    The games share this website's storage, so the payout waits in 'gbs-bank' until that game is opened. */
-const GAMES={skyline:{n:'Skyline',unit:'coins',k:'coins',url:'../skyline/index.html',ic:'🏙️'},slingshot:{n:'Slingshot',unit:'stars',k:'stars',url:'../slingshot/index.html',ic:'🚀'}};
+const GAMES={skyline:{n:'Skyline',unit:'coins',k:'coins',url:'../skyline/index.html',ic:'🏙️'},slingshot:{n:'Slingshot',unit:'stars',k:'stars',url:'../slingshot/index.html',ic:'🚀'},gwf:{n:'Gamble With Friends',unit:'gold',k:'gold',url:'../gamble-with-friends/index.html',ic:'🎰'}};
 function payout(){const st=S.daily;if(!st.done)return null;const n=st.guesses.length,streak=Math.min(5,Math.max(0,(S.stats.streak||1)-1));
- const base=st.won?[0,150,120,95,75,60,45][n]:15,mult=st.won?1+streak*.1:1;return{coins:Math.round(base*mult),stars:Math.round(base*mult/4),streakBonus:st.won?streak*10:0}}
+ const base=st.won?[0,150,120,95,75,60,45][n]:15,mult=st.won?1+streak*.1:1;return{coins:Math.round(base*mult),stars:Math.round(base*mult/4),gold:Math.max(1,Math.round(base*mult/25)),streakBonus:st.won?streak*10:0}}
 function claim(g){const pay=payout();if(!pay||S.claimed&&S.claimed.day===TODAY)return;let bank={};try{bank=JSON.parse(localStorage.getItem('gbs-bank')||'{}')}catch(e){}
  const k=GAMES[g].k;bank[g]=bank[g]||{};bank[g][k]=(bank[g][k]||0)+pay[k];bank[g].from='Tumbler';try{localStorage.setItem('gbs-bank',JSON.stringify(bank))}catch(e){}
  S.claimed={day:TODAY,g,amt:pay[k]};save();sfx.coins();sparks(40);showStats()}
 function payoutHTML(){if(P.kind!=='daily'||!P.st.done)return'';const pay=payout(),c=S.claimed&&S.claimed.day===TODAY?S.claimed:null;
- if(c){const G2=GAMES[c.g];return '<div class="pay done"><b>Vault payout sent</b><span>+'+c.amt+' '+G2.unit+' are waiting in '+G2.n+'.</span><a class="ghost" href="'+G2.url+'">Open '+G2.n+' '+G2.ic+'</a></div>'}
- return '<div class="pay"><b>'+(P.st.won?'Vault payout':'Consolation prize')+'</b><span>'+(P.st.won?'Choose where to spend it'+(pay.streakBonus?' (includes +'+pay.streakBonus+'% streak bonus)':''):'Better luck tomorrow. Pick one:')+'</span><div class="pb"><button data-claim="skyline">'+GAMES.skyline.ic+' Skyline<br><b>+'+pay.coins+' coins</b></button><button data-claim="slingshot">'+GAMES.slingshot.ic+' Slingshot<br><b>+'+pay.stars+' stars</b></button></div></div>'}
+ if(c){const G2=GAMES[c.g];return '<div class="pay done"><b>Vault payout sent</b><span>+'+c.amt+' '+G2.unit+' are waiting in '+G2.n+'.'+(c.g==='gwf'?' You get it when you start or join your next game.':'')+'</span><a class="ghost" href="'+G2.url+'">Open '+G2.n+' '+G2.ic+'</a></div>'}
+ return '<div class="pay"><b>'+(P.st.won?'Vault payout':'Consolation prize')+'</b><span>'+(P.st.won?'Choose where to spend it'+(pay.streakBonus?' (includes +'+pay.streakBonus+'% streak bonus)':''):'Better luck tomorrow. Pick one:')+'</span><div class="pb"><button data-claim="skyline">'+GAMES.skyline.ic+' Skyline<br><b>+'+pay.coins+' coins</b></button><button data-claim="slingshot">'+GAMES.slingshot.ic+' Slingshot<br><b>+'+pay.stars+' stars</b></button><button data-claim="gwf">'+GAMES.gwf.ic+' Gamble<br><b>+'+pay.gold+' gold</b></button></div></div>'}
 
 /* ---------- overlays ---------- */
 const OV=['oStart','oHelp','oStats','oSet'];
@@ -219,7 +219,7 @@ addEventListener('keydown',e=>{const anyOpen=OV.some(o=>!$(o).classList.contains
 function drawHelp(){$('demoRing').innerHTML=TH.items.map((s,i)=>'<span title="'+s.w+'">'+face(i)+'</span>').join('');$('helpTheme').textContent=TH.n;
  $('ex').innerHTML=[[4,'g',0],[2,'a',1],[8,'d',-1],[6,'a',-1],[1,'d',1]].map(a=>'<div class="slot '+a[1]+'">'+face(a[0])+(a[2]?'<span class="ar '+(a[2]>0?'up':'dn')+'">'+(a[2]>0?'▲':'▼')+'</span>':'')+'</div>').join('');
  $('exUp').textContent=TH.up;$('exDown').textContent=TH.down}
-function updateStart(){const s=S.stats,d=S.daily.day===TODAY&&S.daily.done,th=themeOfDay(TODAY);$('sToday').innerHTML='Today: <b>'+th.vault+'</b><br>'+th.n+'<small>Payout: up to 150 Skyline coins or 37 Slingshot stars</small>';$('sInfo').textContent='Safe #'+TODAY+(d?' · done for today':'')+(s.streak?' · '+s.streak+'-day streak':'');$('sDaily').textContent=d?'See today\'s safe':'Crack today\'s safe'}
+function updateStart(){const s=S.stats,d=S.daily.day===TODAY&&S.daily.done,th=themeOfDay(TODAY);$('sToday').innerHTML='Today: <b>'+th.vault+'</b><br>'+th.n+'<small>Payout: up to 150 Skyline coins, 37 Slingshot stars or 6 gold in Gamble With Friends</small>';$('sInfo').textContent='Safe #'+TODAY+(d?' · done for today':'')+(s.streak?' · '+s.streak+'-day streak':'');$('sDaily').textContent=d?'See today\'s safe':'Crack today\'s safe'}
 applySet();load('daily');updateStart();open('oStart');
 window.__TB={possible,get P(){return P},S,judge,pick,submit,load,get cur(){return cur},TODAY,makeCode,mulberry,hash};
 })();

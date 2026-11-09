@@ -104,7 +104,7 @@ body.still *{animation:none!important;transition:none!important}
 
 .pay{margin-top:16px;padding:14px;border-radius:14px;background:radial-gradient(ellipse at 50% 0,rgba(216,180,90,.22),transparent 70%),#141518;border:1px solid #6e5a2a;text-align:center}
 .pay>b{display:block;font:700 22px var(--h);color:var(--brass)}.pay>span{display:block;font-size:13px;color:var(--mute);margin-top:2px}
-.pay .pb{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.pay .pb{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:10px}
 .pay .pb button{border:1px solid #6e5a2a;border-radius:12px;padding:12px 8px;background:linear-gradient(#2c2a24,#1d1c18);color:var(--ink);font:600 14px var(--f);line-height:1.4}
 .pay .pb button b{color:#ffd76a;font-size:17px}.pay .pb button:hover{border-color:var(--brass)}
 .pay a.ghost{display:block;margin-top:10px;padding:10px;border-radius:10px;border:1px solid #3a3b42;color:var(--ink);text-decoration:none;font:600 14px var(--f)}

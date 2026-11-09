@@ -50,3 +50,6 @@ button:focus-visible{outline:3px solid #fff;outline-offset:3px}
 .it .lv{display:inline-flex;gap:3px;margin-left:6px;vertical-align:1px}.it .lv i{width:8px;height:8px;border-radius:2px;background:#2a3358}.it .lv i.f{background:var(--cy)}
 .it button{margin:0;padding:8px 12px;font-size:12px;white-space:nowrap}
 body.playing #start{display:none}
+.mode{display:block;width:100%;margin-top:12px;text-align:left;background:rgba(107,227,255,.08);color:var(--ink);border:1px solid #26305a;padding:10px 14px;font-family:var(--t)}
+.mode b{display:block;font:800 14px var(--f)}.mode small{display:block;font-size:12px;color:var(--mute);margin-top:3px}
+#oDaily b{color:var(--gold)}#oDaily .ghost{margin-top:8px}
