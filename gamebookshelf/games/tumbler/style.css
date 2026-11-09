@@ -49,8 +49,7 @@ body.open #vault{opacity:1}
 @keyframes bounce{40%{transform:translateY(-12px)}}
 #msg{text-align:center;font:600 13px var(--f);color:#e7e0cf;min-height:18px;margin-top:12px;text-shadow:0 1px 0 #000}
 #ctl{width:100%;display:flex;flex-direction:column;align-items:center;gap:8px}
-#ring{position:relative;flex:none;width:var(--rs,240px);height:var(--rs,240px);border-radius:50%;
- background:radial-gradient(circle,#2a2b31 0 30%,transparent 31%),conic-gradient(from 0deg,#3d3f47,#2a2c32,#3d3f47,#2a2c32,#3d3f47);box-shadow:inset 0 0 0 6px #1a1b1f,inset 0 0 0 8px #555862,0 10px 30px rgba(0,0,0,.6);transition:transform .25s cubic-bezier(.3,1.4,.6,1)}
+
 #ring .hub{position:absolute;inset:34%;border-radius:50%;background:radial-gradient(circle at 35% 30%,#f3d98a,#b88a2a 60%,#6e4f12);box-shadow:0 4px 10px #000,inset 0 -2px 4px rgba(0,0,0,.4);display:grid;place-items:center;font:700 12px var(--f);color:#2a1d05;text-align:center;line-height:1.2;pointer-events:none}
 .sym{position:absolute;width:24%;height:24%;margin:-12% 0 0 -12%;border-radius:50%;border:0;padding:0;background:radial-gradient(circle at 40% 30%,#4a4c55,#25262b);box-shadow:0 3px 6px rgba(0,0,0,.6),inset 0 1px 0 rgba(255,255,255,.15);display:grid;place-items:center;transition:transform .1s,opacity .2s}
 .sym:active{transform:scale(.92)}
@@ -111,3 +110,21 @@ body.still *{animation:none!important;transition:none!important}
 .pay a.ghost{display:block;margin-top:10px;padding:10px;border-radius:10px;border:1px solid #3a3b42;color:var(--ink);text-decoration:none;font:600 14px var(--f)}
 .card .today small{display:block;margin-top:6px;font-size:12px;color:#c9a75a}
 #door{transform-style:preserve-3d}#board,#msg,.bolt{backface-visibility:hidden;-webkit-backface-visibility:hidden}
+
+#ring.pad{width:calc(var(--k,56px)*5 + 32px);flex:none;padding:10px 0 0;background:none;box-shadow:none;border-radius:0;transform:none}
+.pad .ph{text-align:center;font:500 13px var(--f);color:var(--mute);min-height:20px;margin-bottom:8px}.pad .ph b{color:var(--ink)}
+.pad .pg{display:grid;grid-template-columns:repeat(5,var(--k,56px));gap:8px;justify-content:center}
+.key{position:relative;width:var(--k,56px);height:var(--k,56px);font-size:var(--k,56px);border-radius:12px;border:1px solid #3a3b42;padding:0;background:radial-gradient(circle at 40% 25%,#45474f,#24252a);box-shadow:0 3px 0 #111,inset 0 1px 0 rgba(255,255,255,.12);display:grid;place-items:center;transition:transform .08s,opacity .2s,filter .2s}
+.key:active{transform:translateY(2px);box-shadow:0 1px 0 #111}
+.key .k{position:absolute;top:2px;left:5px;font:700 10px var(--f);color:#77746b}
+.key.used{opacity:.4}.key.out{opacity:.22;filter:grayscale(1)}.key.on{border-color:var(--brass);box-shadow:0 3px 0 #111,0 0 12px rgba(216,180,90,.4)}
+.pad .pe{display:flex;justify-content:space-between;margin-top:6px;font:600 11px var(--f);color:#77746b;letter-spacing:.04em;text-transform:uppercase}
+.ar{position:absolute;top:2px;right:3px;font-size:.24em;line-height:1;text-shadow:0 1px 2px #000}
+.ar.up{color:#ffd76a}.ar.dn{color:#9fc4ff}
+.slot.d .ar{opacity:.85}
+.ringdemo{gap:4px}.ringdemo span{width:36px;height:36px;font-size:36px;border-radius:8px}
+.ex .slot .ar{font-size:12px}
+.card .tip{background:#141518;border:1px solid #3a3b42;border-radius:10px;padding:10px 12px}
+.card li{display:block;padding-left:32px;position:relative}.card li .lamp{position:absolute;left:0;top:9px}
+.ar{font-size:.3em;top:3px;right:4px}
+.ringdemo span{width:32px;height:32px;font-size:32px}
