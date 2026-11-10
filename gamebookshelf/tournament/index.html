@@ -26,6 +26,13 @@ h1{font:700 clamp(40px,7vw,64px)/1 var(--disp);margin:0}h1 span{color:var(--gold
 .me{display:flex;gap:8px;align-items:center;background:var(--s1);border:1px solid var(--line);border-radius:14px;padding:10px 12px}
 .me label{font-size:13px;color:var(--muted)}.me input{width:160px;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:8px 10px}
 .me button{border:0;border-radius:8px;padding:8px 12px;background:var(--s2);cursor:pointer}.me button:hover{background:#243042}
+.friends{margin-top:20px;padding:14px 16px;border-radius:16px;background:var(--s1);border:1px solid var(--line);display:grid;gap:10px}
+.fh{display:flex;flex-wrap:wrap;gap:10px;align-items:center}.fh>b{font:700 18px var(--disp)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}.chip{border:1px solid var(--line);background:var(--bg);border-radius:999px;padding:6px 12px;cursor:pointer;font-size:14px}
+.chip.on{background:var(--gold);color:#2a1d02;border-color:var(--gold);font-weight:600}.chip small{opacity:.7;margin-left:4px}
+.fa{display:flex;flex-wrap:wrap;gap:8px;align-items:center}.fa button{border:0;border-radius:10px;padding:9px 14px;background:var(--s2);cursor:pointer;font-weight:600}.fa button:hover{background:#243042}
+.fa input{width:90px;text-transform:uppercase;letter-spacing:.15em;font-weight:700;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:8px 10px;text-align:center}.fa .or{color:var(--muted);font-size:14px}
+.fs{font-size:14px;color:var(--muted)}.fs:empty{display:none}.fs b{color:var(--text);letter-spacing:.12em}.fs button{margin-left:6px;border:0;border-radius:8px;padding:5px 10px;background:var(--s2);cursor:pointer;font-size:13px}
 .prizes{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-top:24px}
 .pz{background:var(--s1);border:1px solid var(--line);border-radius:12px;padding:10px 12px;font-size:13px;color:var(--muted)}
 .pz b{display:block;font:700 18px var(--disp);color:var(--text)}.pz:first-child b{color:var(--gold)}
@@ -71,6 +78,11 @@ h1{font:700 clamp(40px,7vw,64px)/1 var(--disp);margin:0}h1 span{color:var(--gold
   <div><h1>Weekly tournament <span id="wk"></span></h1><div class="sub">One course per game all week. Play as often as you like; your <b>best run</b> counts. Ends in <b id="ends"></b>.</div></div>
   <div class="me"><label for="nm">Your name</label><input id="nm" maxlength="16" autocomplete="nickname"><button id="saveNm" type="button">Save</button></div>
  </div>
+ <div class="friends" id="friends">
+  <div class="fh"><b>Leaderboards</b><div class="chips" id="chips"></div></div>
+  <div class="fa"><button id="fNew" type="button">Create a friends group</button><span class="or">or</span><input id="fCode" maxlength="4" placeholder="CODE" aria-label="Group code"><button id="fJoin" type="button">Join</button></div>
+  <div class="fs" id="fShare"></div>
+ </div>
  <div id="won"></div>
  <div class="prizes" id="prizes"></div>
  <div class="cols" id="cols"></div>
@@ -93,16 +105,30 @@ const P=[[1,'1st'],[2,'2nd–3rd'],[4,'4th–10th'],[11,'Top 25%'],[9999,'Everyo
 $('prizes').innerHTML=P.map(([r,l])=>{const p=T.prize(r,r===11?44:100);return '<div class="pz"><b>'+l+'</b>'+p.coins+' coins · '+p.stars+' stars · '+p.gold+' gold'+(p.keys?' · '+p.keys+' key'+(p.keys>1?'s':''):'')+'</div>'}).join('');
 const G=T.GAMES,ids=Object.keys(G);
 $('cols').innerHTML=ids.map(g=>'<section class="col" id="c-'+g+'"><div class="img" style="background-image:url('+G[g].img+')"></div><div class="hd"><h2>'+G[g].n+'</h2><div class="what">'+WHAT[g]+'</div></div><div class="mine"><span>Your best<br><b class="mb">–</b></span><span class="rk">Rank<br><b class="mr">–</b></span></div><a class="play" href="'+G[g].url+'">Play this week\'s '+G[g].n+'</a><ol class="lb"><span class="empty">Loading the leaderboard…</span></ol></section>').join('');
+let SEL=null,MEM=null;
+async function loadMembers(){MEM=null;if(!SEL)return;try{MEM=new Set(await T.members(SEL.c))}catch(e){MEM=new Set([T.uid()])}}
 async function loadBoards(){for(const g of ids){const c=$('c-'+g),lb=c.querySelector('.lb');
- try{const list=await T.board(g,W),me=T.uid(),i=list.findIndex(e=>e.id===me),mine=Math.max(T.myBest(g),i>=0?list[i].s:0);
+ try{const all=await T.board(g,W),list=MEM?all.filter(e=>MEM.has(e.id)):all,me=T.uid(),i=list.findIndex(e=>e.id===me),mine=Math.max(T.myBest(g),i>=0?list[i].s:0);
   c.querySelector('.mb').textContent=mine?FMT[g](mine):'–';c.querySelector('.mr').textContent=i>=0?'#'+(i+1)+' of '+list.length:'–';
-  lb.innerHTML=list.length?list.slice(0,25).map((e,k)=>'<li class="g'+(k+1)+(e.id===me?' you':'')+'"><span class="r">'+(k+1)+'</span><span class="n">'+esc(e.n)+(e.id===me?' (you)':'')+T.badge(CH[e.id])+'</span><span class="s">'+FMT[g](e.s)+'</span></li>').join('')+(i>=25?'<li class="you"><span class="r">'+(i+1)+'</span><span class="n">'+esc(list[i].n)+' (you)'+T.badge(CH[me])+'</span><span class="s">'+FMT[g](list[i].s)+'</span></li>':''):'<span class="empty">No scores yet this week. Be the first!</span>'}
+  lb.innerHTML=list.length?list.slice(0,25).map((e,k)=>'<li class="g'+(k+1)+(e.id===me?' you':'')+'"><span class="r">'+(k+1)+'</span><span class="n">'+esc(e.n)+(e.id===me?' (you)':'')+T.badge(CH[e.id])+'</span><span class="s">'+FMT[g](e.s)+'</span></li>').join('')+(i>=25?'<li class="you"><span class="r">'+(i+1)+'</span><span class="n">'+esc(list[i].n)+' (you)'+T.badge(CH[me])+'</span><span class="s">'+FMT[g](list[i].s)+'</span></li>':''):(MEM?'<span class="empty">Nobody in '+esc(SEL.l)+' has played this week yet.</span>':'<span class="empty">No scores yet this week. Be the first!</span>')}
  catch(e){const m=T.myBest(g);c.querySelector('.mb').textContent=m?FMT[g](m):'–';lb.innerHTML='<span class="empty">Couldn\'t reach the leaderboard right now. Your scores are still saved and will be sent next time.</span>'}}}
 async function loadLast(){if(W<2)return;const out=[];
  for(const g of ids){try{const l=await T.board(g,W-1);out.push('<div class="lw"><h3>'+G[g].n+'</h3>'+(l.length?'<ol>'+l.slice(0,3).map(e=>'<li><b>'+esc(e.n)+'</b> · '+FMT[g](e.s)+'</li>').join('')+'</ol>':'<span style="color:var(--muted)">Nobody entered.</span>')+'</div>')}catch(e){}}
  if(out.length)$('last').innerHTML='<h2>Last week\'s winners</h2><div class="lastg">'+out.join('')+'</div>'}
 async function prizes(){const got=await T.claimPrizes();const real=got.filter(x=>x.p);if(!real.length)return;
  $('won').innerHTML='<div class="won"><h2>🏆 Your tournament prizes are in!</h2>'+real.map(x=>'<p>'+G[x.g].n+', week '+x.w+': <b>'+x.p.t+'</b>'+(x.rank?' (#'+x.rank+' of '+x.of+')':'')+'. +'+x.p.coins+' Skyline coins, +'+x.p.stars+' Slingshot stars, +'+x.p.gold+' gold'+(x.p.keys?', +'+x.p.keys+' vault key'+(x.p.keys>1?'s':''):'')+'.</p>').join('')+'<p>They arrive the next time you open each game.</p></div>'}
+function chips(){const gs=T.groups();$('chips').innerHTML='<button class="chip'+(SEL?'':' on')+'" data-c="">Everyone</button>'+gs.map(g=>'<button class="chip'+(SEL&&SEL.c===g.c?' on':'')+'" data-c="'+g.c+'">'+esc(g.l)+'<small>'+g.c+'</small></button>').join('');
+ $('chips').querySelectorAll('.chip').forEach(b=>b.onclick=async()=>{SEL=b.dataset.c?gs.find(g=>g.c===b.dataset.c):null;chips();share();ids.forEach(g=>$('c-'+g).querySelector('.lb').innerHTML='<span class="empty">Loading…</span>');await loadMembers();loadBoards()});}
+function share(){const el=$('fShare');if(!SEL){el.innerHTML='';return}const link=location.origin+'/tournament/?group='+SEL.c;
+ el.innerHTML='Showing <b style="letter-spacing:0">'+esc(SEL.l)+'</b> only. Invite friends with code <b>'+SEL.c+'</b><button id="fCopy" type="button">Copy invite link</button><button id="fLeave" type="button">Leave group</button>';
+ $('fCopy').onclick=()=>{navigator.clipboard.writeText(link).then(()=>toast('Invite link copied'),()=>prompt('Invite link',link))};
+ $('fLeave').onclick=()=>{T.leaveGroup(SEL.c);SEL=null;MEM=null;chips();share();loadBoards();toast('You left the group')};}
+async function pick(g){SEL=g;chips();share();await loadMembers();loadBoards()}
+$('fNew').onclick=async()=>{const l=prompt('Name your group (for example: "Lunch table")',T.name()+"'s group");if(l===null)return;try{const g=await T.createGroup(l);toast('Group created. Share the code '+g.c);pick(g)}catch(e){toast('Couldn\'t reach the leaderboard. Try again in a moment.')}};
+$('fJoin').onclick=async()=>{const c=$('fCode').value.toUpperCase().trim();if(!T.isGroup(c)){toast('That code doesn\'t look right. Group codes are 4 letters starting with O.');return}try{const g=await T.joinGroup(c);$('fCode').value='';toast('Joined '+g.l);pick(g)}catch(e){toast(String(e.message)==='no group'?'No group with that code.':'Couldn\'t reach the leaderboard. Try again in a moment.')}};
+$('fCode').addEventListener('keydown',e=>{if(e.key==='Enter')$('fJoin').click()});
+chips();
+{const q=new URLSearchParams(location.search).get('group');if(q&&T.isGroup(q.toUpperCase())){const have=T.groups().find(g=>g.c===q.toUpperCase());(have?Promise.resolve(have):T.joinGroup(q)).then(g=>{toast('You\'re in '+g.l);pick(g)}).catch(()=>toast('That group link didn\'t work.'))}}
 let tt;function toast(t){const e=$('toast');e.textContent=t;e.classList.add('on');clearTimeout(tt);tt=setTimeout(()=>e.classList.remove('on'),2400)}
 T.champions(6).then(c=>{CH=c;loadBoards()}).catch(()=>{});loadBoards();loadLast();prizes();setInterval(loadBoards,60000);
 })();

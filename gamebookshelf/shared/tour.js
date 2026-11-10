@@ -57,14 +57,14 @@
     if (dbp) return dbp;
     dbp = (async () => {
       if (local) return {
-        get: async p => read('tourdb:' + p, null), put: async (p, v) => { const parts = p.split('/'), key = parts.pop(), par = parts.join('/'), o = read('tourdb:' + par, {}) || {}; if (v === null) delete o[key]; else o[key] = v; write('tourdb:' + par, o); }
+        get: async p => { const v = read('tourdb:' + p, null); if (v !== null) return v; const parts = p.split('/'), key = parts.pop(), par = read('tourdb:' + parts.join('/'), null); return par && par[key] !== undefined ? par[key] : null; }, put: async (p, v) => { const parts = p.split('/'), key = parts.pop(), par = parts.join('/'), o = read('tourdb:' + par, {}) || {}; if (v === null) delete o[key]; else o[key] = v; write('tourdb:' + par, o); }
       };
       if (!window.firebase || !firebase.database) {
         await load('https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js');
         await load('https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js');
       }
       const app = firebase.apps.find(a => a.name === 'tour') || firebase.initializeApp(CFG, 'tour'), d = app.database();
-      return { get: async p => (await d.ref(p).get()).val(), put: async (p, v) => d.ref(p).set(v) };
+      return { get: async p => (await d.ref(p).get()).val(), put: async (p, v) => d.ref(p).set(v), now: () => firebase.database.ServerValue.TIMESTAMP };
     })().catch(e => { dbp = null; throw e; });
     return dbp;
   }
@@ -85,7 +85,7 @@
       const bestS = mine.best[key] || 0, bestD = mine.dur[key] || 0;
       if (bestS && LIMITS[g](bestS, bestD) && (!cur || better(g, bestS, cur.s) || cur.n !== name())) {
         const s = cur && !better(g, bestS, cur.s) ? cur.s : bestS, d = cur && !better(g, bestS, cur.s) ? cur.d : bestD, rec = { n: name(), s, t: Date.now(), d, h: sig(g, w, me, s, d) };
-        await timeout((await db()).put('nr/' + code(g, w) + '/s/' + me, rec), 12000);
+        const D = await db(); await timeout(D.put('nr/' + code(g, w) + '/s/' + me, Object.assign({}, rec, { t: D.now ? D.now() : rec.t })), 12000);
         const i = list.findIndex(e => e.id === me); if (i >= 0) list.splice(i, 1); list.push(Object.assign({ id: me }, rec)); list.sort(order(g));
         if (list.length > KEEP) for (const e of list.slice(KEEP)) if (e.id !== me) (await db()).put('nr/' + code(g, w) + '/s/' + e.id, null);
       }
@@ -119,10 +119,29 @@
   }
   function badge(c) { if (!c) return ''; return (c.gold ? '<span class="badge gold" title="Champion: ' + c.wins.join(', ') + '">🏆' + (c.gold > 1 ? c.gold : '') + '</span>' : '') + (c.podium ? '<span class="badge pod" title="' + c.podium + ' podium finish' + (c.podium > 1 ? 'es' : '') + '">🏅' + (c.podium > 1 ? c.podium : '') + '</span>' : ''); }
   function fmt(g, v) { if (g === 'cornerpocket') { const t = v / 10, m = Math.floor(t / 60), r = t - m * 60; return m + ':' + (r < 10 ? '0' : '') + r.toFixed(1); } if (g === 'skyline') return v + ' floors'; if (g === 'slingshot') return 'planet ' + v; if (g === 'ridgeline') return Number(v).toLocaleString() + ' m'; return Number(v).toLocaleString() + ' mass'; }
+  /* ---- friends groups: a 4-letter code (starts with O, so it can't be a room or a tournament) ----
+     nr/<GROUP>/g/<player id> = {n: name, j: joined}. Boards can be filtered to a group's members. */
+  const GL = 'ABDEFGHJKNPQTUVWXYZ'; // second letter: never S, L, M, R or C (those are tournament codes)
+  const groups = () => read('gbs-groups', []);
+  const isGroup = c => /^O[ABDEFGHJKNPQTUVWXYZ][A-HJ-NP-Z]{2}$/.test(c || '');
+  async function createGroup(label) {
+    const D = await timeout(db(), 12000); let c = '';
+    for (let i = 0; i < 8; i++) { c = 'O' + GL[Math.random() * GL.length | 0] + L[Math.random() * L.length | 0] + L[Math.random() * L.length | 0]; if (!(await D.get('nr/' + c + '/g'))) break; }
+    await D.put('nr/' + c + '/info', { l: String(label || name() + "'s group").slice(0, 24), t: Date.now() });
+    return joinGroup(c);
+  }
+  async function joinGroup(c) {
+    c = String(c || '').toUpperCase().trim(); if (!isGroup(c)) throw new Error('bad code');
+    const D = await timeout(db(), 12000), info = await D.get('nr/' + c + '/info'); if (!info) throw new Error('no group');
+    await D.put('nr/' + c + '/g/' + uid(), { n: name(), j: Date.now() });
+    const gs = groups().filter(x => x.c !== c); gs.unshift({ c, l: info.l }); write('gbs-groups', gs.slice(0, 8)); return { c, l: info.l };
+  }
+  function leaveGroup(c) { write('gbs-groups', groups().filter(x => x.c !== c)); db().then(D => D.put('nr/' + c + '/g/' + uid(), null)).catch(() => { }); }
+  async function members(c) { const D = await timeout(db(), 12000); return Object.keys(await D.get('nr/' + c + '/g') || {}); }
   function myBest(g, w) { const m = read('gbs-tour', {}); return (m.best && m.best[g + (w || week())]) || 0; }
   /* a seeded random-number generator for this week's course */
   function seed(g) { let h = 2166136261; const t = 'tour-' + g + '-' + week(); for (let i = 0; i < t.length; i++) { h ^= t.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; }
   function rng(g) { let a = seed(g); return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
   function left() { const ms = weekEnd(week()) - Date.now(), d = Math.floor(ms / 864e5), h = Math.floor(ms / 36e5) % 24, m = Math.floor(ms / 6e4) % 60; return d > 0 ? d + 'd ' + h + 'h' : h + 'h ' + m + 'm'; }
-  window.GBTour = { GAMES, week, weekEnd, code, uid, name, setName, board, submit, claimPrizes, myBest, seed, rng, prize, left, local, champions, badge, fmt, valid, sig, LIMITS };
+  window.GBTour = { GAMES, week, weekEnd, code, uid, name, setName, board, submit, claimPrizes, myBest, seed, rng, prize, left, local, champions, badge, fmt, valid, sig, LIMITS, groups, isGroup, createGroup, joinGroup, leaveGroup, members };
 })();

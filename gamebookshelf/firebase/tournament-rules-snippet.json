@@ -1,0 +1,13 @@
+"s": {
+  "$uid": {
+    ".validate": "!$code.beginsWith('O') || (newData.hasChildren(['n', 's', 't', 'd', 'h']) && newData.child('n').isString() && newData.child('n').val().length >= 1 && newData.child('n').val().length <= 16 && newData.child('h').isString() && newData.child('h').val().length <= 12 && newData.child('s').isNumber() && newData.child('d').isNumber() && newData.child('d').val() >= 0 && newData.child('d').val() <= 3600 && newData.child('t').val() == now && (!data.exists() || now - data.child('t').val() >= 5000) && (($code.beginsWith('OS') && newData.child('s').val() >= 0 && newData.child('s').val() <= 500 && newData.child('d').val() >= newData.child('s').val() * 0.45) || ($code.beginsWith('OL') && newData.child('s').val() >= 0 && newData.child('s').val() <= 800 && newData.child('d').val() >= newData.child('s').val() * 0.5) || ($code.beginsWith('OM') && newData.child('s').val() >= 1 && newData.child('s').val() <= 60000 && newData.child('d').val() <= 200 && newData.child('s').val() <= 400 + newData.child('d').val() * 1500) || ($code.beginsWith('OR') && newData.child('s').val() >= 0 && newData.child('s').val() <= 80000 && newData.child('d').val() * 70 >= newData.child('s').val()) || ($code.beginsWith('OC') && newData.child('s').val() >= 250 && newData.child('s').val() <= 36000 && newData.child('d').val() * 10 <= newData.child('s').val() + 5)))"
+  }
+},
+"g": {
+  "$uid": {
+    ".validate": "!$code.beginsWith('O') || (newData.hasChildren(['n', 'j']) && newData.child('n').isString() && newData.child('n').val().length <= 16 && newData.child('j').isNumber())"
+  }
+},
+"info": {
+  ".validate": "!$code.beginsWith('O') || (newData.hasChildren(['l', 't']) && newData.child('l').isString() && newData.child('l').val().length <= 24 && newData.child('t').isNumber())"
+}
