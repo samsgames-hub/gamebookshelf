@@ -403,7 +403,9 @@ function mkBall(id, x, y) {
 
 // ---------------------------------------------------------------- racks
 function shuffle(a) { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
-function rack(type) {
+/* the weekly tournament racks the balls the same way for everyone */
+function rack(type) { const R0 = Math.random; if (G.cfg && G.cfg.tour && window.GBTour) Math.random = GBTour.rng('cornerpocket'); try { return rack0(type); } finally { Math.random = R0; } }
+function rack0(type) {
   const bs = [mkBall(0, HEAD.x, 0)];
   const dx = D * Math.cos(Math.PI / 6) * 1.0015, dy = D * 1.0015;
   const place = (rows, ids) => {
@@ -481,7 +483,7 @@ function setBalls(bs) { G.balls = bs; G.byId = {}; bs.forEach(b => { G.byId[b.id
 const onBalls = () => G.balls.filter(b => b.on && b.id !== 0);
 const lowestOn = () => { let m = 99; G.balls.forEach(b => { if (b.on && b.id > 0 && b.id < m) m = b.id; }); return m; };
 const groupLeft = g => G.balls.filter(b => b.on && groupOf(b.id) === g).length;
-function curCue(P) { const pl = G.players[P]; return pl && pl.ai >= 0 ? (pl.ai > .8 ? CUES.birds : CUES.maple) : CUES[SAVE.cue]; }
+function curCue(P) { const pl = G.players[P]; if (G.cfg && G.cfg.tour && !(pl && pl.ai >= 0)) return CUES.house; return pl && pl.ai >= 0 ? (pl.ai > .8 ? CUES.birds : CUES.maple) : CUES[SAVE.cue]; }
 const maxSpeed = P => 6.2 * curCue(P).power;
 const powerToSpeed = (p, P) => maxSpeed(P) * Math.pow(clamp(p, 0, 1), 1.6) * (G.brk ? 1.38 : 1);
 const isAI = P => G.players[P] && G.players[P].ai >= 0;
@@ -1186,6 +1188,10 @@ function finishSpeed() {
   const pr = $('rPrize'); if (prize) { pr.textContent = '+$' + prize; pr.classList.remove('hide'); SFX.coin(); } else pr.classList.add('hide');
   $('rKV').innerHTML = [['Time', fmtT(G.speedT)], ['Penalties', '+' + G.speedPen + 's'], ['Shots', G.shots], ['Medal times', 'Gold 2:30 · Silver 3:30 · Bronze 5:00']].map(r => `<tr><td>${r[0]}</td><td>${r[1]}</td></tr>`).join('');
   $('rAlt').classList.add('hide'); $('rAgain').textContent = 'Try again';
+  if (G.cfg.tour && window.GBTour) {
+    $('rSub').textContent = 'Weekly tournament · saving your time…'; const tenths = Math.round(total * 10);
+    GBTour.submit('cornerpocket', tenths, G.speedT).then(r => { $('rSub').innerHTML = (r.improved ? 'New personal best this week! ' : '') + 'Your best: <b>' + GBTour.fmt('cornerpocket', r.best) + '</b>' + (r.online ? ' · rank <b>#' + r.rank + '</b> of ' + r.of : ' (offline, saved on this device)') + ' · <a href="/tournament/" style="color:inherit">Leaderboard</a>'; });
+  }
   medal ? SFX.win() : SFX.good();
   show('result');
 }
@@ -1463,7 +1469,7 @@ function launch(cfg) {
   $('speedBox').classList.toggle('hide', cfg.mode !== 'speed');
   document.querySelector('.plates').classList.toggle('hide', cfg.mode === 'speed' || cfg.mode === 'practice');
   startMatch(cfg);
-  if (cfg.mode === 'speed') banner('Speed Pool', 'Sink all 15 balls. The clock starts on the break.');
+  if (cfg.mode === 'speed') banner(cfg.tour ? 'Weekly tournament' : 'Speed Pool', cfg.tour ? 'Same rack for everyone, house cue. Sink all 15, fastest time wins.' : 'Sink all 15 balls. The clock starts on the break.');
   else if (cfg.mode === 'practice') banner('Practice', 'No rules. Drag the cue ball anywhere.');
   else banner(cfg.mode === 'two' ? 'Frame 1' : 'vs ' + cfg.players[1].name, (cfg.rules === '9' ? '9-ball' : '8-ball') + ' · ' + (cfg.raceTo > 1 ? 'race to ' + cfg.raceTo : 'one frame') + ' · ' + G.players[G.breaker].name + (G.players[G.breaker].you ? ' break' : ' breaks'));
 }
@@ -1471,6 +1477,10 @@ function launch(cfg) {
 $('bCareer').onclick = () => { SFX.ui(); show('career'); };
 $('bQuick').onclick = () => { SFX.ui(); buildQuick(); show('quick'); };
 $('bSpeed').onclick = () => { SFX.ui(); launch({ mode: 'speed', rules: 'speed', raceTo: 1, players: [you(), { name: '', ai: -1 }] }); };
+if ($('bTour')) $('bTour').onclick = () => { SFX.ui(); launch({ mode: 'speed', rules: 'speed', raceTo: 1, tour: true, players: [you(), { name: '', ai: -1 }] }); };
+function tourBtn() { const b = $('bTour'); if (!b || !window.GBTour) return; const m = GBTour.myBest('cornerpocket'); b.innerHTML = '🏆 Weekly tournament<small>Speed Pool, same rack for everyone · ' + (m ? 'your best ' + GBTour.fmt('cornerpocket', m) + ' · ' : '') + 'ends in ' + GBTour.left() + '</small>'; }
+tourBtn(); setInterval(tourBtn, 60000);
+try { if (/[?&]tour/.test(location.search)) $('bTour').classList.add('pulse'); } catch (e) { }
 $('bPractice').onclick = () => { SFX.ui(); launch({ mode: 'practice', rules: 'free', raceTo: 1, players: [you(), { name: '', ai: -1 }] }); };
 $('bShop').onclick = () => { SFX.ui(); show('shop'); };
 $('bSet').onclick = () => { SFX.ui(); show('settings'); };
@@ -1656,7 +1666,7 @@ function frame(now) {
   render(dt);
 }
 // test hook used for automated play-testing (harmless for players)
-window.__cp = { G, SAVE, update, render, advance, SFX, Music, AU, w2s, launch, you, LADDER, LEVELS, fire: (a, s, x, y) => fire(a, s, x || 0, y || 0), simShot, newRec, powerToSpeed, toMenu, startCareer };
+window.__cp = { finishSpeed: () => finishSpeed(), G, SAVE, update, render, advance, SFX, Music, AU, w2s, launch, you, LADDER, LEVELS, fire: (a, s, x, y) => fire(a, s, x || 0, y || 0), simShot, newRec, powerToSpeed, toMenu, startCareer };
 resize(); drawSpin(); powerUI();
 toMenu();
 requestAnimationFrame(frame);

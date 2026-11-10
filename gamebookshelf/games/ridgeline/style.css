@@ -141,3 +141,7 @@ body.touch .gauge{bottom:max(150px,calc(env(safe-area-inset-bottom) + 140px));tr
  #pops{top:30%}#pops div{font-size:20px}
  body.touch .gauge{bottom:8px;transform:translateX(-50%) scale(.7)}
 }
+
+#bTour.tourb{border-color:rgba(255,209,102,.5);background:rgba(255,209,102,.1);text-align:left}#bTour small{display:block;font-size:12px;font-weight:500;opacity:.8;margin-top:2px}
+.tourline{margin:10px 0 0;padding:10px 12px;border-radius:10px;background:rgba(255,209,102,.1);border:1px solid rgba(255,209,102,.35);font-size:14px;line-height:1.5}.tourline a{color:inherit;font-weight:700}
+.pulse{animation:dpulse 1.2s ease-in-out infinite}@keyframes dpulse{50%{box-shadow:0 0 0 6px rgba(255,214,102,.35),0 0 24px rgba(255,214,102,.45)}}

@@ -341,8 +341,8 @@ const terrainFor = reg => (TERRAINS[reg.id] = TERRAINS[reg.id] || new Terrain(re
 // =====================================================================
 const GRAV = 9.81, PDT = 1 / 240, ITERS = 10, BETA = .22, SLOP = .004;
 function body(m, I) { return { x: 0, y: 0, a: 0, vx: 0, vy: 0, w: 0, m, im: 1 / m, I, iI: 1 / I }; }
-function buildVehicle(id, T, x0) {
-  const d = VEH[id], up = SAVE.up[id];
+function buildVehicle(id, T, x0, stock) {
+  const d = VEH[id], up = stock ? { eng: 0, sus: 0, tire: 0, tank: 0 } : SAVE.up[id];
   const ch = body(d.mass, d.mass * (d.len * d.len + d.hgt * d.hgt) / 12 * .85);
   const gy = T.height(x0);
   ch.x = x0; ch.y = gy + d.R + d.rest + .3 - d.anchors[0][1];
@@ -505,12 +505,19 @@ const G = {
   cam: { x: 0, y: 0, s: 40, vx: 0 }, shake: 0, hitStop: 0, slow: 1, stillT: 0, warnT: 0, lastBest: 0, gear: 1, rpm: 0, runT: 0
 };
 const INP = { gas: false, brake: false, low: false };
+/* weekly tournament: one trail and one stock vehicle for everyone, all week (see /shared/tour.js) */
+function tourSetup() {
+  const r = GBTour.rng('ridgeline'), base = REGIONS[Math.floor(r() * REGIONS.length)], veh = VEH_ORDER[Math.floor(r() * 3)];
+  const reg = Object.assign({}, base, { id: 'tour' + GBTour.week(), seed: 1000 + Math.floor(r() * 90000), name: base.name + ' (tournament)' });
+  return { reg, veh };
+}
 function startRun(mode) {
-  G.mode = mode; G.reg = mode === 'demo' ? REGIONS[0] : regionById(SAVE.region);
+  G.mode = mode; G.tour = mode === 'tour' && window.GBTour ? (G.tour && G.tour.reg.id === 'tour' + GBTour.week() ? G.tour : tourSetup()) : null;
+  G.reg = mode === 'demo' ? REGIONS[0] : G.tour ? G.tour.reg : regionById(SAVE.region);
   G.T = terrainFor(G.reg);
   // reset the props for a fresh run
   G.T.fuel.forEach(p => { p.got = false; }); G.T.caches.forEach(p => { p.got = false; }); G.T.camps.forEach(p => { p.got = false; });
-  G.V = buildVehicle(mode === 'demo' ? 'scout' : SAVE.veh, G.T, 2);
+  G.V = buildVehicle(mode === 'demo' ? 'scout' : G.tour ? G.tour.veh : SAVE.veh, G.T, 2, !!G.tour);
   G.startX = G.V.ch.x; G.dist = 0; G.cash = 0; G.earn = { dist: 0, cache: 0, air: 0, flip: 0, camp: 0 };
   G.air = 0; G.airRot = 0; G.low = false; INP.low = false; G.over = null; G.state = 'run'; G.acc = 0; G.stillT = 0; G.warnT = 0; G.runT = 0;
   G.best = SAVE.best[G.reg.id] || 0; G.bestHit = false;
@@ -530,8 +537,9 @@ function endRun(reason) {
   if (G.mode === 'demo') { G.endT = 1.2; return; }
   const distCash = Math.floor(G.dist * G.reg.mult);
   G.earn.dist = distCash; G.cash += distCash;
-  const prevBest = SAVE.best[G.reg.id] || 0, isBest = G.dist > prevBest;
-  if (isBest) SAVE.best[G.reg.id] = Math.floor(G.dist);
+  const prevBest = G.tour ? GBTour.myBest('ridgeline') : SAVE.best[G.reg.id] || 0, isBest = G.dist > prevBest;
+  if (isBest && !G.tour) SAVE.best[G.reg.id] = Math.floor(G.dist);
+  if (G.tour) { G.tourRes = null; const d = Math.floor(G.dist); GBTour.submit('ridgeline', d, G.runT).then(r => { G.tourRes = r; if (G.state === 'over') tourRow(); }); }
   SAVE.cash += G.cash; SAVE.total += G.dist; SAVE.runs++; persist();
   G.result = { isBest, prevBest };
   if (reason === 'crash') { SFX.crash(); G.hitStop = .08; G.shake = 18; G.slow = .35; }
@@ -541,7 +549,7 @@ function showOver() {
   G.state = 'over';
   const r = G.result, reasons = { crash: 'Rolled it', fuel: 'Out of fuel', quit: 'Run ended', stuck: 'Stuck' };
   $('oTitle').textContent = reasons[G.over] || 'Run over';
-  $('oSub').textContent = G.reg.name + ' · ' + VEH[SAVE.veh].name;
+  $('oSub').textContent = G.reg.name + ' · ' + VEH[G.tour ? G.tour.veh : SAVE.veh].name + (G.tour ? ' (stock)' : '');
   $('oDist').innerHTML = fmt(G.dist) + '<small>m</small>';
   const E = G.earn, rows = [
     ['Distance (' + G.reg.mult + '× trail bonus)', '$' + fmt(E.dist)], ['Supply caches', '$' + fmt(E.cache)], ['Air time', '$' + fmt(E.air)], ['Flips', '$' + fmt(E.flip)], ['Base camps', '$' + fmt(E.camp)]
@@ -551,7 +559,7 @@ function showOver() {
   const ni = REGIONS.findIndex(x => x.id === G.reg.id) + 1;
   if (ni < REGIONS.length && !G.unlockShown && regionUnlocked(ni) && r.prevBest < REGIONS[ni].need) { $('oKV').innerHTML += `<tr><td colspan="2" style="color:var(--green);text-align:left">${REGIONS[ni].name} is now open!</td></tr>`; }
   if (r.isBest) SFX.best();
-  show('over');
+  show('over'); if (G.tour) tourRow();
 }
 
 // =====================================================================
@@ -1213,7 +1221,7 @@ function setRange(low, quiet) {
 // =====================================================================
 //  INPUT
 // =====================================================================
-const inRun = () => !document.body.classList.contains('inmenu') && G.mode === 'run' && G.state === 'run';
+const inRun = () => !document.body.classList.contains('inmenu') && (G.mode === 'run' || G.mode === 'tour') && G.state === 'run';
 window.addEventListener('keydown', e => {
   if (e.target && e.target.tagName === 'INPUT' && e.target.type === 'range') return;
   audioInit();
@@ -1221,7 +1229,7 @@ window.addEventListener('keydown', e => {
   if (k === 'ArrowRight' || k === 'KeyD' || k === 'ArrowUp' || k === 'KeyW') { keyGas = true; e.preventDefault(); }
   if (k === 'ArrowLeft' || k === 'KeyA' || k === 'ArrowDown' || k === 'KeyS') { keyBrake = true; e.preventDefault(); }
   if ((k === 'ShiftLeft' || k === 'ShiftRight' || k === 'KeyL') && !e.repeat && inRun()) setRange(!G.low);
-  if (k === 'Escape' || k === 'KeyP') { if (inRun() || (G.paused && G.mode === 'run')) togglePause(); else if (k === 'Escape') goBack(); }
+  if (k === 'Escape' || k === 'KeyP') { if (inRun() || (G.paused && (G.mode === 'run' || G.mode === 'tour'))) togglePause(); else if (k === 'Escape') goBack(); }
   if (k === 'KeyR' && inRun()) endRun('quit');
   if (k === 'KeyM') { SET.mute = !SET.mute; persistSet(); applyAudio(); syncSettings(); }
   if (k === 'Space') e.preventDefault();
@@ -1263,14 +1271,25 @@ function hideAll() { PANELS.forEach(p => $(p).classList.add('hide')); }
 function goBack() { if (nav.length <= 1) return; nav.pop(); SFX.ui(); show(nav[nav.length - 1], false); }
 document.querySelectorAll('[data-back]').forEach(b => b.addEventListener('click', goBack));
 function refreshMenu() {
+  if ($('bTour') && window.GBTour) { const t = tourSetup(), b = GBTour.myBest('ridgeline'); $('bTour').innerHTML = '🏆 Weekly tournament<small>' + t.reg.name.replace(' (tournament)', '') + ' · stock ' + VEH[t.veh].name + (b ? ' · your best ' + fmt(b) + ' m' : '') + ' · ends in ' + GBTour.left() + '</small>'; }
   $('mCash').textContent = '$' + fmt(SAVE.cash);
   const r = regionById(SAVE.region);
   $('mInfo').textContent = r.name + ' · best ' + fmt(SAVE.best[r.id] || 0) + ' m · ' + VEH[SAVE.veh].name;
 }
 function toMenu() {
-  G.paused = false; hud(false); document.body.classList.add('inmenu');
+  G.paused = false; G.tour = null; if ($('oTour')) $('oTour').classList.add('hide'); hud(false); document.body.classList.add('inmenu');
   $('banner').classList.add('hide');
   startRun('demo'); show('menu');
+}
+function tourRow() {
+  const el = $('oTour'); if (!el) return; el.classList.remove('hide'); const r = G.tourRes;
+  el.innerHTML = !r ? 'Saving your tournament score…' : (r.improved ? 'New personal best this week! ' : '') + 'Your best: <b>' + fmt(r.best) + ' m</b>' + (r.online ? ' · rank <b>#' + r.rank + '</b> of ' + r.of : ' (offline, saved on this device)') + '<br><a href="/tournament/">Leaderboard and your name</a> · ends in ' + GBTour.left();
+}
+function driveTour() {
+  hideAll(); nav = []; document.body.classList.remove('inmenu');
+  startRun('tour');
+  setRange(false, true); $('pops').innerHTML = '';
+  banner('Weekly tournament', G.reg.name.replace(' (tournament)', '') + ' · stock ' + VEH[G.tour.veh].name);
 }
 function drive() {
   hideAll(); nav = []; document.body.classList.remove('inmenu');
@@ -1284,7 +1303,8 @@ $('bGarage').onclick = () => { SFX.ui(); gSel = SAVE.veh; show('garage'); };
 $('bSet').onclick = () => { SFX.ui(); show('settings'); };
 $('bHelp').onclick = () => { SFX.ui(); show('help'); };
 $('gDrive').onclick = () => { SFX.ui(); if (SAVE.owned.includes(gSel)) { SAVE.veh = gSel; persist(); } drive(); };
-$('oAgain').onclick = () => { SFX.ui(); drive(); };
+$('oAgain').onclick = () => { SFX.ui(); if (G.mode === 'tour') driveTour(); else drive(); };
+if ($('bTour')) $('bTour').onclick = () => { SFX.ui(); driveTour(); };
 $('oMenu').onclick = () => { SFX.ui(); toMenu(); };
 $('oGarage').onclick = () => { SFX.ui(); toMenu(); gSel = SAVE.veh; show('garage'); };
 // ---------- regions
@@ -1375,7 +1395,7 @@ function togglePause() {
   applyAudio();
 }
 $('pResume').onclick = () => { SFX.ui(); togglePause(); };
-$('pRestart').onclick = () => { SFX.ui(); G.paused = false; AU.duck = .8; applyAudio(); drive(); };
+$('pRestart').onclick = () => { SFX.ui(); G.paused = false; AU.duck = .8; applyAudio(); if (G.mode === 'tour') driveTour(); else drive(); };
 $('pSet').onclick = () => { SFX.ui(); show('settings'); };
 $('pHelp').onclick = () => { SFX.ui(); show('help'); };
 $('pQuit').onclick = () => { SFX.ui(); G.paused = false; hideAll(); endRun('quit'); G.endT = .01; };
@@ -1395,3 +1415,4 @@ resize();
 toMenu();
 requestAnimationFrame(frame);
 })();
+try { if (/[?&]tour/.test(location.search)) { const b = document.getElementById('bTour'); if (b) b.classList.add('pulse'); } } catch (e) { }

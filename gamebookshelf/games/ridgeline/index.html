@@ -39,6 +39,7 @@
  <p class="tag">Off-road hill climbing. One tank of fuel, real suspension, and the trail only gets worse.</p>
  <nav class="stack">
   <button id="bDrive" class="big">Drive</button>
+  <button id="bTour" class="tourb"></button>
   <button id="bRegion">Choose a trail</button>
   <button id="bGarage">Garage</button>
   <div class="row2"><button id="bSet">Settings</button><button id="bHelp">How to play</button></div>
@@ -120,9 +121,11 @@
  <header class="phead"><h2 id="oTitle"></h2><p id="oSub"></p></header>
  <div class="bigdist" id="oDist"></div>
  <table class="kv"><tbody id="oKV"></tbody></table>
+ <p id="oTour" class="tourline hide"></p>
  <div class="btns"><button id="oMenu" class="ghost">Menu</button><button id="oGarage" class="ghost">Garage</button><button id="oAgain" class="go">Drive again</button></div>
 </section>
 
+<script src="/shared/tour.js"></script>
 <script src="game.js"></script>
 <!-- visitor counter: no cookies, no personal data -->
 <script data-goatcounter="https://gamebookshelf.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>

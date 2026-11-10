@@ -11,8 +11,25 @@
   const GAMES = {
     skyline: { k: 'S', n: 'Skyline', unit: 'floors', url: '/games/skyline/index.html?tour=1', img: '/assets/skyline-tile.webp' },
     slingshot: { k: 'L', n: 'Slingshot', unit: 'planets', url: '/games/slingshot/index.html?tour=1', img: '/assets/slingshot-tile.webp' },
-    mitosis: { k: 'M', n: 'Mitosis', unit: 'mass', url: '/games/mitosis/index.html?tour=1', img: '/assets/mitosis-tile.jpg' }
+    mitosis: { k: 'M', n: 'Mitosis', unit: 'mass', url: '/games/mitosis/index.html?tour=1', img: '/assets/mitosis-tile.jpg' },
+    ridgeline: { k: 'R', n: 'Ridgeline', unit: 'm', url: '/games/ridgeline/index.html?tour=1', img: '/assets/ridgeline-tile.webp' },
+    cornerpocket: { k: 'C', n: 'Corner Pocket', unit: 'time', low: true, url: '/games/corner-pocket/index.html?tour=1', img: '/assets/corner-pocket-tile.webp' }
   };
+  /* ---- basic cheat checks ----
+     Every score is sent with how long the run took and a signature. The leaderboard ignores entries whose numbers are impossible
+     (too big for the time played, or outside what the game allows) or whose signature doesn't match. This stops casual editing
+     of the database or the browser console; it isn't bank-grade, but it keeps the boards honest among friends. */
+  const LIMITS = {
+    skyline: (s, d) => s >= 0 && s <= 500 && d >= s * .45,
+    slingshot: (s, d) => s >= 0 && s <= 800 && d >= s * .5,
+    mitosis: (s, d) => s >= 1 && s <= 60000 && d <= 200 && s <= 400 + d * 1500,
+    ridgeline: (s, d) => s >= 0 && s <= 80000 && d >= s / 70,
+    cornerpocket: (s, d) => s >= 250 && s <= 36000 && d * 10 <= s + 5
+  };
+  function sig(g, w, id, s, d) { let h = 2166136261; const t = 'gbs|' + g + '|' + w + '|' + id + '|' + s + '|' + d + '|ridge-pocket-sky'; for (let i = 0; i < t.length; i++) { h ^= t.charCodeAt(i); h = Math.imul(h, 16777619); } return (h >>> 0).toString(36); }
+  function valid(g, w, e) { return !!(LIMITS[g] && LIMITS[g](e.s, e.d) && e.h === sig(g, w, e.id, e.s, e.d)); }
+  const better = (g, a, b) => GAMES[g].low ? (b === 0 || (a > 0 && a < b)) : a > b;
+  const order = g => GAMES[g].low ? (a, b) => a.s - b.s || a.t - b.t : (a, b) => b.s - a.s || a.t - b.t;
   /* prize for a final rank (1-based); everyone who entered gets something */
   function prize(rank, entrants) {
     if (!rank) return null;
@@ -55,24 +72,27 @@
 
   async function board(g, w) {
     w = w || week(); const D = await timeout(db(), 12000), all = await timeout(D.get('nr/' + code(g, w) + '/s'), 12000) || {};
-    return Object.entries(all).map(([id, v]) => ({ id, n: String(v.n || 'Player').slice(0, 16), s: +v.s || 0, t: +v.t || 0 })).sort((a, b) => b.s - a.s || a.t - b.t);
+    return Object.entries(all).map(([id, v]) => ({ id, n: String(v.n || 'Player').slice(0, 16), s: +v.s || 0, t: +v.t || 0, d: +v.d || 0, h: v.h })).filter(e => valid(g, w, e)).sort(order(g));
   }
   /* save this week's best score; returns {best, rank, of, improved} */
-  async function submit(g, score) {
-    score = Math.max(0, Math.round(+score || 0)); const w = week(), me = uid(), mine = read('gbs-tour', {});
-    const key = g + w; mine.best = mine.best || {}; const prev = mine.best[key] || 0, improved = score > prev;
-    if (improved) { mine.best[key] = score; write('gbs-tour', mine); }
+  /* save this week's best; dur = how long the run took in seconds (used by the cheat checks) */
+  async function submit(g, score, dur) {
+    score = Math.max(0, Math.round(+score || 0)); dur = Math.max(0, Math.round(+dur || 0)); const w = week(), me = uid(), mine = read('gbs-tour', {});
+    const key = g + w; mine.best = mine.best || {}; mine.dur = mine.dur || {}; const prev = mine.best[key] || 0, ok = LIMITS[g](score, dur), improved = ok && better(g, score, prev);
+    if (improved) { mine.best[key] = score; mine.dur[key] = dur; write('gbs-tour', mine); }
     try {
       const list = await board(g, w), cur = list.find(e => e.id === me);
-      if (!cur || score > cur.s || cur.n !== name()) {
-        const s = Math.max(score, cur ? cur.s : 0);
-        await timeout((await db()).put('nr/' + code(g, w) + '/s/' + me, { n: name(), s, t: Date.now() }), 12000);
-        const i = list.findIndex(e => e.id === me); if (i >= 0) list.splice(i, 1); list.push({ id: me, n: name(), s, t: Date.now() }); list.sort((a, b) => b.s - a.s || a.t - b.t);
+      const bestS = mine.best[key] || 0, bestD = mine.dur[key] || 0;
+      if (bestS && LIMITS[g](bestS, bestD) && (!cur || better(g, bestS, cur.s) || cur.n !== name())) {
+        const s = cur && !better(g, bestS, cur.s) ? cur.s : bestS, d = cur && !better(g, bestS, cur.s) ? cur.d : bestD, rec = { n: name(), s, t: Date.now(), d, h: sig(g, w, me, s, d) };
+        await timeout((await db()).put('nr/' + code(g, w) + '/s/' + me, rec), 12000);
+        const i = list.findIndex(e => e.id === me); if (i >= 0) list.splice(i, 1); list.push(Object.assign({ id: me }, rec)); list.sort(order(g));
         if (list.length > KEEP) for (const e of list.slice(KEEP)) if (e.id !== me) (await db()).put('nr/' + code(g, w) + '/s/' + e.id, null);
       }
       const rank = list.findIndex(e => e.id === me) + 1;
-      return { best: Math.max(score, prev, cur ? cur.s : 0), rank, of: list.length, improved, online: true };
-    } catch (e) { return { best: Math.max(score, prev), rank: 0, of: 0, improved, online: false }; }
+      const mineE = list.find(e => e.id === me);
+      return { best: mineE ? mineE.s : (mine.best[key] || score), rank, of: list.length, improved, online: true };
+    } catch (e) { return { best: mine.best[key] || score, rank: 0, of: 0, improved, online: false }; }
   }
   /* pay prizes for finished weeks you entered (once each) */
   async function claimPrizes() {
@@ -89,10 +109,20 @@
     }
     mine.paid = paid; write('gbs-tour', mine); return out;
   }
+  /* past winners: id -> {gold, podium} over the last few finished weeks (for badges on the leaderboards) */
+  async function champions(weeks) {
+    const out = {}, w = week();
+    for (let pw = Math.max(1, w - (weeks || 6)); pw < w; pw++) for (const g of Object.keys(GAMES)) {
+      try { const l = await board(g, pw); l.slice(0, 3).forEach((e, i) => { const o = out[e.id] = out[e.id] || { gold: 0, podium: 0, wins: [] }; if (i === 0) { o.gold++; o.wins.push(GAMES[g].n + ' week ' + pw); } else o.podium++; }); } catch (e) { }
+    }
+    return out;
+  }
+  function badge(c) { if (!c) return ''; return (c.gold ? '<span class="badge gold" title="Champion: ' + c.wins.join(', ') + '">🏆' + (c.gold > 1 ? c.gold : '') + '</span>' : '') + (c.podium ? '<span class="badge pod" title="' + c.podium + ' podium finish' + (c.podium > 1 ? 'es' : '') + '">🏅' + (c.podium > 1 ? c.podium : '') + '</span>' : ''); }
+  function fmt(g, v) { if (g === 'cornerpocket') { const t = v / 10, m = Math.floor(t / 60), r = t - m * 60; return m + ':' + (r < 10 ? '0' : '') + r.toFixed(1); } if (g === 'skyline') return v + ' floors'; if (g === 'slingshot') return 'planet ' + v; if (g === 'ridgeline') return Number(v).toLocaleString() + ' m'; return Number(v).toLocaleString() + ' mass'; }
   function myBest(g, w) { const m = read('gbs-tour', {}); return (m.best && m.best[g + (w || week())]) || 0; }
   /* a seeded random-number generator for this week's course */
   function seed(g) { let h = 2166136261; const t = 'tour-' + g + '-' + week(); for (let i = 0; i < t.length; i++) { h ^= t.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; }
   function rng(g) { let a = seed(g); return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
   function left() { const ms = weekEnd(week()) - Date.now(), d = Math.floor(ms / 864e5), h = Math.floor(ms / 36e5) % 24, m = Math.floor(ms / 6e4) % 60; return d > 0 ? d + 'd ' + h + 'h' : h + 'h ' + m + 'm'; }
-  window.GBTour = { GAMES, week, weekEnd, code, uid, name, setName, board, submit, claimPrizes, myBest, seed, rng, prize, left, local };
+  window.GBTour = { GAMES, week, weekEnd, code, uid, name, setName, board, submit, claimPrizes, myBest, seed, rng, prize, left, local, champions, badge, fmt, valid, sig, LIMITS };
 })();

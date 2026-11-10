@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Weekly tournament · Game Bookshelf</title>
-<meta name="description" content="Three tournaments every week: Skyline, Slingshot and Mitosis. One course all week, unlimited tries, your best run counts. Top players win prizes.">
+<meta name="description" content="Five tournaments every week: Skyline, Slingshot, Mitosis, Ridgeline and Corner Pocket. One course all week, unlimited tries, your best run counts. Top players win prizes.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23121923'/%3E%3Cpath d='M10 7h12v5a6 6 0 0 1-12 0zM16 18v5M11 25h10' stroke='%23ffd166' stroke-width='3' fill='none' stroke-linecap='round'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@600;700&display=swap" rel="stylesheet">
@@ -29,7 +29,7 @@ h1{font:700 clamp(40px,7vw,64px)/1 var(--disp);margin:0}h1 span{color:var(--gold
 .prizes{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-top:24px}
 .pz{background:var(--s1);border:1px solid var(--line);border-radius:12px;padding:10px 12px;font-size:13px;color:var(--muted)}
 .pz b{display:block;font:700 18px var(--disp);color:var(--text)}.pz:first-child b{color:var(--gold)}
-.cols{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:26px}
+.cols{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:18px;margin-top:26px}
 .col{background:var(--s1);border:1px solid var(--line);border-radius:18px;overflow:hidden;display:flex;flex-direction:column}
 .col .img{aspect-ratio:16/7;background-size:cover;background-position:center;position:relative}
 .col .img::after{content:"";position:absolute;inset:0;background:linear-gradient(transparent 30%,var(--s1))}
@@ -45,10 +45,11 @@ h1{font:700 clamp(40px,7vw,64px)/1 var(--disp);margin:0}h1 span{color:var(--gold
 .lb li .r{font:700 17px var(--disp);color:var(--muted);text-align:center}
 .lb li.g1 .r{color:var(--gold)}.lb li.g2 .r{color:var(--silver)}.lb li.g3 .r{color:var(--bronze)}
 .lb li .n{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.lb li .s{font:700 18px var(--disp)}
+.badge{margin-left:6px;font-size:13px;font-weight:600}.badge.gold{color:var(--gold)}.badge.pod{color:var(--silver)}
 .lb li.you{background:rgba(255,209,102,.14);outline:1px solid rgba(255,209,102,.4)}
 .lb .empty{color:var(--muted);font-size:14px;padding:12px 8px;display:block}
 .last{margin-top:30px}.last h2{font:700 26px var(--disp);margin:0 0 10px}
-.lastg{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.lastg{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px}
 .lw{background:var(--s1);border:1px solid var(--line);border-radius:14px;padding:14px;font-size:14px}.lw h3{margin:0 0 6px;font:700 20px var(--disp)}
 .lw ol{margin:0;padding-left:20px;color:var(--muted)}.lw ol b{color:var(--text)}
 .won{margin-top:24px;padding:16px 18px;border-radius:16px;border:1px solid var(--gold);background:radial-gradient(ellipse at 0 0,rgba(255,209,102,.2),transparent 60%),var(--s1)}
@@ -56,7 +57,7 @@ h1{font:700 clamp(40px,7vw,64px)/1 var(--disp);margin:0}h1 span{color:var(--gold
 .how{margin-top:30px;color:var(--muted);font-size:15px;max-width:780px}.how b{color:var(--text)}
 #toast{position:fixed;left:50%;bottom:30px;transform:translate(-50%,20px);opacity:0;background:var(--text);color:var(--bg);padding:10px 16px;border-radius:10px;font-weight:600;transition:all .3s;pointer-events:none}
 #toast.on{opacity:1;transform:translate(-50%,0)}
-@media (max-width:900px){.cols,.lastg{grid-template-columns:1fr}.prizes{grid-template-columns:repeat(2,1fr)}}
+@media (max-width:900px){.prizes{grid-template-columns:repeat(2,1fr)}}
 @media (max-width:640px){.bar{padding:0 14px;gap:10px}.bar nav a{padding:8px 9px}main{padding:24px 14px 50px}.me{width:100%}.me input{flex:1;width:auto}}
 </style>
 </head>
@@ -74,7 +75,7 @@ h1{font:700 clamp(40px,7vw,64px)/1 var(--disp);margin:0}h1 span{color:var(--gold
  <div class="prizes" id="prizes"></div>
  <div class="cols" id="cols"></div>
  <div class="last" id="last"></div>
- <p class="how"><b>How it works.</b> Each tournament uses the same course for everyone, all week: the same tower twists in Skyline, the same planets in Slingshot and the same arena and bots in Mitosis. When the week ends (Monday 00:00 UTC, Sunday evening in the US), everyone who entered gets a prize. It's paid straight into your games next time you visit this page: Skyline coins, Slingshot stars, Gamble With Friends gold and vault keys.</p>
+ <p class="how"><b>How it works.</b> Each tournament uses the same course for everyone, all week: the same tower twists in Skyline, the same planets in Slingshot, the same arena and bots in Mitosis, the same trail and stock vehicle in Ridgeline, and the same rack and house cue in Corner Pocket. 🏆 marks past champions and 🏅 past podium finishers. Scores that are impossible for the time played are left off the boards. When the week ends (Monday 00:00 UTC, Sunday evening in the US), everyone who entered gets a prize. It's paid straight into your games next time you visit this page: Skyline coins, Slingshot stars, Gamble With Friends gold and vault keys.</p>
 </main>
 <div id="toast"></div>
 <script src="/shared/tour.js"></script>
@@ -82,8 +83,8 @@ h1{font:700 clamp(40px,7vw,64px)/1 var(--disp);margin:0}h1 span{color:var(--gold
 (()=>{'use strict';
 const $=id=>document.getElementById(id),T=GBTour,W=T.week();
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-const WHAT={skyline:'This week\'s tower has fixed twists. Stack as high as you can.',slingshot:'One route of planets, asteroids and black holes all week. How far out can you get?',mitosis:'The same arena and bots all week. 3 minutes, one life: biggest mass wins.'};
-const FMT={skyline:v=>v+' floors',slingshot:v=>'planet '+v,mitosis:v=>Number(v).toLocaleString()+' mass'};
+const WHAT={ridgeline:'One trail and one stock vehicle for everyone. Upgrades don\'t count. Drive as far as you can.',cornerpocket:'Speed Pool with the same rack and the house cue. Sink all 15; the fastest time wins.',skyline:'This week\'s tower has fixed twists. Stack as high as you can.',slingshot:'One route of planets, asteroids and black holes all week. How far out can you get?',mitosis:'The same arena and bots all week. 3 minutes, one life: biggest mass wins.'};
+const FMT={};Object.keys(T.GAMES).forEach(g=>FMT[g]=v=>T.fmt(g,v));let CH={};
 $('wk').textContent='· Week '+W;$('nm').value=T.name();
 function tick(){$('ends').textContent=T.left()}tick();setInterval(tick,30000);
 $('saveNm').onclick=()=>{const n=T.setName($('nm').value);$('nm').value=n;toast('Saved. Your next score will use this name.')};
@@ -95,7 +96,7 @@ $('cols').innerHTML=ids.map(g=>'<section class="col" id="c-'+g+'"><div class="im
 async function loadBoards(){for(const g of ids){const c=$('c-'+g),lb=c.querySelector('.lb');
  try{const list=await T.board(g,W),me=T.uid(),i=list.findIndex(e=>e.id===me),mine=Math.max(T.myBest(g),i>=0?list[i].s:0);
   c.querySelector('.mb').textContent=mine?FMT[g](mine):'–';c.querySelector('.mr').textContent=i>=0?'#'+(i+1)+' of '+list.length:'–';
-  lb.innerHTML=list.length?list.slice(0,25).map((e,k)=>'<li class="g'+(k+1)+(e.id===me?' you':'')+'"><span class="r">'+(k+1)+'</span><span class="n">'+esc(e.n)+(e.id===me?' (you)':'')+'</span><span class="s">'+FMT[g](e.s)+'</span></li>').join('')+(i>=25?'<li class="you"><span class="r">'+(i+1)+'</span><span class="n">'+esc(list[i].n)+' (you)</span><span class="s">'+FMT[g](list[i].s)+'</span></li>':''):'<span class="empty">No scores yet this week. Be the first!</span>'}
+  lb.innerHTML=list.length?list.slice(0,25).map((e,k)=>'<li class="g'+(k+1)+(e.id===me?' you':'')+'"><span class="r">'+(k+1)+'</span><span class="n">'+esc(e.n)+(e.id===me?' (you)':'')+T.badge(CH[e.id])+'</span><span class="s">'+FMT[g](e.s)+'</span></li>').join('')+(i>=25?'<li class="you"><span class="r">'+(i+1)+'</span><span class="n">'+esc(list[i].n)+' (you)'+T.badge(CH[me])+'</span><span class="s">'+FMT[g](list[i].s)+'</span></li>':''):'<span class="empty">No scores yet this week. Be the first!</span>'}
  catch(e){const m=T.myBest(g);c.querySelector('.mb').textContent=m?FMT[g](m):'–';lb.innerHTML='<span class="empty">Couldn\'t reach the leaderboard right now. Your scores are still saved and will be sent next time.</span>'}}}
 async function loadLast(){if(W<2)return;const out=[];
  for(const g of ids){try{const l=await T.board(g,W-1);out.push('<div class="lw"><h3>'+G[g].n+'</h3>'+(l.length?'<ol>'+l.slice(0,3).map(e=>'<li><b>'+esc(e.n)+'</b> · '+FMT[g](e.s)+'</li>').join('')+'</ol>':'<span style="color:var(--muted)">Nobody entered.</span>')+'</div>')}catch(e){}}
@@ -103,7 +104,7 @@ async function loadLast(){if(W<2)return;const out=[];
 async function prizes(){const got=await T.claimPrizes();const real=got.filter(x=>x.p);if(!real.length)return;
  $('won').innerHTML='<div class="won"><h2>🏆 Your tournament prizes are in!</h2>'+real.map(x=>'<p>'+G[x.g].n+', week '+x.w+': <b>'+x.p.t+'</b>'+(x.rank?' (#'+x.rank+' of '+x.of+')':'')+'. +'+x.p.coins+' Skyline coins, +'+x.p.stars+' Slingshot stars, +'+x.p.gold+' gold'+(x.p.keys?', +'+x.p.keys+' vault key'+(x.p.keys>1?'s':''):'')+'.</p>').join('')+'<p>They arrive the next time you open each game.</p></div>'}
 let tt;function toast(t){const e=$('toast');e.textContent=t;e.classList.add('on');clearTimeout(tt);tt=setTimeout(()=>e.classList.remove('on'),2400)}
-loadBoards();loadLast();prizes();setInterval(loadBoards,60000);
+T.champions(6).then(c=>{CH=c;loadBoards()}).catch(()=>{});loadBoards();loadLast();prizes();setInterval(loadBoards,60000);
 })();
 </script>
 <script data-goatcounter="https://gamebookshelf.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>

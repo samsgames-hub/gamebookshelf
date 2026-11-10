@@ -551,7 +551,7 @@ function dailyEnd(you, why) {
   if (D.tour) {
     $('dWho').textContent = 'Weekly tournament' + (why === 'time' ? ': time\'s up!' : ': eaten!'); $('dAgain').textContent = 'TRY AGAIN';
     $('dHint').innerHTML = 'Saving your score…'; if (save.name) GBTour.setName(save.name);
-    GBTour.submit('mitosis', score).then(r => { $('dHint').innerHTML = (r.improved ? 'New personal best this week! ' : '') + 'Your best: <b>' + r.best.toLocaleString() + '</b> mass' + (r.online ? ' · rank <b>#' + r.rank + '</b> of ' + r.of : ' (offline, saved on this device)') + '<br><a id="dShare" href="/tournament/">See the leaderboard</a> · ends in ' + GBTour.left(); });
+    GBTour.submit('mitosis', score, G.sim.t - D.t0).then(r => { $('dHint').innerHTML = (r.improved ? 'New personal best this week! ' : '') + 'Your best: <b>' + r.best.toLocaleString() + '</b> mass' + (r.online ? ' · rank <b>#' + r.rank + '</b> of ' + r.of : ' (offline, saved on this device)') + '<br><a id="dShare" href="/tournament/">See the leaderboard</a> · ends in ' + GBTour.left(); });
     return;
   }
   let line;
