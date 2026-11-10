@@ -36,6 +36,7 @@ a{color:inherit;text-decoration:none}button{font:inherit;color:inherit}
 .champs .cc b{display:block;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.champs .cc small{color:var(--muted);font-size:13px}
 .champs p{margin:4px 0 0;color:var(--muted);font-size:14px}
 /* daily link + strip */
+.lvb{display:inline-block;margin-left:6px;padding:0 6px;border-radius:6px;background:rgba(255,209,102,.18);color:#ffd166;font:700 11px var(--ui);vertical-align:1px}.lvb:empty{display:none}
 .dnav{position:relative}#dBadge{display:inline-grid;place-items:center;min-width:18px;height:18px;padding:0 5px;margin-left:6px;border-radius:999px;background:var(--go);color:#06110b;font:700 11px var(--ui);vertical-align:1px}#dBadge:empty{display:none}
 .dstrip{display:flex;align-items:center;gap:14px;margin:26px 0 0;padding:14px 18px;border-radius:14px;background:linear-gradient(90deg,rgba(47,214,123,.14),rgba(76,201,255,.08));border:1px solid rgba(47,214,123,.35);transition:border-color .15s}
 .dstrip:hover{border-color:var(--go)}.dstrip .dic{font-size:26px}.dstrip .dtx{flex:1}.dstrip b{display:block;font:700 22px var(--disp)}.dstrip small{color:var(--muted)}
@@ -140,7 +141,7 @@ footer{max-width:1280px;margin:0 auto;padding:0 32px 40px;color:var(--muted);fon
 <body>
 <header class="bar">
   <a class="brand" href="#top" aria-label="Home"><i aria-hidden="true"></i><span id="siteName">Game Bookshelf</span></a>
-  <nav aria-label="Main"><a href="#games">Games</a><a href="daily/" class="dnav">Daily<span id="dBadge"></span></a><a href="tournament/">Tournament</a><a href="#about">About</a></nav>
+  <nav aria-label="Main"><a href="#games">Games</a><a href="daily/" class="dnav">Daily<span id="dBadge"></span></a><a href="tournament/">Tournament</a><a href="trophies/">Trophies<span id="lvBadge" class="lvb"></span></a><a href="#about">About</a></nav>
 </header>
 <span id="top"></span>
 <section class="hero" id="hero" aria-roledescription="carousel" aria-label="Featured games"></section>
@@ -317,6 +318,8 @@ fetch('https://gamebookshelf.goatcounter.com/counter/TOTAL.json').then(r=>r.ok?r
 }catch(e){}})();
 </script>
 <script src="shared/tour.js"></script>
+<script src="shared/trophies.js"></script>
+<script>(function(){function f(){try{var s=GBTrophies.state();document.getElementById('lvBadge').textContent='Lv '+s.lv.l}catch(e){}}f();setTimeout(f,2200);setInterval(f,6500)})();</script>
 <script>
 /* last week's tournament champions (loaded after the page settles) */
 (function(){var T=window.GBTour;if(!T)return;var el=document.getElementById('champs');

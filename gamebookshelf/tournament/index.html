@@ -71,7 +71,7 @@ h1{font:700 clamp(40px,7vw,64px)/1 var(--disp);margin:0}h1 span{color:var(--gold
 <body>
 <header class="bar">
  <a class="brand" href="/" aria-label="Home"><i aria-hidden="true"></i><span>Game Bookshelf</span></a>
- <nav aria-label="Main"><a href="/#games">Games</a><a href="/daily/">Daily</a><a href="/tournament/" class="on">Tournament</a><a href="/#about">About</a></nav>
+ <nav aria-label="Main"><a href="/#games">Games</a><a href="/daily/">Daily</a><a href="/tournament/" class="on">Tournament</a><a href="/trophies/">Trophies</a></nav>
 </header>
 <main>
  <div class="top">
@@ -91,6 +91,7 @@ h1{font:700 clamp(40px,7vw,64px)/1 var(--disp);margin:0}h1 span{color:var(--gold
 </main>
 <div id="toast"></div>
 <script src="/shared/tour.js"></script>
+<script src="/shared/trophies.js"></script>
 <script>
 (()=>{'use strict';
 const $=id=>document.getElementById(id),T=GBTour,W=T.week();
