@@ -1096,7 +1096,7 @@ on('bPriv', () => goOnline('private'));
 on('bJoin', () => { $('jErr').textContent = ''; openOv('joinOv'); setTimeout(() => $('jCode').focus(), 50); });
 on('jGo', () => { const c = $('jCode').value.trim().toUpperCase(); if (c.length !== 4) { $('jErr').textContent = 'Codes are 4 letters.'; return; } closeOverlays(); goOnline('join', c); });
 $('jCode').addEventListener('keydown', e => { if (e.key === 'Enter') $('jGo').click(); });
-on('bDaily', () => { save.name = clean($('nm').value); store(); startDaily(); });
+if ($('bDaily')) on('bDaily', () => { save.name = clean($('nm').value); store(); startDaily(); });
 if ($('bTour')) on('bTour', () => { save.name = clean($('nm').value); store(); startTour(); });
 on('bSolo', () => { save.name = clean($('nm').value); store(); startSolo(); });
 on('bHow', () => openOv('howOv'));

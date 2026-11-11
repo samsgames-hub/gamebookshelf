@@ -265,7 +265,7 @@ function drawMenu(){if($('mTour')&&window.GBTour){const b=GBTour.myBest('slingsh
 function start(m){G.t0=performance.now();if(m)MODE=m;audio();show('');document.body.classList.add('playing');G.paused=false;reset();G.state='play';applyVol()}
 function pause(on){if(G.state!=='play')return;G.paused=on;show(on?'pause':'');applyVol();SFX.click()}
 function toMenu(){G.state='menu';MODE='classic';G.paused=false;document.body.classList.remove('playing');reset();show('start');drawMenu();applyVol()}
-$('play').onclick=e=>{e.stopPropagation();start('classic')};$('mDaily').onclick=e=>{e.stopPropagation();start('daily')};if($('mTour'))$('mTour').onclick=e=>{e.stopPropagation();start('tour')};$('again').onclick=e=>{e.stopPropagation();start()};
+$('play').onclick=e=>{e.stopPropagation();start('classic')};if($('mDaily'))$('mDaily').onclick=e=>{e.stopPropagation();start('daily')};if($('mTour'))$('mTour').onclick=e=>{e.stopPropagation();start('tour')};$('again').onclick=e=>{e.stopPropagation();start()};
 $('resume').onclick=e=>{e.stopPropagation();pause(false)};$('restartP').onclick=e=>{e.stopPropagation();start()};
 $('quitP').onclick=e=>{e.stopPropagation();toMenu()};$('menuO').onclick=e=>{e.stopPropagation();toMenu()};
 $('pauseBtn').onclick=e=>{e.stopPropagation();audio();pause(!G.paused)};

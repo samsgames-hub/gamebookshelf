@@ -233,7 +233,7 @@ function openPanel(id){SFX.click();back=['start','pause','over'].find(p=>!$(p).c
 document.querySelectorAll('[data-open]').forEach(b=>b.onclick=e=>{e.stopPropagation();audio();openPanel(b.dataset.open)});
 document.querySelectorAll('[data-close]').forEach(b=>b.onclick=e=>{e.stopPropagation();SFX.click();show(back);if(back==='start')drawMenu();if(back==='over')drawMissions($('missionsOver'))});
 function drawMenu(){drawMissions($('missionsStart'));if($('mTour')&&window.GBTour){const tm=tourMods(),b=GBTour.myBest('skyline');$('mTour').innerHTML='<b>🏆 Weekly tournament</b><small>'+tm.map(k=>MODS[k].n).join(' + ')+' · '+(b?'your best '+b+' · ':'')+'ends in '+GBTour.left()+'</small>'}$('bestStart').textContent=(S.best?'Tallest tower: '+S.best+' floors · ':'')+S.coins+' coins';
- const dm=dailyMods(),done=S.dday===TODAY;$('mDaily').innerHTML='<b>Daily tower #'+TODAY+(done?' · '+S.dscore+' floors':'')+'</b><small>'+dm.map(k=>MODS[k].n).join(' + ')+(S.dstreak?' · 🔥 '+S.dstreak+'-day streak':'')+'</small>';
+ const dm=dailyMods(),done=S.dday===TODAY;if($('mDaily'))$('mDaily').innerHTML='<b>Daily tower #'+TODAY+(done?' · '+S.dscore+' floors':'')+'</b><small>'+dm.map(k=>MODS[k].n).join(' + ')+(S.dstreak?' · 🔥 '+S.dstreak+'-day streak':'')+'</small>';
  const un=S.best>=25||S.crossBest;$('mCross').innerHTML='<b>'+(un?'':'🔒 ')+'Crosswind</b><small>'+(un?'Floors come in at an angle'+(S.crossBest?' · best '+S.crossBest:''):'Reach floor 25 to unlock')+'</small>';$('mCross').classList.toggle('locked',!un)}
 function start(id){G.t0=performance.now();if(id)MODE={id,mods:id==='daily'?dailyMods():id==='tour'?tourMods():id==='cross'?['cross']:[]};audio();show('');document.body.classList.add('playing');G.paused=false;reset();G.state='play';applyVol()}
 function pause(on){if(G.state!=='play')return;G.paused=on;show(on?'pause':'');applyVol();if(on)SFX.click()}
@@ -252,7 +252,7 @@ function gameOver(){G.state='over';hideCombo();SFX.fall();shake(.5);S.runs++;pro
   $('overStats').innerHTML='<div><b>'+R.perf+'</b>Perfects</div><div><b>'+R.streak+'</b>Best streak</div><div><b>'+R.gold+'</b>Gold floors</div><div><b>+'+R.coins+'</b>Coins</div>';
   drawMissions($('missionsOver'));rollMissions();save();show('over');if(nb){flash(.25);SFX.gold()}},900)}
 $('play').onclick=e=>{e.stopPropagation();start('classic')};$('again').onclick=e=>{e.stopPropagation();start()};
-$('mDaily').onclick=e=>{e.stopPropagation();start('daily')};
+if($('mDaily'))$('mDaily').onclick=e=>{e.stopPropagation();start('daily')};
 if($('mTour'))$('mTour').onclick=e=>{e.stopPropagation();start('tour')};
 $('mCross').onclick=e=>{e.stopPropagation();if(S.best<25&&!S.crossBest){SFX.click();toast('Reach floor 25 in a normal tower to unlock Crosswind');return}start('cross')};
 $('resume').onclick=e=>{e.stopPropagation();pause(false)};$('restartP').onclick=e=>{e.stopPropagation();start()};
