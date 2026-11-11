@@ -13,9 +13,9 @@ body.playing #game{cursor:none}
 .screen.solid{background:radial-gradient(ellipse at 50% 20%,#0f1a26,#04060a 70%)}
 .screen.red{background:radial-gradient(ellipse at center,rgba(40,4,2,.6),rgba(6,2,2,.9))}
 
-#s-title{flex-direction:column;justify-content:center;padding-left:clamp(24px,8vw,120px);background:linear-gradient(90deg,rgba(3,5,8,.86),rgba(3,5,8,.35) 55%,transparent)}
+#s-title{flex-direction:column;justify-content:flex-start;padding-left:clamp(24px,8vw,120px);background:linear-gradient(90deg,rgba(3,5,8,.86),rgba(3,5,8,.35) 55%,transparent)}
 .kicker{font-size:13px;letter-spacing:.32em;color:var(--acc);font-weight:700}
-h1{font-size:clamp(54px,11vw,132px);line-height:.88;letter-spacing:.02em;font-weight:700;margin:14px 0 18px;text-shadow:0 0 40px rgba(127,227,208,.18)}
+h1{font-size:clamp(38px,min(11vw,17vh),132px);line-height:.88;letter-spacing:.02em;font-weight:700;margin:14px 0 18px;text-shadow:0 0 40px rgba(127,227,208,.18)}
 .tag{font-family:var(--fm);font-size:14px;color:var(--dim);max-width:460px;line-height:1.6;margin-bottom:30px}
 .menu{display:flex;flex-direction:column;gap:8px;width:min(380px,100%)}
 .menu.tight{margin-top:18px;width:100%}
@@ -26,7 +26,7 @@ button.primary{border-left-color:var(--acc);background:rgba(255,122,26,.12)}
 button.ghost{background:transparent;color:var(--dim);font-size:13px}
 button.danger:hover{background:rgba(255,59,42,.16)!important;border-left-color:var(--red)!important;color:#fff}
 button:disabled{opacity:.42;cursor:default;font-size:12px}
-.foot{position:absolute;left:clamp(24px,8vw,120px);bottom:24px;font-family:var(--fm);font-size:12px;color:var(--dim);letter-spacing:.08em}
+.brand{margin-top:auto}.foot{margin-top:18px;margin-bottom:auto;padding-bottom:6px;font-family:var(--fm);font-size:12px;color:var(--dim);letter-spacing:.08em}
 
 .card{background:var(--panel);border:1px solid var(--line);border-top:3px solid var(--acc);padding:28px;width:min(440px,100%);display:flex;flex-direction:column;gap:12px;max-height:100%;overflow:auto;box-shadow:0 30px 80px rgba(0,0,0,.6)}
 .card.wide{width:min(720px,100%)}.card.xwide{width:min(980px,100%)}
@@ -98,3 +98,6 @@ body.touch.playing #touch{display:block}
 @media (max-height:620px){.artwrap{display:none}}
 #s-intro{background:rgba(3,5,8,.84)}
 #s-end .art{height:21vh;object-fit:cover}#s-end .end-t{max-height:36vh}#s-end .card{width:min(860px,100%)}
+
+@media (max-height:760px){#s-title .menu{gap:5px}#s-title button{padding:9px 16px;font-size:14px}.tag{margin-bottom:16px;font-size:13px}h1{margin:8px 0 10px}}
+@media (max-height:520px){#s-title .tag{display:none}#s-title button{padding:6px 14px;font-size:13px}}
