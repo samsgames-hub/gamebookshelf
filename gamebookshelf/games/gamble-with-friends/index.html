@@ -192,9 +192,9 @@ async function enter(c){
  unsubs.push(db.collection("rooms/"+c+"/players").onSnapshot(function(s){var n={};s.docs.forEach(function(d){n[d.id]=d.data()});n[uid]=me;PL=n;collectGifts();top_()},function(){}));
  setInterval(tick,500);
 }
-/* a vault payout from Tumbler (the daily safe on this site) arrives as bonus gold in your next game */
+/* a Trophy Room reward arrives as bonus gold and vault keys in your next game */
 function bankGold(){var bank;try{bank=JSON.parse(localStorage.getItem("gbs-bank")||"{}")}catch(e){return}var b=bank&&bank.gwf;if(!b||!(b.gold||b.keys))return;var n=b.gold||0,kk=b.keys||0;delete bank.gwf;try{localStorage.setItem("gbs-bank",JSON.stringify(bank))}catch(e){}
- if(kk)setKeys(keys()+kk);me.gold=(me.gold||0)+n;setTimeout(function(){pop("🔐 Vault payout: "+(n?"+"+n+" gold":"")+(n&&kk?", ":"")+(kk?"+"+kk+" vault key"+(kk>1?"s":""):""),"good");try{if(!local)sync(null,0,"brought "+n+" gold from Tumbler 🔐")}catch(e){}},900)}
+ if(kk)setKeys(keys()+kk);me.gold=(me.gold||0)+n;setTimeout(function(){pop("🏆 Trophy reward: "+(n?"+"+n+" gold":"")+(n&&kk?", ":"")+(kk?"+"+kk+" vault key"+(kk>1?"s":""):""),"good");try{if(!local)sync(null,0,"brought "+n+" gold from the Trophy Room 🏆")}catch(e){}},900)}
 function practice(){
  local=true;code="SOLO";me={name:nameVal(),bank:1000,gold:5,pu:[],ll:0,st:0,rs:0,pr:0,msg:"practicing"};PL={local:me};uid="local";bankGold();
  room={mult:3,stage:1,base:1000,mins:10,deadline:0,won:false};open_();setInterval(tick,500);
@@ -545,11 +545,11 @@ function sellPU(id){
  var g=sellP(id);me.pu.splice(i,1);me.gold+=g;tone(880,0,.08,"triangle");tone(660,.08,.1,"triangle");pop("+"+g+" gold","good");hint();sync(null,0,"sold "+PU[id].n+" for "+g+" gold");
 }
 function reroll(){var c=has("skeleton")?0:2;if(me.gold<c)return;var sg=room.stage||1;me.rr=(me.rrs==sg?me.rr:0)+1;me.rrs=sg;me.gold-=c;sync(null,0,"rerolled the shop")}
-/* the vault: power-ups you can only unlock with vault keys, earned by opening the daily safe in Tumbler */
+/* the vault: power-ups you can only unlock with vault keys, earned from gold trophies in the Trophy Room */
 function keys(){try{return +localStorage.getItem("gwf-keys")||0}catch(e){return 0}}
 function setKeys(n){try{localStorage.setItem("gwf-keys",String(Math.max(0,n)))}catch(e){}}
 function vaultHTML(){var k=keys(),full=(me.pu||[]).length>=maxS(),ids=Object.keys(PU).filter(function(i){return PU[i].v});
- return '<div class="panel vault"><h3>🔐 The Vault <span class="keys">'+k+' key'+(k==1?'':'s')+'</span></h3>'+(k?'':'<p class="note" style="margin:0 0 8px">Open the daily safe in <a href="../tumbler/index.html" target="_blank" rel="noopener">Tumbler</a> to earn vault keys. Keys stay with you between games.</p>')+'<div class="offers">'+ids.map(function(i){var p=PU[i],own=has(i),no=own||full||k<1;
+ return '<div class="panel vault"><h3>🔐 The Vault <span class="keys">'+k+' key'+(k==1?'':'s')+'</span></h3>'+(k?'':'<p class="note" style="margin:0 0 8px">Earn a vault key for every gold trophy in the <a href="/trophies/" target="_blank" rel="noopener">Trophy Room</a>. Keys stay with you between games.</p>')+'<div class="offers">'+ids.map(function(i){var p=PU[i],own=has(i),no=own||full||k<1;
   return '<div class="offer vo"><div class="oe">'+p.e+'</div><b>'+p.n+'</b><span>'+p.d.replace("Vault exclusive. ","")+'</span><button class="b" '+(no?'disabled':'')+' onclick="buyV(\''+i+'\')">'+(own?'Owned':full?'Slots full':'Unlock: 1 🔑')+'</button></div>'}).join("")+'</div></div>'}
 function buyV(id){var p=PU[id],k=keys();if(!p||!p.v||k<1||me.pu.length>=maxS()||has(id))return;setKeys(k-1);me.pu.push(id);tone(660,0,.1,"triangle");tone(990,.1,.2,"triangle");pop("🔓 "+p.n+" unlocked","good");sync(null,0,"unlocked "+p.n+" from the vault 🔐")}
 function buy(id){var p=PU[id];if(me.gold<p.p||me.pu.length>=maxS()||has(id))return;me.gold-=p.p;me.pu.push(id);sync(null,0,"bought "+p.n)}

@@ -141,13 +141,11 @@ footer{max-width:1280px;margin:0 auto;padding:0 32px 40px;color:var(--muted);fon
 <body>
 <header class="bar">
   <a class="brand" href="#top" aria-label="Home"><i aria-hidden="true"></i><span id="siteName">Game Bookshelf</span></a>
-  <nav aria-label="Main"><a href="#games">Games</a><a href="daily/" class="dnav">Daily<span id="dBadge"></span></a><a href="tournament/">Tournament</a><a href="trophies/">Trophies<span id="lvBadge" class="lvb"></span></a><a href="#about">About</a></nav>
+  <nav aria-label="Main"><a href="#games">Games</a><a href="trophies/">Trophies<span id="lvBadge" class="lvb"></span></a><a href="#about">About</a></nav>
 </header>
 <span id="top"></span>
 <section class="hero" id="hero" aria-roledescription="carousel" aria-label="Featured games"></section>
 <main>
-  <a class="dstrip" id="dStrip" href="daily/"></a>
-  <section class="champs" id="champs" aria-label="Last week's champions"></section>
   <div class="sec" id="games"><h2>All games</h2><span id="count"></span></div>
   <div class="grid" id="grid"></div>
 </main>
@@ -185,14 +183,6 @@ const GAMES=[
  facts:{Players:'1',Length:'About 75 minutes for the story',Saves:'Chapter progress, logs, endings and Holdout best stay in your browser'},
  controls:[['WASD','move'],['Mouse','aim and fire'],['Right click or V','ice axe'],['Shift','sprint (loud)'],['C','sneak (quiet)'],['F','flashlight'],['G','throw flare'],['Q','medkit'],['E','interact'],['Tab','codex'],['Esc','pause']],
  note:'Best on a computer with a mouse and headphones. Also plays on a phone with touch controls. Low graphics setting for older PCs is in Settings.'},
-{id:'tumbler',title:'Tumbler',path:'games/tumbler/index.html',
- hero:'assets/tumbler-hero.webp',tile:'assets/tumbler-tile.webp',accent:'#d8b45a',
- tags:['Daily puzzle','Logic','New every day'],
- pitch:'A new safe every day. Five dials, six tries. Crack the combination and the vault pays out in your other games.',
- blurb:'Every dial is set to one of ten things in a fixed order, like 0 to 9, Ace to 10, or the Sun out to Pluto. After each try, every dial lights up green when it is right, amber when it is one step away, and dark when it is further, with an arrow pointing the way. Follow the clues and the keypad greys out what you have ruled out. Everyone gets the same safe each day, with a new theme. Open it to collect a vault payout: bonus coins in Skyline or stars in Slingshot. Unlimited practice safes in three difficulties.',
- facts:{Players:'1',Length:'2 to 5 minutes a day',Saves:'Streaks, statistics and today\'s safe stay in your browser'},
- controls:[['Tap or click','pick a dial, then a key'],['0 to 9','set the selected dial'],['Arrow keys','move between dials and turn them'],['Enter','try the combination'],['Esc','menu']],
- note:'Plays on a phone or a computer. A new safe unlocks at midnight.'},
 {id:'mitosis',title:'Mitosis',path:'games/mitosis/index.html',
  hero:'assets/mitosis-hero.jpg',tile:'assets/mitosis-tile.jpg',accent:'#5ee6c8',
  tags:['Online multiplayer','Arena','.io'],
@@ -213,7 +203,7 @@ const GAMES=[
  hero:'assets/ridgeline-hero.webp',tile:'assets/ridgeline-tile.webp',accent:'#f2a33a',
  tags:['Driving','Physics','Upgrades'],
  pitch:'Push an off-road truck as far as one tank of fuel will take you, over hills, rock ledges and log bridges.',
- blurb:'Real suspension and torque mean gas lifts the nose and brake tips it forward, on the ground and in the air. Grab jerrycans before the tank runs dry, land air time and flips for cash, and spend it on engine, suspension, tire and fuel tank upgrades. Four vehicles and four trails, from a golden-hour forest to a rainy quarry lit only by your headlights. Enter the weekly tournament: one trail and one stock vehicle for everyone.',
+ blurb:'Real suspension and torque mean gas lifts the nose and brake tips it forward, on the ground and in the air. Grab jerrycans before the tank runs dry, land air time and flips for cash, and spend it on engine, suspension, tire and fuel tank upgrades. Four vehicles and four trails, from a golden-hour forest to a rainy quarry lit only by your headlights.',
  facts:{Players:'1',Length:'2 to 6 minutes a run',Saves:'Cash, vehicles, upgrades and records stay in your browser'},
  controls:[['Right arrow or D','gas'],['Left arrow or A','brake and reverse'],['Shift','low range for steep climbs'],['R','end the run'],['Esc','pause']],
  note:'Plays with a keyboard or touch.'},
@@ -221,7 +211,7 @@ const GAMES=[
  hero:'assets/corner-pocket-hero.webp',tile:'assets/corner-pocket-tile.webp',accent:'#d6b26a',
  tags:['Pool','Sports','Career'],
  pitch:'Work your way up the ladder of a late-night pool hall in 8-ball and 9-ball, and take the title from the house champion.',
- blurb:'Every ball rolls, spins and rattles in the pocket like the real thing. Put follow, draw and english on the cue ball, play position for your next shot and beat eight hall regulars who each play their own way. Win money for better cues with longer aim lines, race the clock in Speed Pool, or play a friend on the same device. Enter the weekly Speed Pool tournament: same rack and house cue for everyone.',
+ blurb:'Every ball rolls, spins and rattles in the pocket like the real thing. Put follow, draw and english on the cue ball, play position for your next shot and beat eight hall regulars who each play their own way. Win money for better cues with longer aim lines, race the clock in Speed Pool, or play a friend on the same device.',
  facts:{Players:'1, or 2 on one device',Length:'5 to 15 minutes a match',Saves:'Money, cues, cloth and records stay in your browser'},
  controls:[['Mouse','aim'],['Hold and pull back','set power, let go to shoot'],['Wheel or A D','fine aim'],['Space','hold to charge a shot'],['Arrows, Q E','spin'],['Esc','pause']],
  note:'Plays with a mouse, a keyboard or touch.'},
@@ -315,29 +305,7 @@ show(0);
 // public visit total from GoatCounter; stays hidden if it can't load
 fetch('https://gamebookshelf.goatcounter.com/counter/TOTAL.json').then(r=>r.ok?r.json():null).then(d=>{if(!d||!d.count)return;const e=document.getElementById('visits');e.innerHTML='<b></b> visits so far';e.firstChild.textContent=d.count;e.hidden=false}).catch(()=>{});
 </script>
-<script>
-/* today's dailies: how many are left (reads each game's own save on this site) */
-(function(){try{var E=new Date(2026,10,9),n=new Date(),T=Math.round((new Date(n.getFullYear(),n.getMonth(),n.getDate())-E)/864e5)+1;
- function r(k){try{return JSON.parse(localStorage.getItem(k)||'null')}catch(e){return null}}
- var t=r('tumbler1'),sk=r('skyline2'),sl=r('slingshot2'),mx=r('mx-save'),h=r('gbs-daily')||{},td=h[T]||{};
- var done=[!!(t&&t.daily&&t.daily.day===T&&t.daily.done)||td.tumbler!==undefined,!!(sk&&sk.dday===T)||td.skyline!==undefined,!!(sl&&sl.dday===T)||td.slingshot!==undefined,!!(mx&&mx.daily&&mx.daily.day===T)||td.mitosis!==undefined];
- var c=done.filter(Boolean).length,left=4-c;document.getElementById('dBadge').textContent=left?left:'';
- document.getElementById('dStrip').innerHTML='<span class="dic">'+(left?'📅':'🏆')+'</span><span class="dtx"><b>'+(left?"Today's dailies: "+c+' of 4 done':'Clean sweep today!')+'</b><small>Tumbler, Skyline, Slingshot and Mitosis each have a daily challenge, the same for everyone.</small></span><span class="dots2">'+done.map(function(d){return '<i class="'+(d?'on':'')+'"></i>'}).join('')+'</span><span class="go">'+(left?'Play →':'See results →')+'</span>';
-}catch(e){}})();
-</script>
-<script src="shared/tour.js"></script>
 <script src="shared/trophies.js"></script>
 <script>(function(){function f(){try{var s=GBTrophies.state();document.getElementById('lvBadge').textContent='Lv '+s.lv.l}catch(e){}}f();setTimeout(f,2200);setInterval(f,6500)})();</script>
-<script>
-/* last week's tournament champions (loaded after the page settles) */
-(function(){var T=window.GBTour;if(!T)return;var el=document.getElementById('champs');
- function esc(s){return String(s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
- var W=T.week(),ids=Object.keys(T.GAMES);
- if(W<2){el.innerHTML='<div class="ch"><h2>🏆 <span>Weekly tournaments</span> are on</h2><a href="tournament/">Enter now →</a></div><p>Five games, one course each all week, prizes for everyone who enters. The first champions are crowned in '+T.left()+'.</p>';return}
- el.innerHTML='<div class="ch"><h2>🏆 Last week\'s <span>champions</span></h2><a href="tournament/">This week\'s tournament →</a></div><div class="cg">'+ids.map(function(g){return '<div class="cc" id="ch-'+g+'"><i style="background-image:url('+T.GAMES[g].img.replace(/^\//,'')+')"></i><span><b>'+T.GAMES[g].n+'</b><small>…</small></span></div>'}).join('')+'</div>';
- function load(){ids.forEach(function(g){T.board(g,W-1).then(function(l){var c=document.querySelector('#ch-'+g+' span');c.innerHTML=l.length?'<b>🏆 '+esc(l[0].n)+'</b><small>'+T.GAMES[g].n+' · '+T.fmt(g,l[0].s)+'</small>':'<b>'+T.GAMES[g].n+'</b><small>Nobody entered</small>'}).catch(function(){var c=document.querySelector('#ch-'+g+' small');if(c)c.textContent='Couldn\'t load'})})}
- if('requestIdleCallback' in window)requestIdleCallback(load,{timeout:2500});else setTimeout(load,1200);
-})();
-</script>
 </body>
 </html>

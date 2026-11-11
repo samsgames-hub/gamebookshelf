@@ -312,9 +312,9 @@ function loop(now){requestAnimationFrame(loop);let dt=Math.min(.05,(now-last)/10
  sun.position.set(6,G.camY+14,4);sun.target.position.set(0,G.camY-2,0);sun.target.updateMatrixWorld();sky.position.set(0,G.camY,0);
  const tp=stack[stack.length-1];beacon.position.set(tp.x,tp.m.position.y+.6,tp.z);beacon.visible=night>.3&&(G.t%1.2)<.25&&G.state!=='play';
  ren.render(scene,cam)}
-/* collect a vault payout sent from Tumbler (the daily safe on this site) */
+/* collect a reward sent from the Trophy Room */
 function collectBank(){let bank;try{bank=JSON.parse(localStorage.getItem('gbs-bank')||'{}')}catch(e){return}const b=bank&&bank.skyline;if(!b||!b.coins)return;
- const n=b.coins;S.coins+=n;delete bank.skyline;try{localStorage.setItem('gbs-bank',JSON.stringify(bank))}catch(e){}save();drawMenu();setTimeout(()=>toast('Vault payout from Tumbler: +'+n+' coins'),600)}
+ const n=b.coins;S.coins+=n;delete bank.skyline;try{localStorage.setItem('gbs-bank',JSON.stringify(bank))}catch(e){}save();drawMenu();setTimeout(()=>toast('Trophy reward: +'+n+' coins'),600)}
 applyQuality();reset();drawMenu();collectBank();addEventListener('focus',collectBank);skyAt(0);requestAnimationFrame(loop);
 window.__SK={G,R,S,place,start,pause,toMenu,get moving(){return moving},get stack(){return stack}};
 

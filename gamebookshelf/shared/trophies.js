@@ -18,7 +18,7 @@
     let run = 0, best = 0, prev = -9; for (const d of days) { run = d === prev + 1 ? run + 1 : 1; prev = d; best = Math.max(best, run); }
     const paid = Object.values(tour.paid || {}), entered = Object.keys(tour.best || {}).length;
     const played = {
-      tumbler: has('tumbler1'), skyline: has('skyline2') || has('skyline1'), slingshot: has('slingshot2') || has('slingshot1'), mitosis: has('mx-save'),
+      quietbelow: has('quietbelow_v1'), skyline: has('skyline2') || has('skyline1'), slingshot: has('slingshot2') || has('slingshot1'), mitosis: has('mx-save'),
       neonrift: has('neonrift2') || has('neonrift'), firebase: has('firebase.save'), ridgeline: has('ridgeline.save'), cornerpocket: has('cornerpocket.save'), gwf: has('gwf-name') || has('gwf-keys')
     };
     return {
@@ -31,15 +31,6 @@
   const T = [
     ['explorer', 'Game Bookshelf', 'Explorer', 'Play 5 different games', 'b', s => [s.played, 5]],
     ['completist', 'Game Bookshelf', 'Completionist', 'Play all 9 games', 's', s => [s.played, 9]],
-    ['sweep', 'Game Bookshelf', 'Clean Sweep', 'Play all four dailies in one day', 's', s => [s.sweeps, 1]],
-    ['regular', 'Game Bookshelf', 'Regular', 'Play a daily 7 days in a row', 'g', s => [s.dailyRun, 7]],
-    ['contender', 'Game Bookshelf', 'Contender', 'Enter a weekly tournament', 'b', s => [s.entered, 1]],
-    ['podium', 'Game Bookshelf', 'On the Podium', 'Finish top 3 in a weekly tournament', 's', s => [s.podiums, 1]],
-    ['champion', 'Game Bookshelf', 'Champion', 'Win a weekly tournament', 'g', s => [s.wins, 1]],
-    ['friends', 'Game Bookshelf', 'Squad Up', 'Create or join a friends group', 'b', s => [s.groups, 1]],
-    ['tb1', 'Tumbler', 'Safecracker', 'Open your first daily safe', 'b', s => [n(s.tb.stats && s.tb.stats.wins), 1]],
-    ['tb2', 'Tumbler', 'Sharp Ear', 'Open a daily safe in 2 tries or fewer', 's', s => [s.tb.stats && s.tb.stats.dist ? n(s.tb.stats.dist[0]) + n(s.tb.stats.dist[1]) : 0, 1]],
-    ['tb10', 'Tumbler', 'Master Thief', 'Open 10 daily safes', 'g', s => [n(s.tb.stats && s.tb.stats.wins), 10]],
     ['sk25', 'Skyline', 'Office Block', 'Build a 25-floor tower', 'b', s => [n(s.sk.best), 25]],
     ['sk60', 'Skyline', 'Skyscraper', 'Build a 60-floor tower', 's', s => [n(s.sk.best), 60]],
     ['sk100', 'Skyline', 'Supertall', 'Build a 100-floor tower', 'g', s => [n(s.sk.best), 100]],

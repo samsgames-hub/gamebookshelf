@@ -299,9 +299,9 @@ $('sAim').onchange=e=>{S.set.aim=e.target.value;save()};
 $('sLow').onchange=e=>{S.set.low=e.target.checked;save();resize()};
 
 /* ================= loop: fixed 120 Hz physics ================= */
-/* collect a vault payout sent from Tumbler (the daily safe on this site) */
+/* collect a reward sent from the Trophy Room */
 function collectBank(){let bank;try{bank=JSON.parse(localStorage.getItem('gbs-bank')||'{}')}catch(e){return}const b=bank&&bank.slingshot;if(!b||!b.stars)return;
- const n=b.stars;S.stars+=n;delete bank.slingshot;try{localStorage.setItem('gbs-bank',JSON.stringify(bank))}catch(e){}save();drawMenu();setTimeout(()=>toast('Vault payout from Tumbler: +'+n+' stars'),600)}
+ const n=b.stars;S.stars+=n;delete bank.slingshot;try{localStorage.setItem('gbs-bank',JSON.stringify(bank))}catch(e){}save();drawMenu();setTimeout(()=>toast('Trophy reward: +'+n+' stars'),600)}
 reset();drawMenu();collectBank();addEventListener('focus',collectBank);
 let last=performance.now(),acc=0;const FIX=1/120;
 function loop(now){requestAnimationFrame(loop);let dt=Math.min(.05,(now-last)/1000);last=now;music();

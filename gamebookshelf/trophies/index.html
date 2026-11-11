@@ -46,7 +46,7 @@ main{max-width:1100px;margin:0 auto;padding:36px 24px 60px}
 <body>
 <header class="bar">
  <a class="brand" href="/" aria-label="Home"><i aria-hidden="true"></i><span>Game Bookshelf</span></a>
- <nav aria-label="Main"><a href="/#games">Games</a><a href="/daily/">Daily</a><a href="/tournament/">Tournament</a><a href="/trophies/" class="on">Trophies</a></nav>
+ <nav aria-label="Main"><a href="/#games">Games</a><a href="/trophies/" class="on">Trophies</a></nav>
 </header>
 <main>
  <section class="hero">
@@ -61,7 +61,7 @@ main{max-width:1100px;margin:0 auto;padding:36px 24px 60px}
 <script src="/shared/trophies.js"></script>
 <script>
 (()=>{'use strict';
-const $=id=>document.getElementById(id),TR=GBTrophies,EMO={'Game Bookshelf':'📚',Tumbler:'🔐',Skyline:'🏙️',Slingshot:'🚀',Mitosis:'🦠','Neon Rift':'🔫',Firebase:'🛡️',Ridgeline:'🚙','Corner Pocket':'🎱','Gamble With Friends':'🎰'};
+const $=id=>document.getElementById(id),TR=GBTrophies,EMO={'Game Bookshelf':'📚',Skyline:'🏙️',Slingshot:'🚀',Mitosis:'🦠','Neon Rift':'🔫',Firebase:'🛡️',Ridgeline:'🚙','Corner Pocket':'🎱','Gamble With Friends':'🎰'};
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const card=t=>{const done=!!t.at,pct=Math.round(t.have/t.need*100);return '<div class="t '+t.tier+(done?' done':'')+'"><span class="m">'+(EMO[t.game]||'🏆')+'</span><span class="x"><span class="tier">'+TR.TIER[t.tier].n+'</span><b>'+esc(t.name)+'</b><span class="how">'+esc(t.how)+'</span>'+(done?'<div class="pn">Unlocked '+new Date(t.at).toLocaleDateString(undefined,{month:'short',day:'numeric'})+'</div>':t.need>1?'<div class="pb"><i style="width:'+pct+'%"></i></div><div class="pn">'+t.have.toLocaleString()+' / '+t.need.toLocaleString()+'</div>':'')+'</span></div>'};
 function render(){TR.check(false);const st=TR.state(),L=st.list,got=L.filter(t=>t.at);
