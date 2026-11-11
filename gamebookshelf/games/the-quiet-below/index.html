@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#05070a">
+<title>The Quiet Below</title>
+<link rel="icon" href="icon-192.png">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<canvas id="game"></canvas>
+
+<div id="touch">
+  <button class="tbtn t-pause" data-k="Escape">II</button>
+  <div class="t-left">
+    <button class="tbtn" data-k="ShiftLeft">RUN</button>
+    <button class="tbtn" data-k="KeyC">SNEAK</button>
+    <button class="tbtn" data-k="KeyF">LIGHT</button>
+  </div>
+  <div class="t-right">
+    <button class="tbtn" data-k="KeyQ">MED</button>
+    <button class="tbtn" data-k="KeyG">FLARE</button>
+    <button class="tbtn" data-k="KeyX">SWAP</button>
+    <button class="tbtn" data-k="KeyR">RELOAD</button>
+    <button class="tbtn big" data-k="KeyV">AXE</button>
+    <button class="tbtn big" data-k="KeyE">USE</button>
+  </div>
+</div>
+
+<div id="ui">
+  <section id="s-title" class="screen">
+    <div class="brand">
+      <div class="kicker">HALVARD DEEP FIELD STATION · 78° SOUTH</div>
+      <h1>THE QUIET<br>BELOW</h1>
+      <p class="tag">Thirty-one people drilled into a lake that had been silent for fourteen million years. It heard them.</p>
+    </div>
+    <nav class="menu">
+      <button data-act="continue" id="b-continue" class="primary">CONTINUE</button>
+      <button data-act="new">NEW GAME</button>
+      <button data-act="holdout" id="b-holdout">HOLDOUT</button>
+      <button data-act="codex">CODEX</button>
+      <button data-act="how">HOW TO PLAY</button>
+      <button data-act="settings">SETTINGS</button>
+    </nav>
+    <div class="foot" id="title-foot"></div>
+  </section>
+
+  <section id="s-diff" class="screen center">
+    <div class="card">
+      <h2>DIFFICULTY</h2>
+      <div id="diff-list" class="diffs"></div>
+      <button data-act="back" class="ghost">BACK</button>
+    </div>
+  </section>
+
+  <section id="s-intro" class="screen center">
+    <div id="intro-box" class="intro">
+      <div class="artwrap"><canvas id="intro-art" class="art" width="1200" height="440"></canvas></div>
+      <div id="intro-h" class="kicker"></div>
+      <div id="intro-t" class="intro-t"></div>
+      <div class="row">
+        <button data-act="intronext" class="primary">CONTINUE</button>
+        <button data-act="introskip" class="ghost">SKIP</button>
+      </div>
+    </div>
+  </section>
+
+  <section id="s-how" class="screen center">
+    <div class="card wide">
+      <h2>HOW TO PLAY</h2>
+      <div class="how">
+        <div>
+          <h4>THE RULE</h4>
+          <p>The infected are nearly blind. They hunt by <b>sound</b>. Every step, shot and door makes noise — watch the NOISE meter. Sprinting carries far. Sneaking is almost silent.</p>
+          <p>Holding your <b>flashlight</b> on one for a second wakes it. Sweep, don't stare — or switch it off.</p>
+          <p>A still one dies to a single <b>axe</b> blow. A <b>flare</b> pulls a room toward it so you can walk the other way. Guns solve problems and create new ones.</p>
+          <p>Read the <b>logs</b>. Find enough and the ending changes.</p>
+        </div>
+        <div>
+          <h4>CONTROLS</h4>
+          <table>
+            <tr><td>WASD</td><td>Move</td></tr><tr><td>Mouse</td><td>Aim</td></tr>
+            <tr><td>Left click</td><td>Fire</td></tr><tr><td>Right click / V</td><td>Ice axe</td></tr>
+            <tr><td>Shift</td><td>Sprint (loud)</td></tr><tr><td>C</td><td>Sneak (quiet)</td></tr>
+            <tr><td>F</td><td>Flashlight</td></tr><tr><td>G</td><td>Throw flare</td></tr>
+            <tr><td>Q</td><td>Use medkit</td></tr><tr><td>R</td><td>Reload</td></tr>
+            <tr><td>1 2 3 / Wheel</td><td>Switch weapon</td></tr><tr><td>E</td><td>Interact / read</td></tr>
+            <tr><td>Tab</td><td>Codex</td></tr><tr><td>M</td><td>Minimap</td></tr><tr><td>Esc / P</td><td>Pause</td></tr>
+          </table>
+          <p class="dim">Touch: left thumb moves, right thumb aims — push to the edge to fire.</p>
+        </div>
+      </div>
+      <button data-act="back" class="primary">BACK</button>
+    </div>
+  </section>
+
+  <section id="s-settings" class="screen center">
+    <div class="card">
+      <h2>SETTINGS</h2>
+      <label class="set"><span>Master volume</span><input id="set-master" type="range" min="0" max="1" step="0.05"></label>
+      <label class="set"><span>Music</span><input id="set-music" type="range" min="0" max="1" step="0.05"></label>
+      <label class="set"><span>Effects</span><input id="set-sfx" type="range" min="0" max="1" step="0.05"></label>
+      <label class="set"><span>Mute all</span><input id="set-mute" type="checkbox"></label>
+      <label class="set"><span>Screen shake</span><input id="set-shake" type="checkbox"></label>
+      <label class="set"><span>Graphics quality</span><select id="set-quality"><option value="high">High</option><option value="low">Low (older PCs)</option></select></label>
+      <button data-act="erase" class="ghost danger">ERASE ALL SAVE DATA</button>
+      <button data-act="back" class="primary">BACK</button>
+    </div>
+  </section>
+
+  <section id="s-pause" class="screen center dimmed">
+    <div class="card">
+      <h2>PAUSED</h2>
+      <nav class="menu tight">
+        <button data-act="resume" class="primary">RESUME</button>
+        <button data-act="codex">CODEX</button>
+        <button data-act="how">HOW TO PLAY</button>
+        <button data-act="settings">SETTINGS</button>
+        <button data-act="restart">RESTART CHAPTER</button>
+        <button data-act="quit">QUIT TO TITLE</button>
+      </nav>
+    </div>
+  </section>
+
+  <section id="s-codex" class="screen center dimmed">
+    <div class="card xwide">
+      <div class="codex-head"><h2>CODEX</h2><div id="codex-count" class="dim"></div></div>
+      <div class="codex">
+        <div id="codex-list" class="codex-list"></div>
+        <div id="codex-read" class="log"></div>
+      </div>
+      <button data-act="back" class="primary">BACK</button>
+    </div>
+  </section>
+
+  <section id="s-log" class="screen center dimmed">
+    <div class="card wide">
+      <div id="log-box" class="log"></div>
+      <button data-act="closelog" class="primary">CLOSE  ·  E</button>
+    </div>
+  </section>
+
+  <section id="s-inter" class="screen center solid">
+    <div class="card xwide">
+      <div class="kicker">CHAPTER COMPLETE</div>
+      <h2 id="inter-name"></h2>
+      <div id="inter-stats" class="stats"></div>
+      <div class="shop-head"><h4>FIELD WORKBENCH</h4><div class="salv">SALVAGE  ⬢ <b id="inter-salv">0</b></div></div>
+      <div id="inter-shop" class="shop"></div>
+      <button data-act="next" id="b-next" class="primary"></button>
+    </div>
+  </section>
+
+  <section id="s-dead" class="screen center dimmed red">
+    <div class="card">
+      <h2 id="dead-h">YOU ARE QUIET NOW</h2>
+      <p id="dead-t" class="tip"></p>
+      <nav class="menu tight">
+        <button data-act="retry" class="primary">TRY AGAIN  ·  ENTER</button>
+        <button data-act="quit">QUIT TO TITLE</button>
+      </nav>
+    </div>
+  </section>
+
+  <section id="s-confirm" class="screen center dimmed">
+    <div class="card">
+      <div class="kicker">THIS CANNOT BE UNDONE</div>
+      <h2 id="conf-h"></h2>
+      <p id="conf-t" class="tip"></p>
+      <nav class="menu tight">
+        <button data-act="yes" class="primary">COMMIT</button>
+        <button data-act="no">NOT YET</button>
+      </nav>
+    </div>
+  </section>
+
+  <section id="s-end" class="screen center solid">
+    <div class="card wide">
+      <div class="kicker">THE QUIET BELOW</div>
+      <div class="artwrap"><canvas id="end-art" class="art" width="1200" height="440"></canvas></div>
+      <h2 id="end-h"></h2>
+      <div id="end-t" class="end-t"></div>
+      <div id="end-stats" class="stats"></div>
+      <button data-act="quit" class="primary">RETURN TO TITLE</button>
+    </div>
+  </section>
+</div>
+<script src="game.js"></script>
+<!-- visitor counter: no cookies, no personal data -->
+<script data-goatcounter="https://gamebookshelf.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
+</body>
+</html>
