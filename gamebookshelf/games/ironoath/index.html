@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#0b0907">
+<title>IRONOATH — Trial by Combat</title>
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<canvas id="game"></canvas>
+<div id="hurt"></div>
+<div id="flash"></div>
+
+<div id="hud" class="hidden">
+  <div class="hud-side">
+    <div class="nm" id="pName">You</div>
+    <div class="bar hp"><i class="ghost" id="pGhost"></i><i class="fill" id="pHp"></i></div>
+    <div class="bar st"><i class="fill" id="pSt"></i></div>
+    <div class="bar rs" id="pRsBar"><i class="fill" id="pRs"></i></div>
+  </div>
+  <div class="hud-mid">
+    <div id="duelNo">DUEL I</div>
+    <div id="goldNo"><span class="coin"></span><b id="goldVal">0</b></div>
+  </div>
+  <div class="hud-side right">
+    <div class="nm" id="eName">Foe</div>
+    <div class="bar hp"><i class="ghost" id="eGhost"></i><i class="fill" id="eHp"></i></div>
+    <div class="bar st"><i class="fill" id="eSt"></i></div>
+    <div class="bar rs" id="eRsBar"><i class="fill" id="eRs"></i></div>
+  </div>
+</div>
+<button id="pauseBtn" class="hidden" aria-label="Pause"><span></span><span></span></button>
+
+<div id="banner" class="hidden"><div class="b-top" id="bTop"></div><div class="b-main" id="bMain"></div><div class="b-sub" id="bSub"></div></div>
+<div id="hint" class="hidden"></div>
+
+<div id="touch" class="hidden">
+  <div class="t-left">
+    <button class="tb mv" data-act="left">&#9664;</button>
+    <button class="tb mv" data-act="right">&#9654;</button>
+  </div>
+  <div class="t-right">
+    <button class="tb sm oath" data-act="special">OATH</button>
+    <button class="tb sm" data-act="dodge">DODGE</button>
+    <button class="tb sm kick" data-act="kick">KICK</button>
+    <button class="tb md" data-act="block">BLOCK</button>
+    <button class="tb md" data-act="heavy">HEAVY</button>
+    <button class="tb lg" data-act="light">STRIKE</button>
+  </div>
+</div>
+
+<section id="sTitle" class="screen">
+  <a class="back" href="../../">&larr; Game Bookshelf</a>
+  <div class="logo">
+    <div class="crest" aria-hidden="true"></div>
+    <h1>IRONOATH</h1>
+    <p class="tag">Trial by Combat</p>
+  </div>
+  <div class="menu">
+    <button id="bStart" class="btn primary">Enter the Lists</button>
+    <button id="bHow" class="btn">How to Fight</button>
+    <button id="bSet" class="btn">Settings</button>
+  </div>
+  <p id="record" class="record"></p>
+</section>
+
+<section id="sArms" class="screen panel hidden">
+  <h2>Choose Your Arms</h2>
+  <p class="sub">Win duels to earn the right to bear heavier steel.</p>
+  <div id="armsList" class="cards"></div>
+  <button class="btn" id="bArmsBack">Back</button>
+</section>
+
+<section id="sHow" class="screen panel hidden">
+  <h2>How to Fight</h2>
+  <div class="how">
+    <div>
+      <h3>Controls</h3>
+      <table>
+        <tr><td><kbd>A</kbd> <kbd>D</kbd> / <kbd>&larr;</kbd> <kbd>&rarr;</kbd></td><td>Advance and give ground</td></tr>
+        <tr><td><kbd>J</kbd> / Left click</td><td>Strike &mdash; tap again to chain three cuts</td></tr>
+        <tr><td><kbd>K</kbd> / Right click</td><td>Heavy blow &mdash; slow, crushes a guard</td></tr>
+        <tr><td><kbd>L</kbd> or <kbd>S</kbd> (hold)</td><td>Block. Raise it just before impact to <b>parry</b></td></tr>
+        <tr><td><kbd>I</kbd> or <kbd>F</kbd></td><td>Kick &mdash; breaks a raised guard</td></tr>
+        <tr><td><kbd>L</kbd> during a heavy</td><td>Feint &mdash; cancel the windup to bait a block</td></tr>
+        <tr><td><kbd>Space</kbd></td><td>Dodge back (hold forward to slip in)</td></tr>
+        <tr><td><kbd>Q</kbd></td><td>Oath Strike when Resolve is full</td></tr>
+        <tr><td><kbd>Esc</kbd> / <kbd>P</kbd></td><td>Pause</td></tr>
+      </table>
+      <p class="small">On a phone, use the on-screen buttons.</p>
+    </div>
+    <div>
+      <h3>The Rules of the Lists</h3>
+      <ul>
+        <li>A foe who turtles behind his guard can be <b>kicked</b> open. Hold your own guard too long and he will do the same to you.</li>
+        <li><b>Stamina</b> (green) pays for every swing, block and dodge. Run dry and your guard breaks.</li>
+        <li>A <b>parry</b> staggers your foe. Your next hit is a <b>riposte</b> for extra damage.</li>
+        <li>A foe whose blade flashes white is winding up a <b>heavy</b>. Parry it or step away.</li>
+        <li>A <b>red glow</b> means an Oath Strike. It cannot be blocked &mdash; dodge.</li>
+        <li>Wounds carry over. Spend your winnings at the armoury between duels.</li>
+        <li>Every fifth duel is a <b>Champion</b>. Fell the third to win the trial.</li>
+      </ul>
+    </div>
+  </div>
+  <button class="btn primary" id="bHowBack">Understood</button>
+</section>
+
+<section id="sSet" class="screen panel hidden">
+  <h2>Settings</h2>
+  <div class="set">
+    <label>Master volume <input type="range" id="vMaster" min="0" max="100"></label>
+    <label>Music <input type="range" id="vMusic" min="0" max="100"></label>
+    <label>Sound effects <input type="range" id="vSfx" min="0" max="100"></label>
+    <label class="chk"><input type="checkbox" id="cMute"> Mute all sound</label>
+    <label class="chk"><input type="checkbox" id="cShake"> Screen shake</label>
+    <label class="chk"><input type="checkbox" id="cLow"> Low quality (for slower machines)</label>
+  </div>
+  <button class="btn primary" id="bSetBack">Done</button>
+</section>
+
+<section id="sPause" class="screen panel hidden">
+  <h2>Paused</h2>
+  <div class="menu">
+    <button class="btn primary" id="bResume">Resume</button>
+    <button class="btn" id="bPHow">How to Fight</button>
+    <button class="btn" id="bPSet">Settings</button>
+    <button class="btn danger" id="bQuit">Abandon Trial</button>
+  </div>
+</section>
+
+<section id="sShop" class="screen panel hidden">
+  <h2>The Armoury</h2>
+  <p class="sub" id="shopSub"></p>
+  <div class="shop-top"><span class="purse"><span class="coin"></span><b id="shopGold">0</b> crowns</span><span id="shopHp"></span></div>
+  <div id="shopCards" class="cards"></div>
+  <div class="shop-foot">
+    <button class="btn" id="bReroll">Reroll</button>
+    <button class="btn primary" id="bNext">Next Duel</button>
+  </div>
+  <p class="small" id="shopNext"></p>
+</section>
+
+<section id="sOver" class="screen panel hidden">
+  <h2 class="red">You Have Fallen</h2>
+  <p class="sub" id="overSub"></p>
+  <div id="overStats" class="stats"></div>
+  <p id="overUnlock" class="unlock"></p>
+  <div class="menu row">
+    <button class="btn primary" id="bAgain">Fight Again</button>
+    <button class="btn" id="bOverTitle">Title</button>
+  </div>
+</section>
+
+<section id="sWin" class="screen panel hidden">
+  <h2 class="gold">Champion of the Realm</h2>
+  <p class="sub">Three champions lie in the dust. The oath is kept.</p>
+  <div id="winStats" class="stats"></div>
+  <p id="winUnlock" class="unlock"></p>
+  <div class="menu row">
+    <button class="btn primary" id="bEndless">Fight On (Endless)</button>
+    <button class="btn" id="bWinTitle">Title</button>
+  </div>
+</section>
+
+<script src="game.js"></script>
+<script data-goatcounter="https://gamebookshelf.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
+<script src="/shared/trophies.js"></script>
+</body>
+</html>
