@@ -69,6 +69,7 @@ const SFX = {
   clang(p = 1, v = .2) { if (!ok()) return; const b = rand(520, 640) * p; for (const [r, a, d] of [[1, 1, .28], [2.76, .6, .22], [5.4, .4, .16], [8.93, .25, .1]]) tone('square', b * r, b * r * .995, d, v * a * .5); noise(.07, v * 1.4, 'highpass', 3000, 5000, .7); },
   parry() { if (!ok()) return; const b = rand(1180, 1320); for (const [r, a, d] of [[1, 1, .9], [2.41, .6, .7], [3.9, .4, .45], [6.2, .25, .3]]) tone('sine', b * r, b * r * .99, d, .2 * a); noise(.06, .35, 'highpass', 4000, 6000, .7); },
   hit(h) { if (!ok()) return; tone('sine', h ? 150 : 180, 45, h ? .26 : .16, h ? .75 : .5); noise(h ? .2 : .12, h ? .55 : .4, 'lowpass', h ? 1400 : 1800, 200, .8); SFX.clang(h ? .55 : .8, .09); },
+  cue() { if (!ok()) return; tone('sine', 1900, 1900, .06, .13); },
   step() { if (!ok()) return; noise(.07, .1, 'lowpass', 420, 140, .8); },
   dodge() { if (!ok()) return; noise(.22, .22, 'bandpass', 300, 900, .9); },
   guardbreak() { if (!ok()) return; SFX.clang(.5, .3); tone('sine', 120, 40, .3, .6); },
@@ -423,7 +424,7 @@ function makeFoe(n) {
     type, title: F.title, weapon: boss ? boss.w : F.weapon, armor: F.armor, helm: F.helm, plume: !!F.plume, tabard: !!F.tabard, boss: !!F.boss, scale: F.scale,
     name: boss ? boss.n + ', ' + boss.e : pick(NAMES) + ' ' + pick(EPI[type]), cloth: boss ? boss.c : pick(CLOTHS),
     maxHp: (74 + 13 * n) * F.hp, dmgMul: (.58 + .055 * n) * F.dmg, taken: 1, maxStam: 90 + Math.min(40, n * 3), atkSpd: 1, moveSpd: F.spd,
-    windSlow: Math.max(1, 1.32 - .04 * n), regenMul: 1, cdMul: Math.max(.6, 1.2 - .04 * n), trait: null,
+    windSlow: Math.max(1.12, 1.45 - .04 * n), regenMul: 1, cdMul: Math.max(.6, 1.2 - .04 * n), trait: null,
     aip: { aggr: F.ai.aggr, block: F.ai.block * k, parry: F.ai.parry * k, dodge: F.ai.dodge * k, heavy: F.ai.heavy, combo: F.ai.combo, keep: !!F.ai.keep, special: !!F.ai.special, cd: F.ai.cd, feint: (F.ai.feint || 0) * Math.min(1.2, k), rush: !!(boss && boss.rush), spKey: boss ? boss.spKey : null, enrage: !!(boss && boss.enrage) },
     move: boss ? boss.move : null, resMul: boss ? 1.5 : 1,
   };
@@ -454,7 +455,7 @@ function makePlayerCfg(run) {
     isPlayer: true, name: 'You', weapon: run.weapon, armor: 'plate', helm: 'bascinet', tabard: true, plume: false, cloth: '#27406b', scale: 1.02,
     maxHp: 100 + 20 * u('heart'), hp: run.hp, dmgMul: 1 + .15 * u('whet'), taken: Math.pow(.9, u('plate')), maxStam: 100 + 25 * u('wind'), regenMul: 1 + .12 * u('wind'),
     atkSpd: 1 + .08 * u('quick'), moveSpd: 1, windSlow: 1, heavyMul: 1 + .25 * u('heavyh'), ripMul: 1 + .5 * u('rip'), dodgeCost: 22 * Math.pow(.65, u('foot')),
-    blockMul: Math.pow(.7, u('bulwark')), resMul: 1 + .4 * u('oath'), parryWin: .2 + .045 * u('eye'),
+    blockMul: Math.pow(.7, u('bulwark')), resMul: 1 + .4 * u('oath'), parryWin: .34 + .05 * u('eye'),
   };
 }
 
@@ -483,12 +484,12 @@ class Fighter {
     this.spend(d.st);
     const sp = this.w.spd * this.atkSpd;
     this.atk = { key, wind: d.wind / sp * this.windSlow, act: d.act, rec: d.rec / sp, dmg: d.dmg * this.w.dmg * this.dmgMul * (d.heavy ? this.heavyMul : 1), lunge: d.lunge, stun: d.stun, kb: d.kb, heavy: !!d.heavy, unblockable: !!d.unblockable, w: d.w, s: d.s, next: d.next, kick: !!d.kick, auto: !!d.auto, reach: d.reach || this.w.reach + (d.reachAdd || 0) };
-    this.set('attack'); this.atkPhase = 0; this.hitDone = false; this.atkId = ++ATKID;
+    this.set('attack'); this.atkPhase = 0; this.hitDone = false; this.cued = false; this.atkId = ++ATKID;
     if (d.heavy) { this.glint = 1; if (!this.isPlayer) SFX.grunt(); }
     if (key === 'sp') SFX.charge();
     return true;
   }
-  startBlock() { this.parryOK = G.time - this.lastBlockEnd > .32; this.set('block'); this.blockT = 0; }
+  startBlock() { this.parryOK = G.time - this.lastBlockEnd > .18; this.set('block'); this.blockT = 0; }
   dodge(dir) {
     if (this.stam < this.dodgeCost * .6) return false;
     this.spend(this.dodgeCost); this.set('dodge', .4); this.dv = dir * 540; SFX.dodge(); dust(this.x, 5); return true;
@@ -508,6 +509,7 @@ class Fighter {
       }
       case 'attack': {
         const a = this.atk;
+        if (this.atkPhase === 0 && !this.cued && !this.isPlayer && !G.demo && !a.unblockable && !a.kick && o && a.wind - this.t <= o.parryWin - .03) { this.cued = true; ring(this.tipX, this.tipY, 34, '#ffd24a'); ring(this.hbX, this.hbY, 22, '#ffd24a'); SFX.cue(); }
         if (this.atkPhase === 0) { if (this.t > a.wind * .7) this.x += this.facing * a.lunge / (a.wind * .3 + a.act) * dt * this.lungeOK(o); if (this.t >= a.wind) { this.atkPhase = 1; this.t = 0; SFX.swing(a.heavy); } }
         else if (this.atkPhase === 1) { this.x += this.facing * a.lunge / (a.wind * .3 + a.act) * dt * this.lungeOK(o); if (!this.hitDone && o && Math.abs(o.x - this.x) <= a.reach * this.scale + 4) { this.hitDone = true; resolveHit(this, o, a); } if (this.t >= a.act) { this.atkPhase = 2; this.t = 0; } }
         else if (this.t >= a.rec) this.set('idle');
@@ -897,7 +899,7 @@ let banTimer = 0;
 function banner(top, main, sub, dur) { $('bTop').textContent = top; $('bMain').textContent = main; $('bSub').textContent = sub || ''; const b = $('banner'); b.classList.add('hidden'); void b.offsetWidth; b.classList.remove('hidden'); clearTimeout(banTimer); banTimer = setTimeout(() => b.classList.add('hidden'), dur * 1000); }
 const HINTS = [
   ['<b>A / D</b> to move · <b>J</b> to strike · tap again to chain cuts', '<b>◀ ▶</b> to move · <b>STRIKE</b> to cut · tap again to chain'],
-  ['Hold <b>L</b> to block. Raise it just before a blow lands to <b>parry</b>', 'Hold <b>BLOCK</b>. Raise it just before a blow lands to <b>parry</b>'],
+  ['Hold <b>L</b> to block. Press it when the enemy blade <b>flashes gold</b> to parry', 'Hold <b>BLOCK</b>. Press it when the enemy blade <b>flashes gold</b> to parry'],
   ['<b>K</b> is a heavy blow — slow, but it crushes a guard', '<b>HEAVY</b> is slow, but it crushes a guard'],
   ['Watch the green bar. An exhausted fighter cannot defend', 'Watch the green bar. An exhausted fighter cannot defend'],
   ['<b>Space</b> dodges. A <b>red glow</b> cannot be blocked — dodge it', '<b>DODGE</b> slips away. A <b>red glow</b> cannot be blocked'],
