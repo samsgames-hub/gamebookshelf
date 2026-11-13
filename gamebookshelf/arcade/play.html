@@ -40,7 +40,7 @@ function render(){var last='';try{last=localStorage.getItem('gbArcadeLast')||''}
 document.getElementById('home').onclick=home;
 addEventListener('message',function(e){if(e.source===parent&&e.data&&e.data.gbArcade==='home')home()});
 fetch('/index.html',{cache:'no-cache'}).then(function(r){return r.text()}).then(function(s){
-  var m=s.match(/const GAMES=\[([\s\S]*?)\n\];/);var HIDE=['marches','ironoath','neon-rift'];G=Function('return ['+m[1]+']')().filter(function(g){return HIDE.indexOf(g.id)<0});render();tell();
+  var m=s.match(/const GAMES=\[([\s\S]*?)\n\];/);var HIDE=['ironoath','neon-rift'];G=Function('return ['+m[1]+']')().filter(function(g){return HIDE.indexOf(g.id)<0});render();tell();
 }).catch(function(){grid.innerHTML='<div id="err">Couldn\'t load the game list. Check your connection and try again.</div>'});
 })();
 </script></body></html>

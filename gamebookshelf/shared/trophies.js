@@ -19,7 +19,7 @@
     const paid = Object.values(tour.paid || {}), entered = Object.keys(tour.best || {}).length;
     const played = {
       quietbelow: has('quietbelow_v1'), skyline: has('skyline2') || has('skyline1'), slingshot: has('slingshot2') || has('slingshot1'), mitosis: has('mx-save'),
-      neonrift: has('neonrift2') || has('neonrift'), firebase: has('firebase.save'), ridgeline: has('ridgeline.save'), cornerpocket: has('cornerpocket.save'), gwf: has('gwf-name') || has('gwf-keys'), ironoath: has('ironoath_save_v1'), marches: has('marches_save_v1')
+      neonrift: has('neonrift2') || has('neonrift'), firebase: has('firebase.save'), ridgeline: has('ridgeline.save'), cornerpocket: has('cornerpocket.save'), gwf: has('gwf-name') || has('gwf-keys'), ironoath: has('ironoath_save_v1')
     };
     return {
       played: Object.values(played).filter(Boolean).length, tb, sk, sl, mx, nr, fbStars, fb3, rl, cp, sweeps, dailyRun: best, entered,
