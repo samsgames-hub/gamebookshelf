@@ -1,0 +1,17 @@
+# STORMFALL game server. Render (render.com) > New > Blueprint > pick this repo.
+# The website itself stays on GitHub Pages; this only runs the online match server.
+services:
+  - type: web
+    name: stormfall-us
+    runtime: node
+    plan: free            # free = 0.1 CPU and sleeps after 15 min idle; "starter" ($7/mo) never sleeps
+    region: ohio
+    rootDir: server/stormfall
+    buildCommand: "true"
+    startCommand: node server.js
+    healthCheckPath: /health
+    envVars:
+      - key: REGION
+        value: US-East
+      - key: MAX_MATCHES
+        value: "1"        # free: 1 match at a time. starter: 6

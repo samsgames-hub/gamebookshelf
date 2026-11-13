@@ -1,0 +1,10 @@
+{
+  "name": "stormfall-server",
+  "version": "1.0.0",
+  "description": "Dedicated game server for STORMFALL (top-down battle royale). No dependencies.",
+  "main": "server.js",
+  "scripts": { "start": "node server.js" },
+  "engines": { "node": ">=18" },
+  "license": "UNLICENSED",
+  "private": true
+}

@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#0d1117">
+<title>STORMFALL — Top-Down Battle Royale</title>
+<link rel="icon" href="data:,">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<canvas id="game"></canvas>
+
+<!-- Touch controls -->
+<div id="touch" class="hidden">
+  <div id="stickL" class="stick"><div class="knob"></div></div>
+  <div id="stickR" class="stick"><div class="knob"></div></div>
+  <button class="tbtn" id="tPause" data-k="pause">II</button>
+  <button class="tbtn" id="tMap" data-k="map">MAP</button>
+  <button class="tbtn" id="tUse" data-k="use">LOOT</button>
+  <button class="tbtn" id="tReload" data-k="reload">RELOAD</button>
+  <button class="tbtn" id="tSwap" data-k="swap">SWAP</button>
+  <button class="tbtn" id="tAds" data-k="ads">AIM</button>
+  <button class="tbtn big" id="tJump" data-k="jump">JUMP</button>
+</div>
+
+<!-- Title -->
+<div id="title" class="screen">
+  <div class="title-wrap">
+    <div class="logo"><span class="l1">STORM</span><span class="l2">FALL</span></div>
+    <div class="tag">30 drop in. One walks out.</div>
+    <div class="menu-grid">
+      <div class="menu-col">
+        <label class="callsign"><span>CALLSIGN</span><input id="nameIn" maxlength="14" spellcheck="false" autocomplete="off"></label>
+        <button class="btn primary" id="btnOnline">PLAY ONLINE <small>LIVE</small></button>
+        <button class="btn" id="btnPlay">PRACTICE <small>VS BOTS</small></button>
+        <div class="seg" id="diffSeg">
+          <button data-d="0">RECRUIT</button><button data-d="1">VETERAN</button><button data-d="2">ELITE</button>
+        </div>
+        <button class="btn" id="btnHow">HOW TO PLAY</button>
+        <button class="btn" id="btnLocker">LOCKER</button>
+        <button class="btn" id="btnSettings">SETTINGS</button>
+      </div>
+      <div class="panel" id="statsPanel"></div>
+    </div>
+  </div>
+  <div class="foot">WASD move · Mouse aim &amp; shoot · Right-click aim · E loot · R reload · 1–5 slots · M map · Esc pause</div>
+</div>
+
+<!-- How to play -->
+<div id="how" class="screen hidden">
+  <div class="panel wide">
+    <h2>HOW TO PLAY</h2>
+    <div class="how-grid">
+      <div><h3>1 · DROP</h3><p>A cargo plane crosses the island. Press <b>Space</b> or click to jump, then steer your glider (<b>WASD</b>) to a town. Busy towns mean better loot and earlier fights.</p></div>
+      <div><h3>2 · LOOT</h3><p>Grab weapons, ammo and heals with <b>E</b>. Golden <b>chests</b> hum when you're near and drop better gear. Rarity runs <span class="r0">Common</span> › <span class="r1">Uncommon</span> › <span class="r2">Rare</span> › <span class="r3">Epic</span> › <span class="r4">Legendary</span>.</p></div>
+      <div><h3>3 · FIGHT</h3><p><b>Mouse</b> aims, <b>Left-click</b> fires, <b>Right-click</b> aims down sights for accuracy (snipers scope out). <b>R</b> reloads, <b>1–5</b> or wheel swaps slots. Walls block your vision. Bushes hide you until you shoot.</p></div>
+      <div><h3>4 · SURVIVE</h3><p>The storm closes in phases. Check the timer and the <b>white circle</b> on your map (<b>M</b>). Select a heal and hold fire to use it. Shields go on top of health. Supply drops carry Epic and Legendary gear.</p></div>
+    </div>
+    <p class="hint">Touch: left stick moves, right stick aims and fires. Tap the hotbar to switch slots.</p>
+    <button class="btn" data-back>BACK</button>
+  </div>
+</div>
+
+<!-- Locker -->
+<div id="locker" class="screen hidden">
+  <div class="panel wide">
+    <h2>LOCKER</h2>
+    <p class="hint" id="lockerLevel"></p>
+    <div id="skinGrid"></div>
+    <button class="btn" data-back>BACK</button>
+  </div>
+</div>
+
+<!-- Settings -->
+<div id="settings" class="screen hidden">
+  <div class="panel">
+    <h2>SETTINGS</h2>
+    <label class="row">Master volume <input type="range" id="sMaster" min="0" max="1" step="0.05"></label>
+    <label class="row">Music <input type="range" id="sMusic" min="0" max="1" step="0.05"></label>
+    <label class="row">Sound effects <input type="range" id="sSfx" min="0" max="1" step="0.05"></label>
+    <label class="row chk">Mute all <input type="checkbox" id="sMute"></label>
+    <label class="row chk">Screen shake <input type="checkbox" id="sShake"></label>
+    <label class="row chk">Show FPS <input type="checkbox" id="sFps"></label>
+    <label class="row">Graphics quality
+      <select id="sQuality"><option value="high">High</option><option value="low">Low (faster)</option></select>
+    </label>
+    <button class="btn" id="btnSettingsBack">BACK</button>
+  </div>
+</div>
+
+<!-- Pause -->
+<div id="pause" class="screen hidden">
+  <div class="panel narrow">
+    <h2>PAUSED</h2>
+    <button class="btn primary" id="btnResume">RESUME</button>
+    <button class="btn" id="btnPSettings">SETTINGS</button>
+    <button class="btn" id="btnPHow">HOW TO PLAY</button>
+    <button class="btn danger" id="btnQuit">LEAVE MATCH</button>
+  </div>
+</div>
+
+<!-- Online lobby -->
+<div id="lobby" class="screen hidden">
+  <div class="panel narrow lobby">
+    <h2>ONLINE LOBBY</h2>
+    <div id="lbStatus">Connecting…</div>
+    <div id="lbCount"></div>
+    <ul id="lbList"></ul>
+    <button class="btn" id="btnLeaveLobby">CANCEL</button>
+    <p class="hint">Everyone online queues here. When the timer ends, up to 12 players drop into a server match together and bots fill the rest of the 30 slots.</p>
+  </div>
+</div>
+
+<!-- Results -->
+<div id="results" class="screen hidden">
+  <div class="panel res">
+    <div id="resPlace">#1</div>
+    <div id="resTitle">VICTORY</div>
+    <div id="resSub"></div>
+    <div id="resStats"></div>
+    <div class="xpbox">
+      <div class="xprow"><span id="resLevel">LEVEL 1</span><span id="resXp">+0 XP</span></div>
+      <div class="xpbar"><div id="resXpFill"></div></div>
+    </div>
+    <div id="resUnlock"></div>
+    <div id="resNote"></div>
+    <div class="row-btns">
+      <button class="btn primary" id="btnAgain">PLAY AGAIN <small>R</small></button>
+      <button class="btn" id="btnMenu">MAIN MENU</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Game servers (wss://). List several and players join the fastest one.
+  // Leave empty when this page is served by server.js itself.
+  window.STORMFALL_SERVERS = [
+    'wss://stormfall-us.onrender.com',
+  ];
+</script>
+<script src="game.js"></script>
+<script data-goatcounter="https://gamebookshelf.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
+<script src="/shared/trophies.js"></script>
+</body>
+</html>
