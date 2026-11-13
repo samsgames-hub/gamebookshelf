@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>GB Arcade</title>
+<style>
+*{box-sizing:border-box}html,body{margin:0;height:100%;background:#05070f;color:#e8ecff;font-family:system-ui,Segoe UI,Roboto,sans-serif;overflow:hidden}
+#top{display:none;align-items:center;gap:10px;height:44px;padding:0 12px;background:#121831;border-bottom:1px solid #2a3350}
+body.solo #top{display:flex}#top a,#top button{color:#cdd5f5;text-decoration:none;font-weight:600;font-size:14px;background:#1b2343;border:0;padding:7px 12px;border-radius:8px;cursor:pointer}
+#top b{font-size:14px}
+#main{position:absolute;inset:0}body.solo #main{top:44px}
+#grid{position:absolute;inset:0;overflow:auto;padding:22px}
+h2{margin:0 0 4px;font-size:22px}p.s{margin:0 0 18px;color:#8b96c4;font-size:14px}
+.g{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px}
+.c{display:block;text-align:left;padding:0;border:1px solid #2a3350;border-radius:12px;overflow:hidden;background:#0e1328;color:inherit;cursor:pointer;transition:transform .15s,border-color .15s,box-shadow .15s;font:inherit}
+.c:hover,.c:focus-visible{transform:translateY(-3px);border-color:var(--a);box-shadow:0 10px 26px rgba(0,0,0,.45);outline:none}
+.c .im{aspect-ratio:16/9;background:#141a33 center/cover no-repeat}
+.c .t{padding:10px 12px 12px}.c b{display:block;font-size:16px;color:var(--a)}.c span{font-size:12px;color:#8b96c4}
+.c.last{border-color:var(--a)}
+#fr{position:absolute;inset:0;width:100%;height:100%;border:0;display:none;background:#05070f}
+#err{color:#ff9a8a;padding:30px}
+</style></head><body>
+<div id="top"><a href="/">← Game Bookshelf</a><button id="home">All games</button><b id="ttl"></b></div>
+<div id="main"><div id="grid"><h2>Pick a game</h2><p class="s">Your progress saves separately in each game.</p><div class="g" id="g"></div></div>
+<iframe id="fr" allow="autoplay; fullscreen; gamepad; pointer-lock" allowfullscreen></iframe></div>
+<script>
+(function(){
+var solo=window===window.top;if(solo)document.body.classList.add('solo');
+var G=[],fr=document.getElementById('fr'),grid=document.getElementById('grid'),cur=null;
+function tell(){if(!solo)try{parent.postMessage({gbArcade:1,title:cur?cur.title:'',url:cur?location.origin+'/'+cur.path.replace(/index\.html$/,''):location.origin+'/'},'*')}catch(e){}}
+function home(){cur=null;fr.style.display='none';fr.src='about:blank';grid.style.display='block';document.getElementById('ttl').textContent='';render();tell()}
+function open(g){cur=g;try{localStorage.setItem('gbArcadeLast',g.id)}catch(e){}
+  grid.style.display='none';fr.style.display='block';fr.src='/'+g.path.replace(/index\.html$/,'');
+  fr.onload=function(){try{fr.focus()}catch(e){}};document.getElementById('ttl').textContent=g.title;tell()}
+function render(){var last='';try{last=localStorage.getItem('gbArcadeLast')||''}catch(e){}
+  var box=document.getElementById('g');box.innerHTML='';
+  G.forEach(function(g){var b=document.createElement('button');b.className='c'+(g.id===last?' last':'');b.style.setProperty('--a',g.accent||'#6be3ff');
+    b.innerHTML='<div class="im"></div><div class="t"><b></b><span></span></div>';
+    if(g.tile)b.querySelector('.im').style.backgroundImage='url("/'+g.tile+'")';
+    b.querySelector('b').textContent=g.title;b.querySelector('span').textContent=(g.tags||[]).slice(0,3).join(' · ');
+    b.onclick=function(){open(g)};box.appendChild(b)})}
+document.getElementById('home').onclick=home;
+addEventListener('message',function(e){if(e.source===parent&&e.data&&e.data.gbArcade==='home')home()});
+fetch('/index.html',{cache:'no-cache'}).then(function(r){return r.text()}).then(function(s){
+  var m=s.match(/const GAMES=\[([\s\S]*?)\n\];/);G=Function('return ['+m[1]+']')();render();tell();
+}).catch(function(){grid.innerHTML='<div id="err">Couldn\'t load the game list. Check your connection and try again.</div>'});
+})();
+</script></body></html>
