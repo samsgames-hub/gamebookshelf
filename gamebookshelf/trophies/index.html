@@ -40,6 +40,22 @@ main{max-width:1100px;margin:0 auto;padding:36px 24px 60px}
 .pn{font-size:12px;color:var(--muted);margin-top:2px}
 .group{margin-top:28px}.group h2 small{font:500 15px var(--ui);color:var(--muted);margin-left:8px}
 .rew{margin-top:30px;color:var(--muted);font-size:15px}.rew b{color:var(--text)}
+.t.sec .m{filter:none;opacity:.6;background:repeating-linear-gradient(45deg,#1a2330 0 6px,#212c3b 6px 12px)}
+.t.sec b{letter-spacing:.2em}
+.t .pin{position:absolute;top:8px;right:8px;width:30px;height:30px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--muted);cursor:pointer;font-size:15px;display:grid;place-items:center;transition:transform .12s,color .12s,border-color .12s}
+.t .pin:hover{transform:scale(1.1);color:var(--text)}.t .pin.on{color:var(--g);border-color:rgba(255,209,102,.6)}
+.card{margin-top:24px;display:grid;grid-template-columns:minmax(0,1.4fr) minmax(260px,1fr);gap:20px;padding:20px;border-radius:20px;background:var(--s1);border:1px solid var(--line)}
+.card h2{font:700 24px var(--disp);margin:0 0 4px}.card p.h{margin:0 0 14px;color:var(--muted);font-size:14px}
+.card canvas{width:100%;height:auto;border-radius:12px;display:block;border:1px solid var(--line);background:#0a0e14}
+.f{display:grid;gap:12px;align-content:start}
+.f label{display:grid;gap:5px;font-size:13px;color:var(--muted);font-weight:600;letter-spacing:.04em;text-transform:uppercase}
+.f input,.f select{font:500 16px var(--ui);color:var(--text);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px 12px;outline:none}
+.f input:focus,.f select:focus{border-color:var(--g)}
+.btns{display:flex;gap:8px;flex-wrap:wrap}
+.btn{font:600 15px var(--ui);padding:11px 16px;border-radius:10px;border:1px solid var(--line);background:var(--s2);color:var(--text);cursor:pointer;transition:transform .1s,background .15s}
+.btn:hover{background:#223044}.btn:active{transform:scale(.97)}.btn.pri{background:var(--g);color:#1d1503;border-color:var(--g)}.btn.pri:hover{background:#ffdc85}
+.note{font-size:13px;color:var(--muted)}
+@media (max-width:860px){.card{grid-template-columns:1fr}}
 @media (max-width:760px){.hero{grid-template-columns:auto 1fr}.tally{grid-column:1/-1}.tally div{flex:1}.bar{padding:0 14px;gap:10px}.bar nav a{padding:8px 8px}main{padding:24px 14px 50px}}
 </style>
 </head>
@@ -54,6 +70,16 @@ main{max-width:1100px;margin:0 auto;padding:36px 24px 60px}
   <div class="who"><h1 id="nm">Trophy Room</h1><p id="sub"></p></div>
   <div class="tally" id="tally"></div>
  </section>
+ <section class="card" id="pcard">
+  <div><h2>Player card</h2><p class="h">Pick a title, pin up to 3 trophies with ☆, then download the card to share.</p><canvas id="cv" width="1200" height="630" aria-label="Your player card"></canvas></div>
+  <div class="f">
+   <label>Name<input id="pName" maxlength="16" placeholder="Player" autocomplete="off"></label>
+   <label>Title<select id="pTitle"></select></label>
+   <div class="note" id="pShow"></div>
+   <div class="btns"><button class="btn pri" id="pDl">Download card</button><button class="btn" id="pCopy">Copy brag text</button></div>
+   <div class="note" id="pMsg" role="status"></div>
+  </div>
+ </section>
  <section class="next"><h2>Closest to unlocking</h2><div class="grid" id="next"></div></section>
  <div id="groups"></div>
  <p class="rew"><b>Rewards.</b> Every trophy pays out straight away: bronze <b>+30 Skyline coins, +8 Slingshot stars</b>; silver <b>+80 coins, +20 stars, +1 Gamble With Friends gold</b>; gold <b>+200 coins, +50 stars, +3 gold and a vault key</b>. They arrive the next time you open each game. Trophies are checked against what you've already done, so playing on this device counts automatically.</p>
@@ -61,19 +87,66 @@ main{max-width:1100px;margin:0 auto;padding:36px 24px 60px}
 <script src="/shared/trophies.js"></script>
 <script>
 (()=>{'use strict';
-const $=id=>document.getElementById(id),TR=GBTrophies,EMO={'Game Bookshelf':'📚',Skyline:'🏙️',Slingshot:'🚀',Mitosis:'🦠','Neon Rift':'🔫',Firebase:'🛡️',Ridgeline:'🚙','Corner Pocket':'🎱','Gamble With Friends':'🎰'};
+const $=id=>document.getElementById(id),TR=GBTrophies,EMO={'Game Bookshelf':'📚',Skyline:'🏙️',Slingshot:'🚀',Mitosis:'🦠','Neon Rift':'🔫',Firebase:'🛡️',Ridgeline:'🚙','Corner Pocket':'🎱','Gamble With Friends':'🎰',Ironoath:'⚔️','The Quiet Below':'🔦',Secret:'🔒'};
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-const card=t=>{const done=!!t.at,pct=Math.round(t.have/t.need*100);return '<div class="t '+t.tier+(done?' done':'')+'"><span class="m">'+(EMO[t.game]||'🏆')+'</span><span class="x"><span class="tier">'+TR.TIER[t.tier].n+'</span><b>'+esc(t.name)+'</b><span class="how">'+esc(t.how)+'</span>'+(done?'<div class="pn">Unlocked '+new Date(t.at).toLocaleDateString(undefined,{month:'short',day:'numeric'})+'</div>':t.need>1?'<div class="pb"><i style="width:'+pct+'%"></i></div><div class="pn">'+t.have.toLocaleString()+' / '+t.need.toLocaleString()+'</div>':'')+'</span></div>'};
-function render(){TR.check(false);const st=TR.state(),L=st.list,got=L.filter(t=>t.at);
+const P=()=>{try{return JSON.parse(localStorage.getItem('gbs-trophies')||'null')||{got:{}}}catch(e){return{got:{}}}},Psave=o=>{try{localStorage.setItem('gbs-trophies',JSON.stringify(o))}catch(e){}};
+const card=t=>{const done=!!t.at,pct=Math.round(t.have/t.need*100);if(t.secret&&!done)return '<div class="t sec '+t.tier+'"><span class="m">❓</span><span class="x"><span class="tier">Secret · '+TR.TIER[t.tier].n+'</span><b>???</b><span class="how">Keep playing to find this one</span></span></div>';
+ const pinned=(P().show||[]).includes(t.id);return '<div class="t '+t.tier+(done?' done':'')+'">'+(done?'<button class="pin'+(pinned?' on':'')+'" data-pin="'+t.id+'" aria-label="'+(pinned?'Unpin from':'Pin to')+' player card" title="'+(pinned?'Unpin from':'Pin to')+' player card">'+(pinned?'★':'☆')+'</button>':'')+'<span class="m">'+(EMO[t.from]||'🏆')+'</span><span class="x"><span class="tier">'+TR.TIER[t.tier].n+'</span><b>'+esc(t.name)+'</b><span class="how">'+esc(t.how)+'</span>'+(t.secret?'<div class="pn">'+esc(t.from)+'</div>':'')+(done?'<div class="pn">Unlocked '+new Date(t.at).toLocaleDateString(undefined,{month:'short',day:'numeric'})+'</div>':t.need>1?'<div class="pb"><i style="width:'+pct+'%"></i></div><div class="pn">'+t.have.toLocaleString()+' / '+t.need.toLocaleString()+'</div>':'')+'</span></div>'};
+let render=function(){TR.check(false);const st=TR.state(),L=st.list,got=L.filter(t=>t.at);
  let nm='Your Trophy Room';try{const n=JSON.parse(localStorage.getItem('gbs-name')||'null');if(n)nm=n+'’s Trophy Room'}catch(e){}
  $('nm').textContent=nm;$('lv').textContent=st.lv.l;$('lvl').style.setProperty('--p',Math.round(st.lv.into/st.lv.need*100)+'%');
  $('sub').innerHTML='<b>'+got.length+'</b> of '+L.length+' trophies · <b>'+st.pts+'</b> points · '+(st.lv.need-st.lv.into)+' points to level '+(st.lv.l+1);
  $('tally').innerHTML=['b','s','g'].map(k=>'<div class="'+k+'"><b>'+got.filter(t=>t.tier===k).length+'/'+L.filter(t=>t.tier===k).length+'</b><span>'+TR.TIER[k].n+'</span></div>').join('');
- const near=L.filter(t=>!t.at).sort((a,b)=>b.have/b.need-a.have/a.need).slice(0,4);
+ const near=L.filter(t=>!t.at&&!t.secret).sort((a,b)=>b.have/b.need-a.have/a.need).slice(0,4);
  $('next').innerHTML=near.length?near.map(card).join(''):'<p style="color:var(--muted)">You have every trophy. Legend.</p>';
  const games=[...new Set(L.map(t=>t.game))];
- $('groups').innerHTML=games.map(g=>{const ts=L.filter(t=>t.game===g);return '<section class="group"><h2>'+(EMO[g]||'')+' '+esc(g)+'<small>'+ts.filter(t=>t.at).length+' of '+ts.length+'</small></h2><div class="grid">'+ts.map(card).join('')+'</div></section>'}).join('')}
-render();setInterval(render,6000);addEventListener('focus',render);
+ $('groups').innerHTML=games.map(g=>{const ts=L.filter(t=>t.game===g);return '<section class="group"><h2>'+(EMO[g]||'')+' '+esc(g)+'<small>'+ts.filter(t=>t.at).length+' of '+ts.length+(g==='Secret'?' found':'')+'</small></h2><div class="grid">'+ts.map(card).join('')+'</div></section>'}).join('')};
+
+/* ---------- player card ---------- */
+const TCOL={b:'#d79a62',s:'#cfd8e3',g:'#ffd166'};
+function getName(){try{return JSON.parse(localStorage.getItem('gbs-name')||'null')||''}catch(e){return''}}
+function cardData(){const st=TR.state(),o=P(),got=st.list.filter(t=>t.at),show=(o.show||[]).map(id=>got.find(t=>t.id===id)).filter(Boolean);
+ const auto=got.slice().sort((a,b)=>({g:3,s:2,b:1}[b.tier]-{g:3,s:2,b:1}[a.tier])||b.at-a.at);while(show.length<3&&auto.length){const t=auto.shift();if(!show.includes(t))show.push(t)}
+ const title=got.find(t=>t.id===o.title);return{st,got,show:show.slice(0,3),title:title?title.name:(got.length?'Trophy Hunter':'Newcomer'),name:getName()||'Player'}}
+function rr(c,x,y,w,h,r){c.beginPath();c.moveTo(x+r,y);c.arcTo(x+w,y,x+w,y+h,r);c.arcTo(x+w,y+h,x,y+h,r);c.arcTo(x,y+h,x,y,r);c.arcTo(x,y,x+w,y,r);c.closePath()}
+function medal(c,x,y,r,tier,emo){const col=TCOL[tier],g=c.createRadialGradient(x-r*.3,y-r*.35,r*.1,x,y,r);g.addColorStop(0,'#fff');g.addColorStop(.35,col);g.addColorStop(1,'#2a2010');
+ c.save();c.shadowColor=col;c.shadowBlur=24;c.fillStyle=g;c.beginPath();c.arc(x,y,r,0,7);c.fill();c.restore();c.lineWidth=4;c.strokeStyle='rgba(255,255,255,.35)';c.beginPath();c.arc(x,y,r-6,0,7);c.stroke();
+ /* trophy cup drawn as shapes so it looks the same on every device */
+ const k=r/42;c.save();c.translate(x,y);c.scale(k,k);c.fillStyle='rgba(30,20,4,.82)';c.beginPath();c.moveTo(-16,-18);c.lineTo(16,-18);c.lineTo(15,-2);c.quadraticCurveTo(12,10,3,12);c.lineTo(3,17);c.lineTo(10,17);c.lineTo(10,22);c.lineTo(-10,22);c.lineTo(-10,17);c.lineTo(-3,17);c.lineTo(-3,12);c.quadraticCurveTo(-12,10,-15,-2);c.closePath();c.fill();
+ c.lineWidth=4;c.strokeStyle='rgba(30,20,4,.82)';c.beginPath();c.arc(-17,-8,7,Math.PI*.5,Math.PI*1.5);c.stroke();c.beginPath();c.arc(17,-8,7,-Math.PI*.5,Math.PI*.5);c.stroke();c.restore()}
+function fit(c,txt,max,size,weight,fam){let s=size;do{c.font=weight+' '+s+'px '+fam;s-=2}while(c.measureText(txt).width>max&&s>14);return txt}
+function drawCard(){const cv=$('cv'),c=cv.getContext('2d'),d=cardData(),W=1200,H=630,D='"Barlow Condensed","Arial Narrow",sans-serif',U='Barlow,"Segoe UI",sans-serif';
+ const bg=c.createLinearGradient(0,0,W,H);bg.addColorStop(0,'#0d131c');bg.addColorStop(1,'#06090e');c.fillStyle=bg;c.fillRect(0,0,W,H);
+ const gl=c.createRadialGradient(W*.82,-40,10,W*.82,-40,620);gl.addColorStop(0,'rgba(255,209,102,.30)');gl.addColorStop(1,'rgba(255,209,102,0)');c.fillStyle=gl;c.fillRect(0,0,W,H);
+ c.strokeStyle='rgba(255,255,255,.04)';c.lineWidth=1;for(let i=-H;i<W;i+=28){c.beginPath();c.moveTo(i,0);c.lineTo(i+H,H);c.stroke()}
+ rr(c,18,18,W-36,H-36,26);c.strokeStyle='rgba(255,209,102,.35)';c.lineWidth=2;c.stroke();
+ const lg=c.createLinearGradient(60,52,96,88);lg.addColorStop(0,'#2fd67b');lg.addColorStop(1,'#18a3ff');rr(c,60,52,36,36,9);c.fillStyle=lg;c.fill();c.fillStyle='#06110b';c.beginPath();c.moveTo(74,61);c.lineTo(86,70);c.lineTo(74,79);c.fill();
+ c.textAlign='left';c.textBaseline='alphabetic';c.fillStyle='#e8eef6';c.font='700 30px '+D;c.fillText('GAME BOOKSHELF',110,81);c.fillStyle='#8e9bb0';c.font='600 20px '+U;c.fillText('PLAYER CARD',W-60-c.measureText('PLAYER CARD').width,81);
+ c.fillStyle='#e8eef6';fit(c,d.name,640,96,'700',D);c.fillText(d.name,60,200);
+ c.fillStyle='#ffd166';c.font='600 34px '+D;c.fillText(d.title.toUpperCase(),62,248);
+ const st=d.st,L=st.list;c.fillStyle='#a9b4c6';c.font='500 24px '+U;c.fillText(d.got.length+' of '+L.length+' trophies  ·  '+st.pts+' points',62,292);
+ /* level ring */
+ const cx=W-170,cy=200,R=92,p=st.lv.into/st.lv.need;c.lineWidth=16;c.strokeStyle='#1a2330';c.beginPath();c.arc(cx,cy,R,0,7);c.stroke();c.strokeStyle='#ffd166';c.lineCap='round';c.beginPath();c.arc(cx,cy,R,-Math.PI/2,-Math.PI/2+Math.max(.02,p)*Math.PI*2);c.stroke();c.lineCap='butt';
+ c.textAlign='center';c.fillStyle='#8e9bb0';c.font='600 18px '+U;c.fillText('LEVEL',cx,cy-28);c.fillStyle='#fff';c.font='700 76px '+D;c.fillText(st.lv.l,cx,cy+40);
+ /* tallies */
+ ['b','s','g'].forEach((k,i)=>{const x=W-290+i*80,y=330;rr(c,x,y,70,62,12);c.fillStyle='rgba(255,255,255,.05)';c.fill();c.fillStyle=TCOL[k];c.font='700 30px '+D;c.fillText(d.got.filter(t=>t.tier===k).length,x+35,y+34);c.fillStyle='#8e9bb0';c.font='600 13px '+U;c.fillText(TR.TIER[k].n.toUpperCase(),x+35,y+53)});
+ /* showcase */
+ c.textAlign='left';c.fillStyle='#8e9bb0';c.font='600 18px '+U;c.fillText('SHOWCASE',60,352);
+ for(let i=0;i<3;i++){const x=60+i*262,y=372,w=246,h=200,t=d.show[i];rr(c,x,y,w,h,18);c.fillStyle=t?'rgba(255,255,255,.05)':'rgba(255,255,255,.025)';c.fill();c.strokeStyle=t?TCOL[t.tier]+'88':'rgba(255,255,255,.08)';c.lineWidth=2;c.stroke();
+  if(!t){c.fillStyle='#4a5568';c.textAlign='center';c.font='500 18px '+U;c.fillText('Earn trophies to fill',x+w/2,y+h/2+6);continue}
+  medal(c,x+w/2,y+66,42,t.tier);c.textAlign='center';c.fillStyle='#fff';fit(c,t.name,w-24,28,'700',D);c.fillText(t.name,x+w/2,y+140);c.fillStyle=TCOL[t.tier];c.font='600 15px '+U;c.fillText((t.secret?'SECRET ':'')+TR.TIER[t.tier].n.toUpperCase(),x+w/2,y+164);c.fillStyle='#8e9bb0';fit(c,t.from,w-24,16,'500',U);c.fillText(t.from,x+w/2,y+186)}
+ c.textAlign='right';c.fillStyle='#8e9bb0';c.font='600 20px '+U;c.fillText('gamebookshelf.com/trophies',W-60,H-56)}
+function fillForm(){const d=cardData(),o=P(),sel=$('pTitle');if(document.activeElement!==$('pName'))$('pName').value=getName();
+ const opts='<option value="">'+(d.got.length?'Trophy Hunter':'Newcomer')+'</option>'+d.got.map(t=>'<option value="'+t.id+'"'+(o.title===t.id?' selected':'')+'>'+esc(t.name)+' ('+esc(t.from)+')</option>').join('');if(sel.innerHTML!==opts&&document.activeElement!==sel)sel.innerHTML=opts;
+ const n=(o.show||[]).length;$('pShow').textContent=n?n+' of 3 trophies pinned. Empty slots show your best trophies.':'No trophies pinned, so your best ones are shown. Tap ☆ on any trophy to pin it.';drawCard()}
+const msg=t=>{$('pMsg').textContent=t;clearTimeout(msg.t);msg.t=setTimeout(()=>$('pMsg').textContent='',3500)};
+$('pName').addEventListener('input',e=>{const v=e.target.value.replace(/[<>]/g,'').slice(0,16);try{localStorage.setItem('gbs-name',JSON.stringify(v.trim()))}catch(x){}$('nm').textContent=(v.trim()?v.trim()+'’s':'Your')+' Trophy Room';drawCard()});
+$('pTitle').addEventListener('change',e=>{const o=P();o.title=e.target.value||undefined;Psave(o);drawCard()});
+document.addEventListener('click',e=>{const b=e.target.closest('[data-pin]');if(!b)return;const o=P(),id=b.dataset.pin;o.show=o.show||[];const i=o.show.indexOf(id);if(i>=0)o.show.splice(i,1);else{if(o.show.length>=3){msg('You can pin 3 trophies. Unpin one first.');return}o.show.push(id)}Psave(o);render()});
+$('pDl').addEventListener('click',()=>{drawCard();try{const a=document.createElement('a');a.download='game-bookshelf-card.png';a.href=$('cv').toDataURL('image/png');document.body.appendChild(a);a.click();a.remove();msg('Card saved as an image.')}catch(e){msg('Your browser blocked the download. Right-click the card to save it.')}});
+$('pCopy').addEventListener('click',async()=>{const d=cardData(),t=d.name+' · '+d.title+' · Level '+d.st.lv.l+' on Game Bookshelf. '+d.got.length+'/'+d.st.list.length+' trophies'+(d.show.length?', including '+d.show.map(x=>x.name).join(', '):'')+'. Beat me: gamebookshelf.com/trophies';try{await navigator.clipboard.writeText(t);msg('Copied. Paste it anywhere.')}catch(e){msg(t)}});
+const R0=render;render=function(){R0();fillForm()};
+render();setInterval(render,6000);addEventListener('focus',render);if(document.fonts)document.fonts.ready.then(drawCard);
 })();
 </script>
 <script data-goatcounter="https://gamebookshelf.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>

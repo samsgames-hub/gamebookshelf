@@ -24,13 +24,13 @@
     return {
       played: Object.values(played).filter(Boolean).length, tb, sk, sl, mx, nr, fbStars, fb3, rl, cp, sweeps, dailyRun: best, entered,
       wins: paid.filter(p => p && p.rank === 1).length, podiums: paid.filter(p => p && p.rank >= 1 && p.rank <= 3).length,
-      groups: (R('gbs-groups') || []).length, keys: n(R('gwf-keys')), rlBest: Math.max(0, ...Object.values(rl.best || {}).map(n))
+      groups: (R('gbs-groups') || []).length, io: R('ironoath_save_v1') || {}, qb: R('quietbelow_v1') || {}, keys: n(R('gwf-keys')), rlBest: Math.max(0, ...Object.values(rl.best || {}).map(n))
     };
   }
   /* [id, game, name, how, tier, progress(s) -> [have, need]] */
   const T = [
     ['explorer', 'Game Bookshelf', 'Explorer', 'Play 5 different games', 'b', s => [s.played, 5]],
-    ['completist', 'Game Bookshelf', 'Completionist', 'Play all 9 games', 's', s => [s.played, 9]],
+    ['completist', 'Game Bookshelf', 'Completionist', 'Play all 10 games', 's', s => [s.played, 10]],
     ['sk25', 'Skyline', 'Office Block', 'Build a 25-floor tower', 'b', s => [n(s.sk.best), 25]],
     ['sk60', 'Skyline', 'Skyscraper', 'Build a 60-floor tower', 's', s => [n(s.sk.best), 60]],
     ['sk100', 'Skyline', 'Supertall', 'Build a 100-floor tower', 'g', s => [n(s.sk.best), 100]],
@@ -55,13 +55,31 @@
     ['cp10', 'Corner Pocket', 'Hustler', 'Win 10 matches', 'b', s => [n(s.cp.stats && s.cp.stats.won), 10]],
     ['cpgold', 'Corner Pocket', 'Speed Demon', 'Get a gold medal in Speed Pool', 's', s => [n(s.cp.speedMedals) >= 3 ? 1 : 0, 1]],
     ['cpcareer', 'Corner Pocket', 'Pool Shark', 'Beat 5 career opponents', 'g', s => [(s.cp.beaten || []).length, 5]],
-    ['gwfkey', 'Gamble With Friends', 'Key Holder', 'Hold a vault key', 'b', s => [s.keys, 1]]
+    ['gwfkey', 'Gamble With Friends', 'Key Holder', 'Hold a vault key', 'b', s => [s.keys, 1]],
+    ['io3', 'Ironoath', 'Blooded', 'Win duel III', 'b', s => [n(s.io.bestDuel), 3]],
+    ['io10', 'Ironoath', 'Champion Slayer', 'Win duel X', 's', s => [n(s.io.bestDuel), 10]],
+    ['iocrown', 'Ironoath', 'Trial by Combat', 'Win all 15 duels of a trial', 'g', s => [n(s.io.crowns), 1]],
+    ['qbdrill', 'The Quiet Below', 'Going Down', 'Reach the Drill Hall', 'b', s => [n(s.qb.cleared) >= 3 ? 1 : 0, 1]],
+    ['qbend', 'The Quiet Below', 'Way Out', 'Reach an ending', 's', s => [(s.qb.endings || []).length, 1]],
+    ['qbends', 'The Quiet Below', 'Every Way Out', 'See all 3 endings', 'g', s => [(s.qb.endings || []).length, 3]],
+    /* secret trophies: hidden in the Trophy Room until earned */
+    ['xowl', 'Secret', 'Night Owl', 'Play between midnight and 4 a.m.', 'b', s => [s.played && new Date().getHours() < 4 ? 1 : 0, 1], 'Game Bookshelf'],
+    ['xkeys', 'Secret', 'Key Hoarder', 'Hold 10 vault keys at once', 's', s => [s.keys, 10], 'Gamble With Friends'],
+    ['xspec', 'Secret', 'Specialist', 'Earn every trophy for one game', 's', s => [s.spec || 0, 1], 'Game Bookshelf'],
+    ['xcent', 'Secret', 'Centurion', 'Win 100 duels in Ironoath', 's', s => [n(s.io.wins), 100], 'Ironoath'],
+    ['xarchive', 'Secret', 'Archivist', 'Recover all 36 logs in The Quiet Below', 'g', s => [(s.qb.codex || []).length, 36], 'The Quiet Below'],
+    ['xstrat', 'Secret', 'Stratosphere', 'Build a 150-floor tower in Skyline', 'g', s => [n(s.sk.best), 150], 'Skyline']
   ];
   const TIER = { b: { n: 'Bronze', pts: 10, coins: 30, stars: 8, gold: 0, keys: 0 }, s: { n: 'Silver', pts: 25, coins: 80, stars: 20, gold: 1, keys: 0 }, g: { n: 'Gold', pts: 50, coins: 200, stars: 50, gold: 3, keys: 1 } };
   const level = pts => { let l = 1, need = 30, left = pts; while (left >= need) { left -= need; l++; need = Math.round(need * 1.25); } return { l, into: left, need }; };
   function state() {
     const s = snap(), got = (R('gbs-trophies') || {}).got || {};
-    const list = T.map(([id, game, name, how, tier, p]) => { let pr = [0, 1]; try { pr = p(s); } catch (e) { } const have = Math.min(pr[0], pr[1]); return { id, game, name, how, tier, have, need: pr[1], done: pr[0] >= pr[1], at: got[id] || 0 }; });
+    const mk = ([id, game, name, how, tier, p, secret]) => { let pr = [0, 1]; try { pr = p(s); } catch (e) { } const have = Math.min(pr[0], pr[1]); return { id, game, name, how, tier, secret: !!secret, from: secret || game, have, need: pr[1], done: pr[0] >= pr[1], at: got[id] || 0 }; };
+    let list = T.map(mk);
+    /* Specialist: every regular trophy of one game (not the site-wide ones) earned or earnable */
+    const games = [...new Set(list.filter(t => !t.secret && t.game !== 'Game Bookshelf').map(t => t.game))];
+    s.spec = games.some(g => list.filter(t => t.game === g && !t.secret).every(t => t.done || t.at)) ? 1 : 0;
+    list = T.map(mk);
     const pts = list.filter(t => t.at).reduce((a, t) => a + TIER[t.tier].pts, 0);
     return { list, pts, lv: level(pts) };
   }
@@ -82,7 +100,7 @@
     if (!inGame) el.href = '/trophies/'; el.setAttribute('role', 'status');
     el.style.cssText = 'position:fixed;right:16px;bottom:16px;z-index:2147483000;display:flex;gap:12px;align-items:center;max-width:340px;padding:12px 16px 12px 12px;border-radius:14px;background:rgba(14,18,26,.96);border:1px solid ' + col + ';box-shadow:0 12px 40px rgba(0,0,0,.5);color:#eef2f8;' + (inGame ? 'pointer-events:none;' : '') + 'font:500 14px/1.35 system-ui,-apple-system,"Segoe UI",sans-serif;text-decoration:none;transform:translateY(140%);transition:transform .45s cubic-bezier(.3,1.4,.5,1)';
     if (t.more) t = { name: '+' + t.more + ' more trophies', game: 'See them all in the Trophy Room', more: t.more, tier: 'g' };
-    el.innerHTML = '<span style="flex:none;width:46px;height:46px;border-radius:50%;display:grid;place-items:center;font-size:24px;background:radial-gradient(circle at 35% 30%,#fff8,' + col + ' 45%,#0006)">🏆</span><span><b style="display:block;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:' + col + '">' + (t.more ? '' : r.n) + (t.more ? 'And' : ' trophy unlocked') + '</b><b style="display:block;font-size:16px">' + t.name + '</b><span style="color:#a9b4c6">' + t.game + (t.more ? '' : ' · +' + r.pts + ' points · +' + r.coins + ' coins, +' + r.stars + ' stars' + (r.gold ? ', +' + r.gold + ' gold' : '') + (r.keys ? ', +1 key' : '')) + '</span></span>';
+    el.innerHTML = '<span style="flex:none;width:46px;height:46px;border-radius:50%;display:grid;place-items:center;font-size:24px;background:radial-gradient(circle at 35% 30%,#fff8,' + col + ' 45%,#0006)">🏆</span><span><b style="display:block;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:' + col + '">' + (t.more ? '' : (t.secret ? 'Secret ' : '') + r.n) + (t.more ? 'And' : ' trophy unlocked') + '</b><b style="display:block;font-size:16px">' + t.name + '</b><span style="color:#a9b4c6">' + t.game + (t.more ? '' : ' · +' + r.pts + ' points · +' + r.coins + ' coins, +' + r.stars + ' stars' + (r.gold ? ', +' + r.gold + ' gold' : '') + (r.keys ? ', +1 key' : '')) + '</span></span>';
     document.body.appendChild(el); requestAnimationFrame(() => requestAnimationFrame(() => { el.style.transform = 'none'; }));
     try { const A = new (window.AudioContext || window.webkitAudioContext)(), now = A.currentTime;[0, 4, 7, 12].forEach((s, i) => { const o = A.createOscillator(), g = A.createGain(); o.type = 'triangle'; o.frequency.value = 659 * Math.pow(2, s / 12); g.gain.setValueAtTime(.0001, now + i * .08); g.gain.exponentialRampToValueAtTime(.07, now + i * .08 + .01); g.gain.exponentialRampToValueAtTime(.0001, now + i * .08 + .4); o.connect(g); g.connect(A.destination); o.start(now + i * .08); o.stop(now + i * .08 + .45); }); setTimeout(() => A.close(), 1500); } catch (e) { }
     setTimeout(() => { el.style.transform = 'translateY(140%)'; setTimeout(() => el.remove(), 600); }, 5200);
