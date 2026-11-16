@@ -1,3 +1,3 @@
 {
-  "start_command": "node server/stormfall/server.js"
+  "start_command": "node gamebookshelf/server/stormfall/server.js"
 }
