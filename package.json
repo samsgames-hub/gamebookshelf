@@ -1,0 +1,7 @@
+{
+  "name": "gamebookshelf",
+  "private": true,
+  "description": "Game Bookshelf. The website is static (GitHub Pages); this file only tells Zeabur how to start the Stormfall game server.",
+  "scripts": { "start": "node server/stormfall/server.js" },
+  "engines": { "node": ">=18" }
+}
