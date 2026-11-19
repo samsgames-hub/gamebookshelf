@@ -323,8 +323,8 @@ show(0);
 // public visit total from GoatCounter; stays hidden if it can't load
 fetch('https://gamebookshelf.goatcounter.com/counter/TOTAL.json').then(r=>r.ok?r.json():null).then(d=>{if(!d||!d.count)return;const e=document.getElementById('visits');e.innerHTML='<b></b> visits so far';e.firstChild.textContent=d.count;e.hidden=false}).catch(()=>{});
 </script>
-<script src="shared/account.js?v=1795104351"></script>
-<script src="shared/trophies.js?v=1795104351"></script>
+<script src="shared/account.js?v=1795104453"></script>
+<script src="shared/trophies.js?v=1795104453"></script>
 <script>(function(){function f(){try{var s=GBTrophies.state();document.getElementById('lvBadge').textContent='Lv '+s.lv.l}catch(e){}}f();setTimeout(f,2200);setInterval(f,6500)})();</script>
 </body>
 </html>

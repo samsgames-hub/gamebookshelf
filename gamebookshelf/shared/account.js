@@ -272,6 +272,11 @@
     await API.remove(id);
     meta.u = null; saveMeta(); acct = null; clearCookie(); sset('gbs-idt', null); emit();
   }
+  /* accounts made before the username list existed get added to it the next time any page opens */
+  async function ensureName() {
+    if (!acct || sget('gbs-name-ok') === acct.u) return;
+    try { const cur = await API.pub('unames/' + acct.n.toLowerCase()); if (!cur) await claimName(acct.n, { u: acct.u, id: await token() }, 0); sset('gbs-name-ok', acct.u); } catch (e) { }
+  }
   async function getEmail() { const u = await API.lookup(await token()); return u.email && !u.email.endsWith(MAIL) ? u.email : ''; }
   async function setEmail(email) {
     email = String(email || '').trim(); if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) throw fail('BADEMAIL');
@@ -445,7 +450,7 @@
     const an = sget('gbs-admin-note'); if (an) { sset('gbs-admin-note', null); setTimeout(() => toast(an), 300); }
     if (!acct) { scan(); return; }
     if (inGame) setTimeout(gamePill, 900);
-    pull().then(() => { scan(); publish(false, true); }).catch(() => scan());
+    pull().then(() => { scan(); ensureName(); publish(false, true); }).catch(() => scan());
     if (inGame) setInterval(() => { if (!document.hidden) publish(); }, 120000);
     setInterval(scan, 10000);
     addEventListener('pagehide', () => { scan(); if (dirty.size) push(true); });
