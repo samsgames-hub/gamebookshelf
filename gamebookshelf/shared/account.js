@@ -9,11 +9,26 @@
   if (window.GBAccount) return;
   const KEY = 'AIzaSyAorALlmWcgCLaS9cIR_9BEUPKXcmKECoY', DB = 'https://gamebookshelf-9984c-default-rtdb.firebaseio.com', MAIL = '@players.gamebookshelf.com';
   /* which storage keys are game progress worth syncing (device ids, Firebase internals and our own bookkeeping are left out) */
-  const SYNC = /^(skyline|slingshot|mx-save|neonrift|nr-name|firebase\.|ridgeline\.|cornerpocket\.|gwf-|gbs-(bank|name|trophies)|ironoath_|quietbelow_|stormfall_)/;
+  const SYNC = /^(skyline|slingshot|mx-save|neonrift|nr-name|firebase\.|ridgeline\.|cornerpocket\.|gwf-|gbs-(bank|name|trophies|adminx)|ironoath_|quietbelow_|stormfall_)/;
   const GAMES = [[/^skyline/, 'Skyline'], [/^slingshot/, 'Slingshot'], [/^mx-/, 'Mitosis'], [/^(neonrift|nr-)/, 'Neon Rift'], [/^firebase\./, 'Firebase'], [/^ridgeline\./, 'Ridgeline'], [/^cornerpocket\./, 'Corner Pocket'], [/^gwf-/, 'Gamble With Friends'], [/^gbs-/, 'Trophies'], [/^ironoath_/, 'Ironoath'], [/^quietbelow_/, 'The Quiet Below'], [/^stormfall_/, 'Stormfall']];
   /* currencies are added together when two addresses both changed them, instead of the newest copy replacing the other */
   const MERGE = { 'gbs-bank': 'deep', 'gwf-keys': 'num', skyline2: ['coins'], slingshot2: ['stars'], neonrift2: ['cores'], 'ridgeline.save': ['cash'], 'cornerpocket.save': ['money'] };
   const ADMINS = ['sam_admin'];
+  /* public leaderboards: one number per game, read from that game's own save */
+  const num = x => (typeof x === 'number' && isFinite(x) && x > 0 ? Math.floor(x) : 0);
+  const BOARDS = [
+    { id: 'neonrift', n: 'Neon Rift', what: 'Highest wave', unit: 'wave', k: 'neonrift2', f: s => num(s.bestWave) },
+    { id: 'skyline', n: 'Skyline', what: 'Tallest tower', unit: 'floors', k: 'skyline2', f: s => num(s.best) },
+    { id: 'slingshot', n: 'Slingshot', what: 'Furthest planet', unit: 'planet', k: 'slingshot2', f: s => num(s.best) },
+    { id: 'mitosis', n: 'Mitosis', what: 'Biggest cell', unit: 'mass', k: 'mx-save', f: s => num(s.rec && s.rec.mass) },
+    { id: 'stormfall', n: 'Stormfall', what: 'Most wins', unit: 'wins', k: 'stormfall_profile', f: s => num(s.wins) },
+    { id: 'ironoath', n: 'Ironoath', what: 'Best renown', unit: 'renown', k: 'ironoath_save_v1', f: s => num(s.bestRenown) },
+    { id: 'ridgeline', n: 'Ridgeline', what: 'Longest drive', unit: 'm', k: 'ridgeline.save', f: s => num(Math.max(0, ...Object.values(s.best || {}).map(Number).filter(isFinite))) },
+    { id: 'firebase', n: 'Firebase', what: 'Best endless wave', unit: 'wave', k: 'firebase.save', f: s => num(Math.max(0, ...Object.values(s.maps || {}).map(m => +(m && m.endless) || 0))) },
+    { id: 'cornerpocket', n: 'Corner Pocket', what: 'Matches won', unit: 'wins', k: 'cornerpocket.save', f: s => num(s.stats && s.stats.won) },
+    { id: 'quietbelow', n: 'The Quiet Below', what: 'Holdout best', unit: 'points', k: 'quietbelow_v1', f: s => num(s.holdoutBest) },
+    { id: 'trophies', n: 'Trophy points', what: 'Trophy points', unit: 'points', k: 'gbs-trophies', f: () => (window.GBTrophies ? num(GBTrophies.state().pts) : 0) }
+  ];
   const gameOf = k => { for (const [r, n] of GAMES) if (r.test(k)) return n; return 'Other'; };
   const LS = window.localStorage, SS = window.sessionStorage;
   const rawSet = Storage.prototype.setItem, rawRemove = Storage.prototype.removeItem;
@@ -61,7 +76,8 @@
     verifyEmail: (id, email) => post('accounts:sendOobCode', { requestType: 'VERIFY_AND_CHANGE_EMAIL', idToken: id, newEmail: email }),
     resetPassword: email => post('accounts:sendOobCode', { requestType: 'PASSWORD_RESET', email }),
     put: (path, data, id) => call(DB + '/' + path + '.json' + (id ? '?auth=' + encodeURIComponent(id) : ''), { method: 'PUT', body: JSON.stringify(data) }),
-    pub: path => call(DB + '/' + path + '.json', { cache: 'no-store' }),
+    pub: (path, qs) => call(DB + '/' + path + '.json' + (qs ? '?' + qs : ''), { cache: 'no-store' }),
+    root: (data, id, keepalive) => call(DB + '/.json?auth=' + encodeURIComponent(id), { method: 'PATCH', body: JSON.stringify(data), keepalive: !!keepalive }),
     get: (path, id) => call(DB + '/' + path + '.json?auth=' + encodeURIComponent(id), { cache: 'no-store' }),
     patch: (path, data, id, keepalive) => call(DB + '/' + path + '.json?auth=' + encodeURIComponent(id), { method: 'PATCH', body: JSON.stringify(data), keepalive: !!keepalive }),
     del: (path, id) => call(DB + '/' + path + '.json?auth=' + encodeURIComponent(id), { method: 'DELETE' })
@@ -121,7 +137,7 @@
     keys.forEach(k => { const v = lget(k); if (v != null) { data['saves/' + enc(k)] = { v, t: meta.t[k] || Date.now() }; sent[k] = v; } });
     data.name = acct.n; data.at = { '.sv': 'timestamp' };
     keys.forEach(k => dirty.delete(k));
-    try { status.busy = true; await API.patch('users/' + acct.u, data, await token(), keepalive); meta.at = status.at = Date.now(); meta.u = acct.u; Object.keys(sent).forEach(k => setBase(k, sent[k])); saveMeta(); setStatus(''); }
+    try { status.busy = true; await API.patch('users/' + acct.u, data, await token(), keepalive); meta.at = status.at = Date.now(); meta.u = acct.u; Object.keys(sent).forEach(k => setBase(k, sent[k])); saveMeta(); setStatus(''); publish(keepalive); }
     catch (e) { keys.forEach(k => dirty.add(k)); setStatus('', e.message); if (!keepalive) schedule(15000); }
     finally { status.busy = false; emit(); }
   }
@@ -269,9 +285,70 @@
   const api = {
     info: () => ({ signedIn: !!acct, name: acct ? acct.n : '', at: status.at, busy: status.busy, err: status.err, msg: status.msg, pending: dirty.size, games: [...new Set(localKeys().map(gameOf))].filter(g => g !== 'Other') }),
     signUp, signIn, signOut: () => signOut(false), changePassword, deleteAccount, syncNow, getEmail, setEmail, forgotPassword,
+    BOARDS: BOARDS.map(({ id, n, what, unit }) => ({ id, n, what, unit })), board, profileOf, friends, addFriend, removeFriend, isFriend, removeEntry, uid: () => (acct ? acct.u : ''), publish: () => publish(false, true),
     isAdmin: () => !!acct && ADMINS.includes(acct.n.toLowerCase()), admin: () => openAdmin(), onChange: f => listeners.push(f), gameOf, _test: { pull, push, scan, meta: () => meta, dirty: () => [...dirty] }
   };
   window.GBAccount = api;
+
+  /* ---------- public profile, leaderboards, friends ---------- */
+  let pubCache = J(sget('gbs-pub'), {}) || {}, pubT = 0;
+  const gameHere = () => { const g = AG.find(x => location.pathname.indexOf(x.p) === 0); return g && g.n !== 'Trophies' ? g.n : ''; };
+  function profileData() {
+    const tr = J(lget('gbs-trophies'), {}) || {}, st = window.GBTrophies ? GBTrophies.state() : null, best = {};
+    const x = J(lget('gbs-adminx'), []) || [];
+    BOARDS.forEach(b => { if (b.id === 'trophies') return; const v = J(lget(b.k), null); const s = v && typeof v === 'object' ? b.f(v) : 0; if (s && !x.includes(b.id) && pubCache['lb/' + b.id + '/' + acct.u] !== 'ban') best[b.id] = s; });
+    const got = st ? st.list.filter(t => t.at) : [];
+    const title = (got.find(t => t.id === tr.title) || {}).name || (got.length ? 'Trophy Hunter' : 'Newcomer');
+    return { n: acct.n, lv: st ? st.lv.l : 1, pts: st ? st.pts : 0, tro: got.length, of: st ? st.list.length : 0, title, show: (tr.show || []).filter(id => got.some(t => t.id === id)).slice(0, 3), best, adm: api.isAdmin() ? 1 : 0 };
+  }
+  async function publish(keepalive, force) {
+    if (!acct) return;
+    if (!force && !keepalive && Date.now() - pubT < 8000) return; pubT = Date.now();
+    const data = {}, x = J(lget('gbs-adminx'), []) || [], prof = profileData(), playing = gameHere();
+    BOARDS.forEach(b => {
+      const v = b.id === 'trophies' ? null : J(lget(b.k), null), sc = x.includes(b.id) ? 0 : b.id === 'trophies' ? b.f() : v && typeof v === 'object' ? b.f(v) : 0, key = 'lb/' + b.id + '/' + acct.u;
+      if (x.includes(b.id) && pubCache[key] !== 'x') { data[key] = null; pubCache[key] = 'x'; return; }
+      if (sc && pubCache[key] !== sc + '|' + acct.n) { data[key] = { n: acct.n, s: sc, t: { '.sv': 'timestamp' } }; pubCache[key] = sc + '|' + acct.n; }
+    });
+    const ph = hash(JSON.stringify(prof)), pk = 'profiles/' + acct.u;
+    if (pubCache[pk] !== ph || playing && Date.now() - (pubCache.seen || 0) > 120000 || force) {
+      data[pk] = Object.assign(prof, { game: playing || pubCache.game || '', at: { '.sv': 'timestamp' } }); pubCache[pk] = ph; pubCache.seen = Date.now(); if (playing) pubCache.game = playing;
+    }
+    if (!Object.keys(data).length) return;
+    let id; try { id = await token(); } catch (e) { Object.keys(data).forEach(k => delete pubCache[k]); return; }
+    /* each write goes on its own, so a player banned from one board still updates everything else */
+    await Promise.all(Object.entries(data).map(async ([k, v]) => {
+      try { await API.root({ [k]: v }, id, keepalive); }
+      catch (e) { if (e.code === 'DENIED' && k.indexOf('lb/') === 0) pubCache[k] = 'ban'; else delete pubCache[k]; }
+    }));
+    sset('gbs-pub', JSON.stringify(pubCache));
+  }
+  async function profileOf(name) {
+    const r = await API.pub('unames/' + String(name || '').toLowerCase()); if (!r || !r.u) return null;
+    const p = await API.pub('profiles/' + r.u); return p ? Object.assign(p, { uid: r.u }) : { n: name, uid: r.u, empty: 1 };
+  }
+  async function board(id, n) {
+    const b = BOARDS.find(x => x.id === id); if (!b) return [];
+    let d; try { d = await API.pub('lb/' + id, 'orderBy=%22s%22&limitToLast=' + (n || 100)); } catch (e) { d = await API.pub('lb/' + id); }
+    return Object.entries(d || {}).map(([u, o]) => ({ u, n: o.n, s: +o.s || 0, t: o.t || 0 })).filter(o => o.s > 0).sort((a, b) => b.s - a.s || a.t - b.t);
+  }
+  async function friends() {
+    if (!acct) return [];
+    const ids = Object.keys(await API.get('friends/' + acct.u, await token()) || {});
+    const out = await Promise.all(ids.map(async u => { try { const p = await API.pub('profiles/' + u); return Object.assign({ n: '?' }, p || {}, { uid: u }); } catch (e) { return { uid: u, n: '?' }; } }));
+    return out.sort((a, b) => (b.at || 0) - (a.at || 0));
+  }
+  async function addFriend(name) {
+    if (!acct) throw fail('SIGNED_OUT');
+    const r = await API.pub('unames/' + String(name || '').trim().toLowerCase()); if (!r || !r.u) throw fail('NOUSER');
+    if (r.u === acct.u) throw fail('SELF');
+    await API.put('friends/' + acct.u + '/' + r.u, true, await token()); return r.u;
+  }
+  async function removeFriend(uid) { await API.del('friends/' + acct.u + '/' + uid, await token()); }
+  async function isFriend(uid) { if (!acct) return false; try { return !!await API.get('friends/' + acct.u + '/' + uid, await token()); } catch (e) { return false; } }
+  /* admin: take a score down and keep that player off this board */
+  async function removeEntry(id, uid) { if (!api.isAdmin()) throw fail('DENIED'); const t = await token(); await API.put('lbban/' + id + '/' + uid, true, t); await API.del('lb/' + id + '/' + uid, t); }
+  ERR.NOUSER = 'No player has that username.'; ERR.SELF = 'That’s you!';
 
   /* ---------- admin tools (only for admin accounts) ---------- */
   const AG = [
@@ -298,7 +375,13 @@
     if (onPage) { sset('gbs-sync-note', null); sset('gbs-admin-note', note); location.reload(); }
     else toast(note);
   }
+  function markEdited(g) {
+    const b = { Skyline: 'skyline', Slingshot: 'slingshot', Mitosis: 'mitosis', 'Neon Rift': 'neonrift', Firebase: 'firebase', Ridgeline: 'ridgeline', 'Corner Pocket': 'cornerpocket', Ironoath: 'ironoath', 'The Quiet Below': 'quietbelow', Stormfall: 'stormfall', Trophies: 'trophies' }[g.n];
+    if (!b) return; const x = J(lget('gbs-adminx'), []) || []; if (!x.includes(b)) { x.push(b); LS.setItem('gbs-adminx', JSON.stringify(x)); }
+    pubCache = {};
+  }
   function runAct(g, i) {
+    markEdited(g);
     const [label, f] = g.a[i];
     if (g.raw) f(); else { const s = J(lget(g.k), {}) || {}; f(s); LS.setItem(g.k, JSON.stringify(s)); }
     applied(g, g.n + ': ' + label.toLowerCase().replace(/ \(.*/, '') + ' ✓');
@@ -333,7 +416,7 @@
         const g = AG[+sv.dataset.sv], box = sv.closest('[data-ed]'), em = box.querySelector('[data-em]');
         let o; try { o = JSON.parse(box.querySelector('textarea').value); if (!o || typeof o !== 'object' || Array.isArray(o)) throw 0; } catch (x) { em.textContent = 'That isn’t valid JSON. Check for a missing comma or quote.'; return; }
         const bad = Object.keys(o).filter(k => !SYNC.test(k)); if (bad.length) { em.textContent = 'Unknown save: ' + bad.join(', '); return; }
-        Object.entries(o).forEach(([k, v]) => LS.setItem(k, typeof v === 'string' ? v : JSON.stringify(v)));
+        markEdited(g); Object.entries(o).forEach(([k, v]) => LS.setItem(k, typeof v === 'string' ? v : JSON.stringify(v)));
         applied(g, g.n + ' save updated ✓');
       }
     });
@@ -362,7 +445,8 @@
     const an = sget('gbs-admin-note'); if (an) { sset('gbs-admin-note', null); setTimeout(() => toast(an), 300); }
     if (!acct) { scan(); return; }
     if (inGame) setTimeout(gamePill, 900);
-    pull().then(() => scan()).catch(() => scan());
+    pull().then(() => { scan(); publish(false, true); }).catch(() => scan());
+    if (inGame) setInterval(() => { if (!document.hidden) publish(); }, 120000);
     setInterval(scan, 10000);
     addEventListener('pagehide', () => { scan(); if (dirty.size) push(true); });
     document.addEventListener('visibilitychange', () => {

@@ -128,6 +128,7 @@ footer{max-width:1280px;margin:0 auto;padding:0 32px 40px;color:var(--muted);fon
 .dots button[aria-selected="true"]{background-color:var(--accent)}
 @media (max-width:900px){
  .thumbs{display:none}.bar{padding:0 18px;gap:14px}.bar nav a{padding:8px 10px}
+ .bar nav{overflow-x:auto;scrollbar-width:none;flex:1;min-width:0}.bar nav::-webkit-scrollbar{display:none}.bar nav a{white-space:nowrap}
  main,.about{padding-left:18px;padding-right:18px}footer{padding-left:18px;padding-right:18px}
  .hero{height:80vh;min-height:520px}.hcopy{left:18px;right:18px;bottom:54px}
  .slide::after{background:linear-gradient(0deg,var(--bg) 6%,rgba(10,14,20,.78) 50%,rgba(10,14,20,.15) 85%)}
@@ -142,7 +143,7 @@ footer{max-width:1280px;margin:0 auto;padding:0 32px 40px;color:var(--muted);fon
 <body>
 <header class="bar">
   <a class="brand" href="#top" aria-label="Home"><i aria-hidden="true"></i><span id="siteName">Game Bookshelf</span></a>
-  <nav aria-label="Main"><a href="#games">Games</a><a href="trophies/">Trophies<span id="lvBadge" class="lvb"></span></a><a href="arcade/">Arcade</a><a href="#about">About</a><a href="account/" data-acct-nav class="acct">Sign in</a></nav>
+  <nav aria-label="Main"><a href="#games">Games</a><a href="leaderboards/">Leaderboards</a><a href="trophies/">Trophies<span id="lvBadge" class="lvb"></span></a><a href="arcade/">Arcade</a><a href="#about">About</a><a href="account/" data-acct-nav class="acct">Sign in</a></nav>
 </header>
 <span id="top"></span>
 <section class="hero" id="hero" aria-roledescription="carousel" aria-label="Featured games"></section>

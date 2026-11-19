@@ -57,12 +57,13 @@ main{max-width:1100px;margin:0 auto;padding:36px 24px 60px}
 .note{font-size:13px;color:var(--muted)}
 @media (max-width:860px){.card{grid-template-columns:1fr}}
 @media (max-width:760px){.hero{grid-template-columns:auto 1fr}.tally{grid-column:1/-1}.tally div{flex:1}.bar{padding:0 14px;gap:10px}.bar nav a{padding:8px 8px}main{padding:24px 14px 50px}}
+@media (max-width:760px){.bar nav{overflow-x:auto;scrollbar-width:none;flex:1;min-width:0}.bar nav::-webkit-scrollbar{display:none}}
 </style>
 </head>
 <body>
 <header class="bar">
  <a class="brand" href="/" aria-label="Home"><i aria-hidden="true"></i><span>Game Bookshelf</span></a>
- <nav aria-label="Main"><a href="/#games">Games</a><a href="/trophies/" class="on">Trophies</a><a href="/account/" data-acct-nav>Sign in</a></nav>
+ <nav aria-label="Main"><a href="/#games">Games</a><a href="/leaderboards/">Leaderboards</a><a href="/trophies/" class="on">Trophies</a><a href="/account/" data-acct-nav>Sign in</a></nav>
 </header>
 <main>
  <section class="hero">
