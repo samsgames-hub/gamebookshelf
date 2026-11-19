@@ -52,6 +52,11 @@ details{margin-top:16px;border-top:1px solid var(--line);padding-top:12px}
 summary{cursor:pointer;color:var(--muted);font-weight:600;padding:4px 0}
 details form{margin-top:12px}
 .hide{display:none!important}
+.link{justify-self:start;border:0;background:none;color:var(--muted);font:600 14px var(--ui);cursor:pointer;padding:2px 0;text-decoration:underline;text-underline-offset:3px}.link:hover{color:var(--text)}
+.admin{display:grid;gap:8px;margin-top:16px;padding:14px;border-radius:14px;background:linear-gradient(135deg,rgba(255,209,102,.12),rgba(255,209,102,.03));border:1px solid rgba(255,209,102,.45)}
+.admin b{color:var(--g);font:700 18px var(--disp);letter-spacing:.06em;text-transform:uppercase}.admin span{color:var(--muted);font-size:14px}
+.btn.gold{background:var(--g);border-color:var(--g);color:#1d1503}.btn.gold:hover{background:#ffdc85}
+.tag{font-size:12px;padding:2px 8px;border-radius:999px;background:var(--s2);margin-left:6px;font-weight:600}.tag.on{color:var(--go)}
 @media (max-width:820px){main{grid-template-columns:1fr;padding:24px 14px 50px}.bar{padding:0 14px;gap:10px}.bar nav a{padding:8px 8px}.intro{order:2}}
 </style>
 </head>
@@ -74,12 +79,19 @@ details form{margin-top:12px}
  <section class="panel" id="out">
   <div class="tabs" role="tablist"><button type="button" role="tab" id="tIn" class="on" aria-selected="true">Sign in</button><button type="button" role="tab" id="tUp" aria-selected="false">Create account</button></div>
   <form id="fAuth" novalidate>
-   <label>Username<input id="uName" name="username" autocomplete="username" maxlength="16" placeholder="e.g. skyline_sam" required></label>
+   <label><span id="lName">Username or email</span><input id="uName" name="username" autocomplete="username" maxlength="80" placeholder="e.g. skyline_sam" required></label>
    <label>Password<span class="pw"><input id="uPw" name="password" type="password" autocomplete="current-password" minlength="6" required><button type="button" id="showPw" aria-label="Show password">Show</button></span></label>
    <label id="lPw2" class="hide">Password again<input id="uPw2" type="password" autocomplete="new-password" minlength="6"></label>
    <div class="msg" id="aMsg" role="alert"></div>
    <button class="btn pri" id="aGo" type="submit">Sign in</button>
    <p class="fine" id="aFine">Your saves on this browser are kept, and combined with your account.</p>
+   <button type="button" class="link" id="forgot">Forgot your password?</button>
+  </form>
+  <form id="fForgot" class="hide" novalidate>
+   <p class="fine">If you added an email to your account, we'll send a link to choose a new password.</p>
+   <label>Email<input id="fEmail" type="email" autocomplete="email"></label>
+   <div class="msg" id="fMsg" role="status"></div>
+   <div class="row"><button class="btn pri" type="submit">Send reset link</button><button class="btn" type="button" id="fBack">Back</button></div>
   </form>
  </section>
 
@@ -89,6 +101,10 @@ details form{margin-top:12px}
   <div class="chips" id="chips"></div>
   <div class="msg" id="iMsg" role="status"></div>
   <div class="row"><button class="btn pri" id="bSync" type="button">Sync now</button><button class="btn" id="bOut" type="button">Sign out</button></div>
+  <div id="adminBox" class="admin hide"><b>Admin</b><span>Max currency, unlock everything or edit any save, in every game. In a game, tap your name or press Ctrl+Shift+A.</span><button class="btn gold" id="bAdmin" type="button">Open admin tools</button></div>
+  <details id="dMail"><summary>Recovery email <span id="mailState" class="tag"></span></summary>
+   <form id="fMail" novalidate><p class="fine" id="mailNow">Add an email so you can reset your password if you forget it. We'll send a link to confirm it. After that you sign in with the email instead of your username, and your username stays yours.</p><label>Email<input id="nMail" type="email" autocomplete="email"></label><button class="btn" type="submit">Send confirmation link</button></form>
+  </details>
   <details><summary>Change password</summary>
    <form id="fPw" novalidate><label>New password<input id="nPw" type="password" autocomplete="new-password" minlength="6"></label><button class="btn" type="submit">Save new password</button></form>
   </details>
@@ -104,7 +120,7 @@ details form{margin-top:12px}
 const $=id=>document.getElementById(id),A=window.GBAccount;let mode='in';
 const ago=t=>{if(!t)return'not yet';const s=Math.round((Date.now()-t)/1000);return s<10?'just now':s<60?s+' seconds ago':s<3600?Math.round(s/60)+' min ago':s<86400?Math.round(s/3600)+' h ago':new Date(t).toLocaleDateString()};
 function setMode(m){mode=m;$('tIn').classList.toggle('on',m==='in');$('tUp').classList.toggle('on',m==='up');$('tIn').setAttribute('aria-selected',m==='in');$('tUp').setAttribute('aria-selected',m==='up');
- $('lPw2').classList.toggle('hide',m==='in');$('aGo').textContent=m==='in'?'Sign in':'Create account';$('uPw').autocomplete=m==='in'?'current-password':'new-password';
+ $('lPw2').classList.toggle('hide',m==='in');$('lName').textContent=m==='in'?'Username or email':'Username';$('uName').maxLength=m==='in'?80:16;$('forgot').classList.toggle('hide',m!=='in');$('aGo').textContent=m==='in'?'Sign in':'Create account';$('uPw').autocomplete=m==='in'?'current-password':'new-password';
  $('aFine').textContent=m==='in'?'Your saves on this browser are kept, and combined with your account.':'Usernames are 3 to 16 letters, numbers or underscores. Write your password down: there is no email, so it can’t be reset.';$('aMsg').textContent=''}
 $('tIn').onclick=()=>setMode('in');$('tUp').onclick=()=>setMode('up');
 $('showPw').onclick=()=>{const t=$('uPw').type==='password';$('uPw').type=$('uPw2').type=t?'text':'password';$('showPw').textContent=t?'Hide':'Show'};
@@ -114,13 +130,20 @@ $('fAuth').addEventListener('submit',async e=>{e.preventDefault();const n=$('uNa
  busy(b,true,mode==='in'?'Signing in…':'Creating account…');
  try{mode==='in'?await A.signIn(n,p):await A.signUp(n,p);$('uPw').value=$('uPw2').value='';render();$('iMsg').className='msg ok';$('iMsg').textContent=mode==='in'?'Signed in. Your progress is synced.':'Account created. Your progress is saved to it.'}
  catch(err){$('aMsg').textContent=err.message}finally{busy(b,false,mode==='in'?'Sign in':'Create account')}});
+$('forgot').onclick=()=>{$('fAuth').classList.add('hide');$('fForgot').classList.remove('hide');$('fMsg').textContent='';$('fEmail').focus()};
+$('fBack').onclick=()=>{$('fForgot').classList.add('hide');$('fAuth').classList.remove('hide')};
+$('fForgot').addEventListener('submit',async e=>{e.preventDefault();$('fMsg').className='msg';try{await A.forgotPassword($('fEmail').value);$('fMsg').className='msg ok';$('fMsg').textContent='If that email belongs to an account, a reset link is on its way. Check your spam folder too.'}catch(err){$('fMsg').textContent=err.message}});
+$('bAdmin').onclick=()=>A.admin();
+let mailLoaded=false;async function loadMail(){try{const m=await A.getEmail();mailLoaded=true;$('mailState').textContent=m?m:'not set';$('mailState').classList.toggle('on',!!m);if(m)$('mailNow').textContent='Your account signs in with '+m+'. You can change it below; we\u2019ll send a link to confirm the new one.'}catch(e){}}
+$('fMail').addEventListener('submit',async e=>{e.preventDefault();$('iMsg').className='msg';try{await A.setEmail($('nMail').value);$('iMsg').className='msg ok';$('iMsg').textContent='Check your inbox and click the link to confirm. After that, sign in with your email.';$('nMail').value=''}catch(err){$('iMsg').textContent=err.message}});
 $('bSync').onclick=async()=>{const b=$('bSync');busy(b,true,'Syncing…');$('iMsg').className='msg';$('iMsg').textContent='';
  try{const n=await A.syncNow();const i=A.info();if(i.err)throw new Error(i.err);$('iMsg').className='msg ok';$('iMsg').textContent=n?'Synced. '+n+' save'+(n>1?'s':'')+' brought in from your account.':'Synced. Everything is up to date.'}catch(err){$('iMsg').textContent=err.message}finally{busy(b,false,'Sync now');render()}};
 $('bOut').onclick=async()=>{await A.signOut();render();$('aMsg').className='msg ok';$('aMsg').textContent='Signed out on every gamebookshelf.com address in this browser. Your saves stay here.'};
 $('fPw').addEventListener('submit',async e=>{e.preventDefault();$('iMsg').className='msg';try{await A.changePassword($('nPw').value);$('nPw').value='';$('iMsg').className='msg ok';$('iMsg').textContent='Password changed.'}catch(err){$('iMsg').textContent=err.message}});
 $('fDel').addEventListener('submit',async e=>{e.preventDefault();const i=A.info();$('iMsg').className='msg';if($('dName').value.trim().toLowerCase()!==i.name.toLowerCase()){$('iMsg').textContent='Type your username exactly to confirm.';return}
  try{await A.deleteAccount();render();$('aMsg').className='msg ok';$('aMsg').textContent='Your account was deleted. Your saves on this browser are still here.'}catch(err){$('iMsg').textContent=err.message}});
-function render(){const i=A.info();$('out').classList.toggle('hide',i.signedIn);$('in').classList.toggle('hide',!i.signedIn);if(!i.signedIn)return;
+function render(){const i=A.info();$('out').classList.toggle('hide',i.signedIn);$('in').classList.toggle('hide',!i.signedIn);if(!i.signedIn){mailLoaded=false;return}
+ $('adminBox').classList.toggle('hide',!A.isAdmin());if(!mailLoaded){mailLoaded=true;loadMail()}
  $('meName').textContent=i.name;$('av').textContent=(i.name[0]||'?').toUpperCase();
  $('meSync').innerHTML='<span class="dot'+(i.err?' err':i.busy||i.pending?' busy':'')+'"></span>'+(i.err?'Sync problem: '+i.err.replace(/[<>&]/g,''):i.busy?'Syncing…':i.pending?'Saving changes…':'Synced '+ago(i.at));
  $('chips').innerHTML=i.games.length?i.games.map(g=>'<span>'+g+'</span>').join(''):'<span>No saves yet. Play a game and it syncs here.</span>'}
