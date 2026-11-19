@@ -26,6 +26,7 @@ a{color:inherit;text-decoration:none}button{font:inherit;color:inherit}
 .bar nav{display:flex;gap:4px}
 .bar nav a{padding:8px 14px;border-radius:8px;color:var(--muted);font-weight:500}
 .bar nav a:hover{color:var(--text);background:var(--s1)}
+.bar nav a.acct{color:var(--text);border:1px solid var(--line);margin-left:6px}.bar nav a.acct:hover{border-color:var(--go)}
 /* tournament champions */
 .champs{margin-top:16px;padding:16px 18px;border-radius:14px;background:linear-gradient(90deg,rgba(255,209,102,.12),rgba(255,209,102,.03));border:1px solid rgba(255,209,102,.3)}
 .champs:empty{display:none}.champs .ch{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
@@ -141,7 +142,7 @@ footer{max-width:1280px;margin:0 auto;padding:0 32px 40px;color:var(--muted);fon
 <body>
 <header class="bar">
   <a class="brand" href="#top" aria-label="Home"><i aria-hidden="true"></i><span id="siteName">Game Bookshelf</span></a>
-  <nav aria-label="Main"><a href="#games">Games</a><a href="trophies/">Trophies<span id="lvBadge" class="lvb"></span></a><a href="arcade/">Arcade</a><a href="#about">About</a></nav>
+  <nav aria-label="Main"><a href="#games">Games</a><a href="trophies/">Trophies<span id="lvBadge" class="lvb"></span></a><a href="arcade/">Arcade</a><a href="#about">About</a><a href="account/" data-acct-nav class="acct">Sign in</a></nav>
 </header>
 <span id="top"></span>
 <section class="hero" id="hero" aria-roledescription="carousel" aria-label="Featured games"></section>
@@ -321,6 +322,7 @@ show(0);
 // public visit total from GoatCounter; stays hidden if it can't load
 fetch('https://gamebookshelf.goatcounter.com/counter/TOTAL.json').then(r=>r.ok?r.json():null).then(d=>{if(!d||!d.count)return;const e=document.getElementById('visits');e.innerHTML='<b></b> visits so far';e.firstChild.textContent=d.count;e.hidden=false}).catch(()=>{});
 </script>
+<script src="shared/account.js"></script>
 <script src="shared/trophies.js"></script>
 <script>(function(){function f(){try{var s=GBTrophies.state();document.getElementById('lvBadge').textContent='Lv '+s.lv.l}catch(e){}}f();setTimeout(f,2200);setInterval(f,6500)})();</script>
 </body>

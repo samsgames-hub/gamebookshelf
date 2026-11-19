@@ -19,7 +19,7 @@
     const paid = Object.values(tour.paid || {}), entered = Object.keys(tour.best || {}).length;
     const played = {
       quietbelow: has('quietbelow_v1'), skyline: has('skyline2') || has('skyline1'), slingshot: has('slingshot2') || has('slingshot1'), mitosis: has('mx-save'),
-      neonrift: has('neonrift2') || has('neonrift'), firebase: has('firebase.save'), ridgeline: has('ridgeline.save'), cornerpocket: has('cornerpocket.save'), gwf: has('gwf-name') || has('gwf-keys'), ironoath: has('ironoath_save_v1')
+      neonrift: has('neonrift2') || has('neonrift'), firebase: has('firebase.save'), ridgeline: has('ridgeline.save'), cornerpocket: has('cornerpocket.save'), gwf: has('gwf-name') || has('gwf-keys'), ironoath: has('ironoath_save_v1'), stormfall: has('stormfall_profile')
     };
     return {
       played: Object.values(played).filter(Boolean).length, tb, sk, sl, mx, nr, fbStars, fb3, rl, cp, sweeps, dailyRun: best, entered,
@@ -30,7 +30,7 @@
   /* [id, game, name, how, tier, progress(s) -> [have, need]] */
   const T = [
     ['explorer', 'Game Bookshelf', 'Explorer', 'Play 5 different games', 'b', s => [s.played, 5]],
-    ['completist', 'Game Bookshelf', 'Completionist', 'Play all 10 games', 's', s => [s.played, 10]],
+    ['completist', 'Game Bookshelf', 'Completionist', 'Play all 11 games', 's', s => [s.played, 11]],
     ['sk25', 'Skyline', 'Office Block', 'Build a 25-floor tower', 'b', s => [n(s.sk.best), 25]],
     ['sk60', 'Skyline', 'Skyscraper', 'Build a 60-floor tower', 's', s => [n(s.sk.best), 60]],
     ['sk100', 'Skyline', 'Supertall', 'Build a 100-floor tower', 'g', s => [n(s.sk.best), 100]],
