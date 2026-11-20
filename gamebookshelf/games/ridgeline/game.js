@@ -539,6 +539,7 @@ function endRun(reason) {
   G.earn.dist = distCash; G.cash += distCash;
   const prevBest = G.tour ? GBTour.myBest('ridgeline') : SAVE.best[G.reg.id] || 0, isBest = G.dist > prevBest;
   if (isBest && !G.tour) SAVE.best[G.reg.id] = Math.floor(G.dist);
+  if (!G.tour) window.GBRun&&GBRun('ridgeline', Math.floor(G.dist));
   if (G.tour) { G.tourRes = null; const d = Math.floor(G.dist); GBTour.submit('ridgeline', d, G.runT).then(r => { G.tourRes = r; if (G.state === 'over') tourRow(); }); }
   SAVE.cash += G.cash; SAVE.total += G.dist; SAVE.runs++; persist();
   G.result = { isBest, prevBest };

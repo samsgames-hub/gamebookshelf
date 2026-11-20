@@ -23,6 +23,11 @@ h1{font:700 clamp(36px,6vw,54px)/1 var(--disp);margin:0 0 6px}.lead{color:var(--
 .tabs{display:flex;gap:6px;overflow-x:auto;padding-bottom:6px;margin-bottom:18px;scrollbar-width:thin}
 .tabs button{flex:none;font:600 15px var(--ui);padding:9px 14px;border-radius:999px;border:1px solid var(--line);background:var(--s1);color:var(--muted);cursor:pointer;transition:background .15s,color .15s,border-color .15s}
 .tabs button:hover{color:var(--text)}.tabs button.on{background:var(--text);color:#0a0e14;border-color:var(--text)}
+.per{display:flex;align-items:center;gap:6px;margin:-4px 0 18px;flex-wrap:wrap}
+.per button{font:600 14px var(--ui);padding:7px 14px;border-radius:10px;border:1px solid var(--line);background:transparent;color:var(--muted);cursor:pointer}
+.per button.on{background:var(--s2);color:var(--text);border-color:#3a4b63}.per button:disabled{opacity:.4;cursor:default}
+.per span{margin-left:8px;color:var(--muted);font-size:14px}.per span b{color:var(--g)}
+.champ{display:flex;align-items:center;gap:12px}.champ .crown{flex:none;width:44px;height:44px;border-radius:50%;display:grid;place-items:center;font-size:22px;background:radial-gradient(circle at 35% 30%,#fff,var(--g) 45%,#8a6510)}
 .wrap{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:20px;align-items:start}
 .head{display:flex;align-items:baseline;gap:12px;margin-bottom:12px}.head h2{margin:0;font:700 30px var(--disp)}.head span{color:var(--muted)}
 .pod{display:grid;grid-template-columns:1fr 1.15fr 1fr;gap:10px;align-items:end;margin-bottom:14px}
@@ -64,32 +69,42 @@ h1{font:700 clamp(36px,6vw,54px)/1 var(--disp);margin:0 0 6px}.lead{color:var(--
  <h1>Leaderboards</h1>
  <p class="lead">The best players on Game Bookshelf. Sign in and your best scores go up automatically.</p>
  <div class="tabs" id="tabs" role="tablist"></div>
+ <div class="per" role="tablist" aria-label="Time range"><button id="pAll" class="on" role="tab">All time</button><button id="pWk" role="tab">This week</button><span id="reset"></span></div>
  <div class="wrap">
   <section>
    <div class="head"><h2 id="bTitle"></h2><span id="bWhat"></span></div>
    <div class="pod" id="pod"></div>
    <div class="list" id="list" aria-live="polite"></div>
   </section>
-  <aside class="side"><div class="card" id="mine"></div><div class="card"><h3>Fair play</h3><p>Scores come from your own game saves when you're signed in. Impossible scores are removed.</p></div></aside>
+  <aside class="side"><div class="card" id="mine"></div><div class="card" id="champ"></div><div class="card"><h3>Fair play</h3><p>Scores come from your own game saves when you're signed in. Impossible scores are removed.</p></div></aside>
  </div>
 </main>
-<script src="/shared/account.js?v=1795104453"></script>
-<script src="/shared/trophies.js?v=1795104453"></script>
+<script src="/shared/account.js?v=1795182449"></script>
+<script src="/shared/trophies.js?v=1795182449"></script>
 <script>
 (()=>{'use strict';
 const $=id=>document.getElementById(id),A=GBAccount,B=A.BOARDS,esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const fmt=v=>Number(v).toLocaleString();const ago=t=>{if(!t)return'';const s=(Date.now()-t)/1000;return s<3600?Math.max(1,Math.round(s/60))+'m ago':s<86400?Math.round(s/3600)+'h ago':Math.round(s/86400)+'d ago'};
 const prof=n=>'/u/'+encodeURIComponent(n);
-let cur=(new URLSearchParams(location.search).get('game'))||'neonrift';if(!B.find(b=>b.id===cur))cur='neonrift';
+const QS=new URLSearchParams(location.search);let cur=QS.get('game')||'neonrift',wk=QS.has('week');if(!B.find(b=>b.id===cur))cur='neonrift';
 const cache={};
 $('tabs').innerHTML=B.map(b=>'<button role="tab" data-id="'+b.id+'">'+esc(b.n)+'</button>').join('');
 $('tabs').addEventListener('click',e=>{const t=e.target.closest('[data-id]');if(t)show(t.dataset.id)});
-async function show(id,fresh){cur=id;history.replaceState(null,'','?game='+id);const b=B.find(x=>x.id===id);
+async function show(id,fresh){cur=id;const b=B.find(x=>x.id===id);if(id==='trophies')wk=false;
+ $('pWk').disabled=id==='trophies';$('pAll').classList.toggle('on',!wk);$('pWk').classList.toggle('on',wk);
+ history.replaceState(null,'','?game='+id+(wk?'&week':''));const ck=(wk?'w:':'a:')+id;champ(b);
  document.querySelectorAll('#tabs button').forEach(x=>{const on=x.dataset.id===id;x.classList.toggle('on',on);x.setAttribute('aria-selected',on);if(on)x.scrollIntoView({block:'nearest',inline:'nearest'})});
- $('bTitle').textContent=b.n;$('bWhat').textContent=b.what;
- if(!cache[id]||fresh){$('pod').innerHTML='';$('list').innerHTML='<div class="sk"></div>'.repeat(6);
-  try{cache[id]=await A.board(id,100)}catch(err){$('list').innerHTML='<div class="empty">Couldn’t load the leaderboard. '+esc(err.message)+'</div>';return}}
- if(cur!==id)return;render(b,cache[id])}
+ $('bTitle').textContent=b.n;$('bWhat').textContent=wk?(b.unit==='wins'?b.what.replace('Most wins','Wins').replace('Matches won','Matches won')+' this week':'Best run this week'):b.what;
+ if(!cache[ck]||fresh){$('pod').innerHTML='';$('list').innerHTML='<div class="sk"></div>'.repeat(6);
+  try{cache[ck]=wk?await A.weekBoard(id):await A.board(id,100)}catch(err){$('list').innerHTML='<div class="empty">Couldn\u2019t load the leaderboard. '+esc(err.message)+'</div>';return}}
+ if(cur!==id||ck!==(wk?'w:':'a:')+id)return;render(b,cache[ck])}
+$('pAll').onclick=()=>{wk=false;show(cur)};$('pWk').onclick=()=>{wk=true;show(cur)};
+function tick(){const ms=A.weekEnds()-Date.now(),d=Math.floor(ms/864e5),h=Math.floor(ms%864e5/36e5),m=Math.floor(ms%36e5/6e4);$('reset').innerHTML='Weekly boards reset in <b>'+(d?d+'d ':'')+h+'h'+(d?'':' '+m+'m')+'</b>'}
+tick();setInterval(tick,30000);
+const champs={};async function champ(b){const el=$('champ');if(b.id==='trophies'){el.classList.add('hide');el.style.display='none';return}el.style.display='';
+ if(!(b.id in champs)){el.innerHTML='<h3>Last week\u2019s champion</h3><p>Loading\u2026</p>';try{champs[b.id]=(await A.weekBoard(b.id,A.weekNow()-1,1))[0]||null}catch(e){champs[b.id]=null}}
+ if(cur!==b.id)return;const c=champs[b.id];
+ el.innerHTML=c?'<h3>Last week\u2019s champion</h3><a class="champ" href="'+prof(c.n)+'"><span class="crown">\ud83d\udc51</span><span><b style="display:block;font-size:18px">'+esc(c.n)+'</b><span style="color:var(--muted);font-size:14px">'+fmt(c.s)+' '+esc(b.unit)+'</span></span></a>':'<h3>Last week\u2019s champion</h3><p>Nobody yet. Top this week\u2019s board and it\u2019s you.</p>'}
 function render(b,rows){const me=A.uid(),adm=A.isAdmin(),unit=b.unit;
  const top=rows.slice(0,3),order=[top[1],top[0],top[2]],cls=['r2','r1','r3'],rk=[2,1,3];
  $('pod').innerHTML=rows.length?order.map((r,i)=>r?'<a class="'+cls[i]+'" href="'+prof(r.n)+'"><span class="medal">'+rk[i]+'</span><b>'+esc(r.n)+'</b><em>'+fmt(r.s)+'</em><small>'+esc(unit)+'</small></a>':'<span></span>').join(''):'';
@@ -99,9 +114,9 @@ function render(b,rows){const me=A.uid(),adm=A.isAdmin(),unit=b.unit;
  $('list').innerHTML=!rows.length?'<div class="empty">No scores yet. Be the first: sign in and play '+esc(b.n)+'.</div>'
   :shown.length?shown.map((r,i)=>row(r,i+start)).join(''):'<div class="empty">Only '+rows.length+' player'+(rows.length>1?'s':'')+' so far. Your name could be next.</div>';
  const i=A.info(),pos=rows.findIndex(r=>r.u===me);
- $('mine').innerHTML=i.signedIn?(pos>=0?'<h3>Your rank</h3><div class="you">#'+(pos+1)+'</div><p>'+fmt(rows[pos].s)+' '+esc(unit)+' · out of '+rows.length+(rows.length>=100?'+':'')+'</p>':'<h3>Not ranked yet</h3><p>Play '+esc(b.n)+' while signed in and your best score shows up here.</p>')+'<a class="btn alt" href="'+prof(i.name)+'">Your profile</a>':'<h3>Get on the board</h3><p>Sign in and your best scores in every game go up automatically.</p><a class="btn" href="/account/?new">Create an account</a>'}
+ $('mine').innerHTML=i.signedIn?(pos>=0?'<h3>Your rank'+(wk?' this week':'')+'</h3><div class="you">#'+(pos+1)+'</div><p>'+fmt(rows[pos].s)+' '+esc(unit)+' · out of '+rows.length+(rows.length>=100?'+':'')+'</p>':'<h3>Not ranked yet</h3><p>Play '+esc(b.n)+' while signed in and your best score shows up here.</p>')+'<a class="btn alt" href="'+prof(i.name)+'">Your profile</a>':'<h3>Get on the board</h3><p>Sign in and your best scores in every game go up automatically.</p><a class="btn" href="/account/?new">Create an account</a>'}
 $('list').addEventListener('click',async e=>{const r=e.target.closest('.rm');if(!r)return;r.disabled=true;r.textContent='Removing…';try{await A.removeEntry(cur,r.dataset.u);show(cur,true)}catch(err){r.textContent=err.message}});
-A.onChange(()=>{if(cache[cur])render(B.find(x=>x.id===cur),cache[cur])});
+A.onChange(()=>{const ck=(wk?'w:':'a:')+cur;if(cache[ck])render(B.find(x=>x.id===cur),cache[ck])});
 show(cur);
 setTimeout(()=>{A.publish&&A.publish();setTimeout(()=>show(cur,true),1500)},1500);
 })();

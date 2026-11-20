@@ -1146,7 +1146,7 @@ function showResult(w, why) {
     title = you ? 'You win' : 'You lose';
     sub = (you ? 'You beat ' : 'Beaten by ') + G.players[1].name + ' ' + G.frames[0] + '–' + G.frames[1];
     if (you) {
-      SAVE.stats.won++;
+      SAVE.stats.won++; window.GBRun&&GBRun('cornerpocket', 1, 'add');
       if (cfg.mode === 'career') {
         const first = !SAVE.beaten.includes(cfg.idx);
         prize = first ? cfg.prize : Math.round(cfg.prize * .4);

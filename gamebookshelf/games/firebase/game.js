@@ -544,7 +544,7 @@ function endOp(win) {
     stars = G.lives >= G.maxLives * .9 ? 3 : G.lives >= G.maxLives * .5 ? 2 : 1;
     if (G.mode === 'regular') S.reg = Math.max(S.reg, stars); else if (G.mode === 'veteran') S.vet = Math.max(S.vet, stars);
   }
-  if (G.mode === 'endless') S.endless = Math.max(S.endless, G.wave - (win ? 0 : 1));
+  if (G.mode === 'endless') { S.endless = Math.max(S.endless, G.wave - (win ? 0 : 1)); window.GBRun&&GBRun('firebase', G.wave - (win ? 0 : 1)); }
   persist();
   setTimeout(() => {
     if (G.opId !== tok || G.demo) return;

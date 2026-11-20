@@ -1605,7 +1605,7 @@ function buildInter(){
   $('b-next').textContent='CONTINUE  →  CHAPTER '+CHAPTER_NUM[G.li+1]+': '+LEVELS[G.li+1].name;
 }
 function gameOver(reason){G.state='dead';music.tt=0;G.timer=null;const hold=G.mode==='holdout';
-  if(hold){const sc=G.stats.score,best=sc>store.holdoutBest;if(best){store.holdoutBest=sc;}saveStore();$('dead-h').textContent='OVERRUN';$('dead-t').innerHTML='Wave <b>'+(G.flags.wave||0)+'</b> · Score <b>'+sc+'</b>'+(best?' · <b class="hl">NEW BEST</b>':' · Best '+store.holdoutBest);}
+  if(hold){const sc=G.stats.score,best=sc>store.holdoutBest;window.GBRun&&GBRun('quietbelow',sc);if(best){store.holdoutBest=sc;}saveStore();$('dead-h').textContent='OVERRUN';$('dead-t').innerHTML='Wave <b>'+(G.flags.wave||0)+'</b> · Score <b>'+sc+'</b>'+(best?' · <b class="hl">NEW BEST</b>':' · Best '+store.holdoutBest);}
   else{if(store.run){store.run.stats.deaths=(store.run.stats.deaths||0)+1;saveStore();}$('dead-h').textContent='YOU ARE QUIET NOW';
     $('dead-t').textContent=reason||pick(['Sprinting is loud. Sneaking (C) is almost silent.','A flare (G) pulls them away from you. Throw it, then go the other way.','Held torchlight wakes them. Tap F and move in the dark.','A still one dies to a single axe blow from behind.','Brutes stun themselves on walls. Sidestep the charge.','If a Caller screams, break line of sight and relocate.']);}
   setTimeout(()=>{if(G.state==='dead')show('s-dead');},900);}

@@ -678,6 +678,7 @@ function finishLife(you, killer) {
   if (G.mode !== 'attract' && you.maxM >= 40 && killer !== undefined) NET.hofSubmit(playerName(), Math.min(MAXT, you.maxM), G.mode === 'solo' ? 'solo' : (NET.meta && NET.meta.mode) || 'ffa').catch(() => { });
   const xp = Math.round(you.maxM / 4 + you.cells * 14 + you.kills * 40 + you.pel * .15 + you.life / 6 + (you.best <= 3 ? 60 : 0) + (you.best === 1 ? 90 : 0));
   const L0 = levelOf(save.xp); save.xp += xp; const L1 = levelOf(save.xp);
+  window.GBRun&&GBRun('mitosis', you.maxM);
   const r = save.rec, nb = []; if (you.maxM > r.mass) { r.mass = you.maxM; nb.push('mass'); } if (you.cells > r.cells) { r.cells = you.cells; nb.push('cells'); } if (you.life > r.life) { r.life = you.life; nb.push('life'); } if (you.best === 1) r.top++;
   const done = missionTick(you, true);
   store();

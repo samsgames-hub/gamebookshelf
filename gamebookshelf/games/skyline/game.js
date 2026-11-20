@@ -240,7 +240,7 @@ function pause(on){if(G.state!=='play')return;G.paused=on;show(on?'pause':'');ap
 function toMenu(){G.state='menu';MODE={id:'classic',mods:[]};G.paused=false;document.body.classList.remove('playing');reset();show('start');drawMenu();applyVol()}
 function gameOver(){G.state='over';hideCombo();SFX.fall();shake(.5);S.runs++;progress('runs',S.runs);
  let nb=false,daily='';
- if(MODE.id==='classic'){nb=G.score>S.best&&G.score>0;if(nb)S.best=G.score}
+ if(MODE.id==='classic'){nb=G.score>S.best&&G.score>0;if(nb)S.best=G.score;window.GBRun&&GBRun('skyline',G.score)}
  else if(MODE.id==='cross'){nb=G.score>(S.crossBest||0)&&G.score>0;if(nb)S.crossBest=G.score}
  else if(MODE.id==='daily'){if(S.dday!==TODAY){S.dday=TODAY;S.dscore=G.score;markDaily('skyline',G.score);S.dstreak=S.dlast===TODAY-1?(S.dstreak||0)+1:1;S.dlast=TODAY;S.dmax=Math.max(S.dmax||0,S.dstreak);daily='official'}
   nb=G.score>(S.dtop||0)&&S.dtopDay===TODAY;if(S.dtopDay!==TODAY||G.score>S.dtop){S.dtop=G.score;S.dtopDay=TODAY}}

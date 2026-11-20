@@ -1203,7 +1203,7 @@ function levelUp(){FACE.react('grin');G.mode='levelup';G.noPause=1;document.exit
 const opts=UPS.slice().sort(()=>R()-.5).slice(0,3);showLevelUp(opts)}
 function pickUp(o){o.f();(G.picks=G.picks||[]).push(UPS.indexOf(o));G.mode='play';hideLevelUp();lockPointer();if(P.xp>=P.need)setTimeout(()=>{if(G.mode==='play')levelUp()},300)}
 function die(){if(P.dead)return;if(NET.on&&!NET.final){P.dead=1;P.hp=0;NET.downed=true;mdown=0;P.ads=0;banner('YOU ARE DOWN','A TEAMMATE CAN REVIVE YOU — OR YOU REDEPLOY NEXT ROOM',4);play('roar');if(NET.host)netAllDeadCheck();return}P.dead=1;G.mode='dead';G.noPause=1;mdown=0;const t=Math.round((performance.now()-G.t0)/1000),cores=Math.floor(G.score/120)+G.wave*3+G.bosses*15;
-save.cores+=cores;save.best=Math.max(save.best,G.score);save.bestWave=Math.max(save.bestWave,G.wave);save.bestCombo=Math.max(save.bestCombo,G.bestCombo);save.runs++;store();play('roar');
+save.cores+=cores;save.best=Math.max(save.best,G.score);save.bestWave=Math.max(save.bestWave,G.wave);window.GBRun&&GBRun('neonrift',G.wave);save.bestCombo=Math.max(save.bestCombo,G.bestCombo);save.runs++;store();play('roar');
 G.deathT=0;G.death={t,cores};setTimeout(()=>{document.exitPointerLock&&document.exitPointerLock();showDeath(G.death)},1600)}
 
 // ================= HUD =================
@@ -1564,7 +1564,7 @@ function xtApply(c){if(G.mode==='menu'||G.mode==='dead')return;show(null);$('hud
 if(c==='endless'){const first=!G.endless;G.endless=1;G.xtAsked=1;G.mode='play';G.noPause=0;lockPointer();banner(first?'ENDLESS MODE':'PUSHING ON',first?'THE RIFT NEVER CLOSES — HOW FAR CAN YOU GO?':'NEXT ESCAPE POD AT WAVE '+(G.wave+10),3);play('roar');return}
 G.mode='extract';G.tf=0;P.ads=0;mdown=0;startPod();banner('ESCAPE POD INBOUND','STAND CLEAR OF THE LANDING ZONE',2.2);play('warn')}
 function endRun(){if(G.mode==='dead')return;if(G.xt&&G.xt.pod){scene.remove(G.xt.pod);G.xt.pod=null}P.dead=1;G.mode='dead';G.noPause=1;mdown=0;const t=Math.round((performance.now()-G.t0)/1000),base=xtCores(),bonus=G.xtBonus||base+250,cores=base+bonus;
-save.cores+=cores;save.best=Math.max(save.best,G.score);save.bestWave=Math.max(save.bestWave,G.wave);save.bestCombo=Math.max(save.bestCombo,G.bestCombo);save.runs++;save.extracts=(save.extracts||0)+1;store();play('lvl');
+save.cores+=cores;save.best=Math.max(save.best,G.score);save.bestWave=Math.max(save.bestWave,G.wave);window.GBRun&&GBRun('neonrift',G.wave);save.bestCombo=Math.max(save.bestCombo,G.bestCombo);save.runs++;save.extracts=(save.extracts||0)+1;store();play('lvl');
 const saved=!NET.on;if(saved)saveRun(t);G.death={t,cores,bonus,win:1,saved};if(NET.on)NET.final=true;document.exitPointerLock&&document.exitPointerLock();showDeath(G.death);if(NET.on)netDeathUI()}
 
 // ================= MAIN LOOP =================

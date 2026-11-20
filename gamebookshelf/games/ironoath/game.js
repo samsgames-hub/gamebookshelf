@@ -917,7 +917,7 @@ function duelWon() {
   const gold = Math.round((28 + 6 * n + (run.foe.boss ? 40 : 0) + (flawless ? 25 : 0) + G.stat.parries * 3) * (1 + .3 * upLv(run, 'purse')));
   run.gold += gold; run.renown += 100 * n + (flawless ? 150 : 0) + G.stat.parries * 20 + Math.round(p.hp); run.kills++; run.parries += G.stat.parries;
   const heal = p.maxHp * (.25 + .12 * upLv(run, 'fervor')); run.hp = Math.min(p.maxHp, p.hp + heal);
-  save.wins++; if (n > save.bestDuel) save.bestDuel = n; if (run.renown > save.bestRenown) save.bestRenown = run.renown;
+  save.wins++; if (n > save.bestDuel) save.bestDuel = n; if (run.renown > save.bestRenown) save.bestRenown = run.renown; window.GBRun&&GBRun('ironoath', run.renown);
   run.lastGold = gold; run.flawless = flawless;
   if (n === 15 && !run.endless) { save.crowns++; persist(); showWin(); return; }
   persist(); run.duel++; run.foe = makeFoe(run.duel); run.reroll = 10; openShop(true);
@@ -925,7 +925,7 @@ function duelWon() {
 function unlockText(run) { const u = []; for (const k of ['mace', 'poleaxe', 'greatsword']) { const w = WEAPONS[k]; if (run.startBest < w.unlock && save.bestDuel >= w.unlock) u.push(w.name); } return u.length ? 'New arms unlocked: ' + u.join(', ') : ''; }
 function statsHtml(run) { return `<div><span>Duels won</span><b>${run.kills}</b></div><div><span>Renown</span><b>${run.renown}</b></div><div><span>Parries</span><b>${run.parries}</b></div><div><span>Best renown</span><b>${save.bestRenown}</b></div>`; }
 function defeat() {
-  const run = G.run; if (run.renown > save.bestRenown) save.bestRenown = run.renown; persist();
+  const run = G.run; if (run.renown > save.bestRenown) save.bestRenown = run.renown; persist(); window.GBRun&&GBRun('ironoath', run.renown);
   G.mode = 'over'; hideHud(); MUS.mode = 'menu'; SFX.dirge();
   $('overSub').textContent = `Struck down in duel ${roman(run.duel)} by ${run.foe.name}.`;
   $('overStats').innerHTML = statsHtml(run); $('overUnlock').textContent = unlockText(run); showScreen('sOver');

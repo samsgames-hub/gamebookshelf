@@ -175,7 +175,7 @@ function die(why,kind){G.state='over';ship.mode='dead';shake(.6);flash(kind==='l
  if(kind==='lost')SFX.lost();else if(kind==='hole')SFX.hole();else{SFX.crash();burst(ship.x,ship.y,'#ffb347',50,240,.9,4);burst(ship.x,ship.y,'#ffffff',20,120,.5,2)}
  S.runs++;progress('runs',S.runs);let nb=false,official=false;
  if(MODE==='daily'){if(S.dday!==TODAY){S.dday=TODAY;S.dscore=G.score;markDaily('slingshot',G.score);S.dstreak=S.dlast===TODAY-1?(S.dstreak||0)+1:1;S.dlast=TODAY;official=true}}
- else if(MODE==='classic'){nb=G.score>S.best;if(nb)S.best=G.score}
+ else if(MODE==='classic'){nb=G.score>S.best;if(nb)S.best=G.score;window.GBRun&&GBRun('slingshot',G.score)}
  save();applyVol();
  setTimeout(()=>{if(G.state!=='over')return;$('oT').textContent=MODE==='tour'?'Weekly tournament':MODE==='daily'?'Daily route #'+TODAY:nb&&G.score>0?'New record!':why;
   $('oDaily').innerHTML=MODE==='daily'?(official?'Your official score for today. Day streak: <b>'+S.dstreak+'</b>':'Practice run. Today\'s official score: <b>'+S.dscore+'</b> · streak <b>'+S.dstreak+'</b>')+'<br><button class="ghost" id="shareD">Share today\'s route</button>':'';

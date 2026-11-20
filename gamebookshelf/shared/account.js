@@ -9,7 +9,7 @@
   if (window.GBAccount) return;
   const KEY = 'AIzaSyAorALlmWcgCLaS9cIR_9BEUPKXcmKECoY', DB = 'https://gamebookshelf-9984c-default-rtdb.firebaseio.com', MAIL = '@players.gamebookshelf.com';
   /* which storage keys are game progress worth syncing (device ids, Firebase internals and our own bookkeeping are left out) */
-  const SYNC = /^(skyline|slingshot|mx-save|neonrift|nr-name|firebase\.|ridgeline\.|cornerpocket\.|gwf-|gbs-(bank|name|trophies|adminx)|ironoath_|quietbelow_|stormfall_)/;
+  const SYNC = /^(skyline|slingshot|mx-save|neonrift|nr-name|firebase\.|ridgeline\.|cornerpocket\.|gwf-|gbs-(bank|name|trophies|adminx|week)|ironoath_|quietbelow_|stormfall_)/;
   const GAMES = [[/^skyline/, 'Skyline'], [/^slingshot/, 'Slingshot'], [/^mx-/, 'Mitosis'], [/^(neonrift|nr-)/, 'Neon Rift'], [/^firebase\./, 'Firebase'], [/^ridgeline\./, 'Ridgeline'], [/^cornerpocket\./, 'Corner Pocket'], [/^gwf-/, 'Gamble With Friends'], [/^gbs-/, 'Trophies'], [/^ironoath_/, 'Ironoath'], [/^quietbelow_/, 'The Quiet Below'], [/^stormfall_/, 'Stormfall']];
   /* currencies are added together when two addresses both changed them, instead of the newest copy replacing the other */
   const MERGE = { 'gbs-bank': 'deep', 'gwf-keys': 'num', skyline2: ['coins'], slingshot2: ['stars'], neonrift2: ['cores'], 'ridgeline.save': ['cash'], 'cornerpocket.save': ['money'] };
@@ -290,6 +290,7 @@
   const api = {
     info: () => ({ signedIn: !!acct, name: acct ? acct.n : '', at: status.at, busy: status.busy, err: status.err, msg: status.msg, pending: dirty.size, games: [...new Set(localKeys().map(gameOf))].filter(g => g !== 'Other') }),
     signUp, signIn, signOut: () => signOut(false), changePassword, deleteAccount, syncNow, getEmail, setEmail, forgotPassword,
+    weekNow, weekEnds, weekBoard, weekMine: () => weekData().s,
     BOARDS: BOARDS.map(({ id, n, what, unit }) => ({ id, n, what, unit })), board, profileOf, friends, addFriend, removeFriend, isFriend, removeEntry, uid: () => (acct ? acct.u : ''), publish: () => publish(false, true),
     isAdmin: () => !!acct && ADMINS.includes(acct.n.toLowerCase()), admin: () => openAdmin(), onChange: f => listeners.push(f), gameOf, _test: { pull, push, scan, meta: () => meta, dirty: () => [...dirty] }
   };
@@ -353,6 +354,50 @@
   async function isFriend(uid) { if (!acct) return false; try { return !!await API.get('friends/' + acct.u + '/' + uid, await token()); } catch (e) { return false; } }
   /* admin: take a score down and keep that player off this board */
   async function removeEntry(id, uid) { if (!api.isAdmin()) throw fail('DENIED'); const t = await token(); await API.put('lbban/' + id + '/' + uid, true, t); await API.del('lb/' + id + '/' + uid, t); }
+  /* ---------- weekly boards + end-of-run rank card ----------
+     Games call GBRun(board, score) when a run ends ('add' for counters like wins). Weeks start Monday 00:00 UTC. */
+  function weekNow() { return Math.floor((Date.now() - Date.UTC(2026, 10, 9)) / 604800000) + 1; }
+  function weekEnds() { return Date.UTC(2026, 10, 9) + weekNow() * 604800000; }
+  function weekData() { const d = J(lget('gbs-week'), null); return d && d.w === weekNow() ? d : { w: weekNow(), s: {} }; }
+  async function weekBoard(id, w, n) {
+    let d; try { d = await API.pub('lbw/' + (w || weekNow()) + '/' + id, 'orderBy=%22s%22&limitToLast=' + (n || 100)); } catch (e) { d = await API.pub('lbw/' + (w || weekNow()) + '/' + id); }
+    return Object.entries(d || {}).map(([u, o]) => ({ u, n: o.n, s: +o.s || 0, t: o.t || 0 })).filter(o => o.s > 0).sort((a, b) => b.s - a.s || a.t - b.t);
+  }
+  let runCardT = 0;
+  function GBRun(id, score, mode) {
+    const b = BOARDS.find(x => x.id === id); score = Math.floor(+score || 0); if (!b || score <= 0) return;
+    const wd = weekData(), prev = wd.s[id] || 0, val = mode === 'add' ? prev + score : Math.max(prev, score);
+    if (val !== prev) { wd.s[id] = val; LS.setItem('gbs-week', JSON.stringify(wd)); }
+    clearTimeout(runCardT);
+    runCardT = setTimeout(() => runCard(b, mode === 'add' ? val : score, val, val !== prev), 700);   /* after the game has saved its own best */
+  }
+  async function runCard(b, run, week, improved) {
+    const banned = (J(lget('gbs-adminx'), []) || []).includes(b.id);
+    if (!acct) { if (sget('gbs-rc-' + b.id)) return; sset('gbs-rc-' + b.id, '1'); return card(b, '<b>' + fmtN(run) + ' ' + esc(b.unit) + '</b><span>Sign in to put your scores on the leaderboards.</span>', '/account/?new', 'Create account'); }
+    if (banned) return;
+    scan(); try { await push(); } catch (e) { } await publish(false, true);
+    const w = weekNow(), key = 'lbw/' + w + '/' + b.id + '/' + acct.u;
+    if (improved) { try { await API.root({ [key]: { n: acct.n, s: week, t: { '.sv': 'timestamp' } } }, await token()); } catch (e) { } }
+    let wk = [], all = []; try { [wk, all] = await Promise.all([weekBoard(b.id, w, 100), board(b.id, 100)]); } catch (e) { }
+    const wr = wk.findIndex(r => r.u === acct.u) + 1, ar = all.findIndex(r => r.u === acct.u) + 1;
+    const counter = b.unit === 'wins';
+    card(b, '<b>' + (counter ? fmtN(week) + ' ' + esc(b.unit) + ' this week' : fmtN(run) + ' ' + esc(b.unit)) + '</b>'
+      + '<span class="r"><i>This week</i><em>' + (wr ? '#' + wr : '–') + '</em></span><span class="r"><i>All time</i><em>' + (ar ? '#' + ar : all.length >= 100 ? '100+' : '–') + '</em></span>',
+      '/leaderboards/?game=' + b.id + (wr ? '&week' : ''), 'Leaderboards');
+  }
+  const fmtN = v => Number(v).toLocaleString();
+  function card(b, html, href, cta) {
+    const old = document.getElementById('gbsRun'); if (old) old.remove();
+    const el = document.createElement('div'); el.id = 'gbsRun'; el.setAttribute('role', 'status');
+    el.style.cssText = 'position:fixed;right:14px;top:14px;z-index:2147483000;width:240px;padding:12px 14px;border-radius:14px;background:rgba(14,18,26,.95);border:1px solid #ffd16688;color:#e8eef6;box-shadow:0 12px 34px rgba(0,0,0,.5);transform:translateX(130%);transition:transform .45s cubic-bezier(.3,1.3,.5,1);' + FONT;
+    el.innerHTML = '<style>#gbsRun b{display:block;font:700 19px/1.2 system-ui,sans-serif;margin:2px 0 6px}#gbsRun .r{display:flex;justify-content:space-between;align-items:baseline;padding:3px 0;border-top:1px solid #263142}#gbsRun i{font-style:normal;color:#8e9bb0;font-size:13px}#gbsRun em{font:700 20px system-ui,sans-serif;font-style:normal;color:#ffd166}#gbsRun a{display:block;margin-top:8px;text-align:center;padding:7px;border-radius:9px;background:#ffd166;color:#1d1503;font:700 13px system-ui,sans-serif;text-decoration:none}#gbsRun span{display:block;font-size:13px;color:#a9b4c6}#gbsRun button{position:absolute;top:6px;right:8px;border:0;background:none;color:#8e9bb0;font-size:16px;cursor:pointer}</style>'
+      + '<button aria-label="Close">×</button><span style="color:#ffd166;font:700 11px system-ui;letter-spacing:.1em;text-transform:uppercase">' + esc(b.n) + ' · ' + esc(b.what) + '</span>' + html + '<a href="' + href + '" target="_top">' + esc(cta) + '</a>';
+    el.querySelector('button').onclick = () => el.remove();
+    el.addEventListener('keydown', e => e.stopPropagation());
+    document.body.appendChild(el); requestAnimationFrame(() => requestAnimationFrame(() => { el.style.transform = 'translateX(0)'; }));
+    setTimeout(() => { el.style.transform = 'translateX(130%)'; setTimeout(() => el.remove(), 500); }, 9000);
+  }
+  window.GBRun = GBRun;
   ERR.NOUSER = 'No player has that username.'; ERR.SELF = 'That’s you!';
 
   /* ---------- admin tools (only for admin accounts) ---------- */

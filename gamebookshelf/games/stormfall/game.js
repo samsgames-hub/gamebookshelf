@@ -2441,7 +2441,7 @@ function showResults() {
   const xpPlace = (NPLAYERS + 1 - r.place) * 12, xpKills = me.kills * 60, xpWin = r.win ? 500 : 0, xpSurv = Math.round(me.survived * 0.8);
   const xp = xpPlace + xpKills + xpWin + xpSurv;
   const oldLvl = levelOf(profile.xp);
-  profile.xp += xp; profile.games++; profile.kills += me.kills; if (r.win) profile.wins++;
+  profile.xp += xp; profile.games++; profile.kills += me.kills; if (r.win) { profile.wins++; window.GBRun&&GBRun('stormfall', 1, 'add'); }
   if (!profile.bestPlace || r.place < profile.bestPlace) profile.bestPlace = r.place;
   profile.mostKills = Math.max(profile.mostKills, me.kills); profile.damage += me.dmgDealt; if (r.place <= 5) profile.top5++;
   saveProfile();
