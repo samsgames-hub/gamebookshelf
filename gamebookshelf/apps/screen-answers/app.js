@@ -39,7 +39,8 @@ let lastSig = null, pendingSig = null;
 let current = null;         // running request {stream, card}
 let history = [];           // conversation turns for follow-ups (last screenshot + answers)
 let answers = [];           // {question, text}
-const HELPER = 'http://localhost:8787';
+const LOCAL_COPY = location.hostname === 'localhost' && location.port === '8787';
+const HELPER = LOCAL_COPY ? '' : 'http://localhost:8787';
 let helperOk = false;       // local helper reachable and Claude Code installed
 let helperMsg = '';
 let proContext = '';        // last answer, for follow-ups in Pro plan mode
@@ -55,7 +56,7 @@ async function checkHelper() {
     helperMsg = helperOk ? 'Helper is running. Answers use your Claude plan.' : 'Helper is running, but Claude Code is not installed yet (see step 1).';
   } catch {
     helperOk = false;
-    helperMsg = 'Helper is not running on this computer yet.';
+    helperMsg = LOCAL_COPY ? 'Helper is not running. Start it again from your Desktop.' : 'Cannot reach the helper. If it is running, open http://localhost:8787 instead.';
   }
   updateKeyNote();
   return helperOk;

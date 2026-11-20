@@ -38,8 +38,37 @@ try { $listener.Start() } catch {
   Write-Host "  Could not listen on port $Port. Is the helper already running in another window?" -ForegroundColor Red
   exit 1
 }
-Write-Host "  Listening on http://localhost:$Port - keep this window open while you use Screen Answers."
+Write-Host "  Open Screen Answers at http://localhost:$Port/ - keep this window open while you use it." -ForegroundColor Green
 Write-Host ''
+
+# The helper also serves the app at http://localhost:$Port/ so the page and helper share one address.
+# Browsers can block public sites from reaching this PC; the local copy avoids that.
+$AppFiles = @('index.html', 'app.js', 'style.css')
+$AppDir = Split-Path $PSScriptRoot -Parent
+if (-not (Test-Path (Join-Path $AppDir 'app.js')) -or -not (Select-String -Path (Join-Path $AppDir 'index.html') -Pattern 'Screen Answers' -Quiet -ErrorAction SilentlyContinue)) {
+  $AppDir = Join-Path $PSScriptRoot 'app'
+  try {
+    New-Item -ItemType Directory -Force $AppDir | Out-Null
+    foreach ($f in $AppFiles) {
+      if (Test-Path (Join-Path $AppDir $f)) { continue }
+      Invoke-WebRequest -UseBasicParsing -Uri "https://gamebookshelf.com/apps/screen-answers/$f" -OutFile (Join-Path $AppDir $f)
+    }
+  } catch {
+    Write-Host "  Could not download the app files for the local copy: $($_.Exception.Message)" -ForegroundColor Red
+  }
+}
+$Types = @{ '.html' = 'text/html; charset=utf-8'; '.js' = 'text/javascript; charset=utf-8'; '.css' = 'text/css; charset=utf-8' }
+
+function Send-File($ctx, [string]$path) {
+  $name = if ($path -eq '/' -or $path -eq '') { 'index.html' } else { $path.TrimStart('/') }
+  $file = Join-Path $AppDir $name
+  if (($AppFiles -notcontains $name) -or -not (Test-Path $file -PathType Leaf)) { Send-Json $ctx 404 @{ error = 'Not found' }; return }
+  $bytes = [IO.File]::ReadAllBytes($file)
+  $ctx.Response.ContentType = $Types[[IO.Path]::GetExtension($file)]
+  $ctx.Response.Headers['Cache-Control'] = 'no-cache'
+  $ctx.Response.OutputStream.Write($bytes, 0, $bytes.Length)
+  $ctx.Response.Close()
+}
 
 function Send-Json($ctx, [int]$code, $obj) {
   $bytes = [Text.Encoding]::UTF8.GetBytes(($obj | ConvertTo-Json -Compress -Depth 5))
@@ -116,6 +145,9 @@ while ($listener.IsListening) {
     $ctx.Response.Headers['Vary'] = 'Origin'
   }
   try {
+    $path = $ctx.Request.Url.AbsolutePath
+    if ($ctx.Request.HttpMethod -eq 'GET' -and $path -ne '/health') { Send-File $ctx $path; continue }
+    if (-not $origin -and $path -eq '/health') { $okOrigin = $true }   # same-origin check from the local copy
     if (-not $okOrigin) { Send-Json $ctx 403 @{ error = 'Only the Screen Answers page can use this helper.' }; continue }
     if ($ctx.Request.HttpMethod -eq 'OPTIONS') {
       $ctx.Response.Headers['Access-Control-Allow-Methods'] = 'GET, POST'
@@ -125,7 +157,6 @@ while ($listener.IsListening) {
       $ctx.Response.Close()
       continue
     }
-    $path = $ctx.Request.Url.AbsolutePath
     if ($path -eq '/health') {
       if (-not $Claude) { $Claude = Find-Claude }
       Send-Json $ctx 200 @{ ok = $true; claude = [bool]$Claude; version = 1 }
