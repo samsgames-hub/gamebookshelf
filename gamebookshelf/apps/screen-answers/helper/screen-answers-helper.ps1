@@ -38,31 +38,47 @@ try { $listener.Start() } catch {
   Write-Host "  Could not listen on port $Port. Is the helper already running in another window?" -ForegroundColor Red
   exit 1
 }
-Write-Host "  Open Screen Answers at http://localhost:$Port/ - keep this window open while you use it." -ForegroundColor Green
+Write-Host "  Open Screen Answers at http://localhost:$Port/" -ForegroundColor Green
+Write-Host "  Open Class Notes    at http://localhost:$Port/class-notes/" -ForegroundColor Green
+Write-Host '  Keep this window open while you use them.'
 Write-Host ''
 
-# The helper also serves the app at http://localhost:$Port/ so the page and helper share one address.
-# Browsers can block public sites from reaching this PC; the local copy avoids that.
-$AppFiles = @('index.html', 'app.js', 'style.css')
-$AppDir = Split-Path $PSScriptRoot -Parent
-if (-not (Test-Path (Join-Path $AppDir 'app.js')) -or -not (Select-String -Path (Join-Path $AppDir 'index.html') -Pattern 'Screen Answers' -Quiet -ErrorAction SilentlyContinue)) {
-  $AppDir = Join-Path $PSScriptRoot 'app'
-  try {
-    New-Item -ItemType Directory -Force $AppDir | Out-Null
-    foreach ($f in $AppFiles) {
-      if (Test-Path (Join-Path $AppDir $f)) { continue }
-      Invoke-WebRequest -UseBasicParsing -Uri "https://gamebookshelf.com/apps/screen-answers/$f" -OutFile (Join-Path $AppDir $f)
+# The helper also serves the apps at http://localhost:$Port/ so each page and the helper share one address.
+# Browsers (especially school and work ones) can block public sites from reaching this PC; the local copies avoid that.
+# Next to the website's files (running from the repo) it serves those; otherwise it downloads fresh copies at each start.
+$Apps = @(
+  @{ Prefix = '/';             Name = 'screen-answers'; Marker = 'Screen Answers'; Files = @('index.html', 'app.js', 'style.css') },
+  @{ Prefix = '/class-notes/'; Name = 'class-notes';    Marker = 'Class Notes';    Files = @('index.html', 'app.js', 'style.css', 'whisper-worker.js') }
+)
+$AppsRoot = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
+foreach ($a in $Apps) {
+  $dir = Join-Path $AppsRoot $a.Name
+  if ((Test-Path (Join-Path $dir 'app.js')) -and (Select-String -Path (Join-Path $dir 'index.html') -Pattern $a.Marker -Quiet -ErrorAction SilentlyContinue)) { $a.Dir = $dir; continue }
+  $a.Dir = if ($a.Name -eq 'screen-answers') { Join-Path $PSScriptRoot 'app' } else { Join-Path $PSScriptRoot "app\$($a.Name)" }
+  New-Item -ItemType Directory -Force $a.Dir | Out-Null
+  foreach ($f in $a.Files) {
+    $dest = Join-Path $a.Dir $f
+    try {
+      # Download to a temp file first so a failed download keeps the copy we already have.
+      $tmp = "$dest.download"
+      Invoke-WebRequest -UseBasicParsing -Uri "https://gamebookshelf.com/apps/$($a.Name)/$f" -OutFile $tmp
+      Move-Item -Force $tmp $dest
+    } catch {
+      Remove-Item $tmp -ErrorAction SilentlyContinue
+      if (-not (Test-Path $dest)) { Write-Host "  Could not download $($a.Name)/$f for the local copy: $($_.Exception.Message)" -ForegroundColor Red }
     }
-  } catch {
-    Write-Host "  Could not download the app files for the local copy: $($_.Exception.Message)" -ForegroundColor Red
   }
 }
 $Types = @{ '.html' = 'text/html; charset=utf-8'; '.js' = 'text/javascript; charset=utf-8'; '.css' = 'text/css; charset=utf-8' }
 
 function Send-File($ctx, [string]$path) {
-  $name = if ($path -eq '/' -or $path -eq '') { 'index.html' } else { $path.TrimStart('/') }
-  $file = Join-Path $AppDir $name
-  if (($AppFiles -notcontains $name) -or -not (Test-Path $file -PathType Leaf)) { Send-Json $ctx 404 @{ error = 'Not found' }; return }
+  if ($path -eq '/class-notes') { $ctx.Response.Redirect('/class-notes/'); $ctx.Response.Close(); return }
+  $app = $Apps | Where-Object { $_.Prefix -ne '/' -and $path.StartsWith($_.Prefix) } | Select-Object -First 1
+  if (-not $app) { $app = $Apps[0] }
+  $name = $path.Substring($app.Prefix.Length - 1).TrimStart('/')
+  if (-not $name) { $name = 'index.html' }
+  $file = Join-Path $app.Dir $name
+  if (($app.Files -notcontains $name) -or -not (Test-Path $file -PathType Leaf)) { Send-Json $ctx 404 @{ error = 'Not found' }; return }
   $bytes = [IO.File]::ReadAllBytes($file)
   $ctx.Response.ContentType = $Types[[IO.Path]::GetExtension($file)]
   $ctx.Response.Headers['Cache-Control'] = 'no-cache'

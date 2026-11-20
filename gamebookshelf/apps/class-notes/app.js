@@ -568,7 +568,7 @@ async function importRecording(file) {
 // ---------- Claude ----------
 const LOCAL_COPY = location.hostname === 'localhost' && location.port === '8787';
 const HELPER = LOCAL_COPY ? '' : 'http://localhost:8787';
-let helperOk = false, helperMsg = '';
+let helperOk = false, helperMsg = '', helperChecked = false;
 async function checkHelper() {
   try {
     const ctrl = new AbortController();
@@ -576,23 +576,81 @@ async function checkHelper() {
     const res = await fetch(HELPER + '/health', { signal: ctrl.signal });
     clearTimeout(t);
     const data = await res.json();
+    helperChecked = true;
     helperOk = !!(data.ok && data.claude);
     helperMsg = helperOk ? 'Helper is running. Notes use your Claude plan.' : 'Helper is running, but Claude Code is not installed yet (see step 1).';
   } catch {
+    helperChecked = true;
     helperOk = false;
-    helperMsg = 'Cannot reach the helper. Start it (steps below), or use an API key.';
+    helperMsg = LOCAL_COPY ? 'The helper is not running. Start it again from your Desktop.'
+      : 'Cannot reach the helper. If it is running, this browser is blocking the website from reaching it: open Class Notes from the helper instead (button below).';
   }
   updateKeyNote();
   return helperOk;
 }
 function ready() { return cfg.engine === 'pro' ? helperOk : !!cfg.key; }
+const LOCAL_URL = 'http://localhost:8787/class-notes/';
 function updateKeyNote() {
   const s = $('helperState');
   s.textContent = helperMsg || 'Checking for the helper…'; s.className = 'state ' + (helperOk ? 'ok' : 'bad');
+  $('btnOpenLocal').hidden = LOCAL_COPY || helperOk;
   const n = $('keyNote');
-  if (ready()) { n.textContent = ''; return; }
+  const b = $('notesOff');
+  if (ready()) { n.textContent = ''; b.hidden = true; return; }
   n.innerHTML = 'The transcript works on its own. To get notes, connect Claude. <button type="button" class="primary">Set up</button>';
   n.querySelector('button').onclick = openSettings;
+  // Always-visible banner over the notes, so a missing connection is never silent
+  // (not before the first helper check, to avoid a flash while it's still being looked for).
+  b.hidden = cfg.engine === 'pro' && !helperChecked;
+  if (cfg.engine === 'api') {
+    b.innerHTML = '<b>Notes are paused:</b> add your Anthropic API key in Settings. Your transcript is still being saved. <button type="button" data-act="settings">Settings</button>';
+  } else if (LOCAL_COPY) {
+    b.innerHTML = '<b>Notes are paused:</b> the Claude helper is not running. Double-click <b>Start Screen Answers helper</b> on your Desktop; notes start again by themselves. <button type="button" data-act="settings">Help</button>';
+  } else {
+    b.innerHTML = '<b>Notes are paused:</b> this page can\'t reach the Claude helper on your computer (school and work browsers often block that). If the helper is running, open Class Notes from it instead. Your classes come with you. <button type="button" class="primary" data-act="local">Open from the helper</button> <button type="button" data-act="settings">Help</button>';
+  }
+  b.querySelectorAll('button').forEach(btn => { btn.onclick = btn.dataset.act === 'local' ? openLocalCopy : openSettings; });
+}
+
+// Saved classes live per address, so moving to the helper's copy carries them across with postMessage.
+const SITE_ORIGINS = ['https://gamebookshelf.com', 'https://www.gamebookshelf.com'];
+function openLocalCopy() {
+  if (listening) stopListening(false);
+  saveClasses(true);
+  const w = window.open(LOCAL_URL, 'class-notes-local');
+  if (!w) { location.href = LOCAL_URL; return; }
+  const onMsg = e => {
+    if (e.origin !== 'http://localhost:8787' || e.data?.type !== 'classnotes-ready') return;
+    w.postMessage({ type: 'classnotes-import', classes, current: cls.id, cfg: { lang: cfg.lang, stt: cfg.stt, sttModel: cfg.sttModel, model: cfg.model, style: cfg.style, fix: cfg.fix, interval: cfg.interval } }, 'http://localhost:8787');
+    window.removeEventListener('message', onMsg);
+  };
+  window.addEventListener('message', onMsg);
+  setTimeout(() => window.removeEventListener('message', onMsg), 120000);
+}
+if (LOCAL_COPY) {
+  window.addEventListener('message', e => {
+    if (!SITE_ORIGINS.includes(e.origin) || e.data?.type !== 'classnotes-import' || !Array.isArray(e.data.classes)) return;
+    let moved = 0;
+    for (const c of e.data.classes) {
+      if (!c || typeof c.id !== 'string' || !Array.isArray(c.segs)) continue;
+      const mine = classes.find(x => x.id === c.id);
+      if (mine && (mine.updated || 0) >= (c.updated || 0)) continue;
+      if (mine) classes.splice(classes.indexOf(mine), 1, c); else classes.push(c);
+      moved++;
+    }
+    if (e.data.cfg && typeof e.data.cfg === 'object') {
+      for (const k of ['lang', 'stt', 'sttModel', 'model', 'style', 'fix', 'interval']) if (k in e.data.cfg) cfg[k] = e.data.cfg[k];
+      cfg.engine = 'pro'; saveCfg();
+    }
+    classes.sort((a, b) => (b.updated || 0) - (a.updated || 0));
+    const cur = classes.find(c => c.id === e.data.current);
+    if (cur) openClass(cur);
+    saveClasses(true);
+    if (moved) toast(`Brought over ${moved} class${moved > 1 ? 'es' : ''} from the website`);
+  });
+  if (window.opener) { try { window.opener.postMessage({ type: 'classnotes-ready' }, '*'); } catch { /* opener gone */ } }
+  // Links that are relative on the website point back to it from here.
+  document.querySelector('.brand').href = 'https://gamebookshelf.com/apps/';
 }
 
 let client = null, clientKey = '';
@@ -746,6 +804,8 @@ function errorText(err) {
 
 // Auto-update the notes while listening.
 setInterval(() => {
+  // The helper may have been started after the page opened: keep looking for it.
+  if (cfg.engine === 'pro' && !helperOk && !notesBusy) { checkHelper(); return; }
   if (!listening || notesBusy || !ready()) return;
   const newWords = words() - cls.notedWords;
   if (Date.now() - lastNotesTime >= cfg.interval * 60000 && newWords >= 40) makeNotes();
@@ -868,6 +928,7 @@ $('btnMark').onclick = () => {
 $('btnNotes').onclick = () => makeNotes();
 $('btnClasses').onclick = openClasses;
 $('btnSettings').onclick = openSettings;
+$('btnOpenLocal').onclick = openLocalCopy;
 $('inTitle').addEventListener('input', e => { cls.title = e.target.value.trim(); cls.updated = Date.now(); saveClasses(); });
 $('inTitle').addEventListener('keydown', e => { if (e.key === 'Enter') e.target.blur(); });
 $('addForm').addEventListener('submit', e => {

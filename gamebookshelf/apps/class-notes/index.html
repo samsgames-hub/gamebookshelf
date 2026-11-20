@@ -64,6 +64,7 @@
         <button id="btnDownload" class="ghost" disabled>Download</button>
       </span>
     </div>
+    <div class="notesoff" id="notesOff" hidden></div>
     <div id="notes" class="notes"><div class="hintbox">Your notes will show up here a few minutes into the class.</div></div>
   </section>
 </main>
@@ -126,12 +127,13 @@
       <p class="state" id="helperState">Checking for the helper…</p>
       <ol class="steps">
         <li>Install Claude Code if you don't have it. In PowerShell run <code>irm https://claude.ai/install.ps1 | iex</code>, then run <code>claude</code> once and sign in with your Claude account.</li>
-        <li><a href="../screen-answers/helper/screen-answers-helper.ps1" download>Download the helper</a> (Windows). It's the same helper Screen Answers uses.</li>
+        <li><a href="https://gamebookshelf.com/apps/screen-answers/helper/screen-answers-helper.ps1" download>Download the helper</a> (Windows). It's the same helper Screen Answers uses.</li>
         <li>Start it from PowerShell and leave the window open:
           <span class="cmd"><code id="helperCmd">powershell -ExecutionPolicy Bypass -File "$HOME\Downloads\screen-answers-helper.ps1"</code><button type="button" id="btnCopyCmd" class="ghost">Copy</button></span>
         </li>
       </ol>
-      <p class="hint">Notes count toward your plan's usage limits. Some browsers, especially school or work ones, block websites from reaching your PC; if so, use an API key instead.</p>
+      <p class="hint">Notes count toward your plan's usage limits. Some browsers, especially school or work ones, block websites from reaching your PC. If so, open Class Notes from the helper at <a href="http://localhost:8787/class-notes/" target="_blank" rel="noopener">http://localhost:8787/class-notes/</a>.</p>
+      <button type="button" id="btnOpenLocal" class="primary" hidden>Open Class Notes from the helper</button>
     </div>
     <div id="apiBox" class="box" hidden>
       <label>Anthropic API key

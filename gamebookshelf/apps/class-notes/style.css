@@ -161,3 +161,11 @@ dialog label.check { display: flex; align-items: center; gap: 8px; cursor: point
 dialog label.check input { accent-color: var(--accent); width: 16px; height: 16px; }
 dialog label[hidden] { display: none; }
 @media (max-width: 520px) { #btnUpload { padding: 7px 10px; } .add input { min-width: 0; } }
+
+/* "Notes are paused" banner */
+.notesoff { margin: 12px 16px 0; padding: 10px 12px; border-radius: 10px; border: 1px solid #f2b05e; background: rgba(242, 176, 94, .1); color: #f5d9b0; line-height: 1.5; font-size: 13.5px; }
+.notesoff[hidden] { display: none; }
+.notesoff b { color: #ffd08a; }
+.notesoff button { margin-top: 6px; padding: 5px 11px; font-size: 13px; }
+#btnOpenLocal { margin-top: 8px; }
+#btnOpenLocal[hidden] { display: none; }
