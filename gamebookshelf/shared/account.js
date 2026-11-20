@@ -9,7 +9,7 @@
   if (window.GBAccount) return;
   const KEY = 'AIzaSyAorALlmWcgCLaS9cIR_9BEUPKXcmKECoY', DB = 'https://gamebookshelf-9984c-default-rtdb.firebaseio.com', MAIL = '@players.gamebookshelf.com';
   /* which storage keys are game progress worth syncing (device ids, Firebase internals and our own bookkeeping are left out) */
-  const SYNC = /^(skyline|slingshot|mx-save|neonrift|nr-name|firebase\.|ridgeline\.|cornerpocket\.|gwf-|gbs-(bank|name|trophies|adminx|week)|ironoath_|quietbelow_|stormfall_)/;
+  const SYNC = /^(skyline|slingshot|mx-save|neonrift|nr-name|firebase\.|ridgeline\.|cornerpocket\.|gwf-|gbs-(bank|name|trophies|adminx|week|prizes)|ironoath_|quietbelow_|stormfall_)/;
   const GAMES = [[/^skyline/, 'Skyline'], [/^slingshot/, 'Slingshot'], [/^mx-/, 'Mitosis'], [/^(neonrift|nr-)/, 'Neon Rift'], [/^firebase\./, 'Firebase'], [/^ridgeline\./, 'Ridgeline'], [/^cornerpocket\./, 'Corner Pocket'], [/^gwf-/, 'Gamble With Friends'], [/^gbs-/, 'Trophies'], [/^ironoath_/, 'Ironoath'], [/^quietbelow_/, 'The Quiet Below'], [/^stormfall_/, 'Stormfall']];
   /* currencies are added together when two addresses both changed them, instead of the newest copy replacing the other */
   const MERGE = { 'gbs-bank': 'deep', 'gwf-keys': 'num', skyline2: ['coins'], slingshot2: ['stars'], neonrift2: ['cores'], 'ridgeline.save': ['cash'], 'cornerpocket.save': ['money'] };
@@ -290,7 +290,7 @@
   const api = {
     info: () => ({ signedIn: !!acct, name: acct ? acct.n : '', at: status.at, busy: status.busy, err: status.err, msg: status.msg, pending: dirty.size, games: [...new Set(localKeys().map(gameOf))].filter(g => g !== 'Other') }),
     signUp, signIn, signOut: () => signOut(false), changePassword, deleteAccount, syncNow, getEmail, setEmail, forgotPassword,
-    weekNow, weekEnds, weekBoard, weekMine: () => weekData().s,
+    weekNow, weekEnds, weekBoard, friendsBoard, friendIds, weekMine: () => weekData().s,
     BOARDS: BOARDS.map(({ id, n, what, unit }) => ({ id, n, what, unit })), board, profileOf, friends, addFriend, removeFriend, isFriend, removeEntry, uid: () => (acct ? acct.u : ''), publish: () => publish(false, true),
     isAdmin: () => !!acct && ADMINS.includes(acct.n.toLowerCase()), admin: () => openAdmin(), onChange: f => listeners.push(f), gameOf, _test: { pull, push, scan, meta: () => meta, dirty: () => [...dirty] }
   };
@@ -305,7 +305,8 @@
     BOARDS.forEach(b => { if (b.id === 'trophies') return; const v = J(lget(b.k), null); const s = v && typeof v === 'object' ? b.f(v) : 0; if (s && !x.includes(b.id) && pubCache['lb/' + b.id + '/' + acct.u] !== 'ban') best[b.id] = s; });
     const got = st ? st.list.filter(t => t.at) : [];
     const title = (got.find(t => t.id === tr.title) || {}).name || (got.length ? 'Trophy Hunter' : 'Newcomer');
-    return { n: acct.n, lv: st ? st.lv.l : 1, pts: st ? st.pts : 0, tro: got.length, of: st ? st.list.length : 0, title, show: (tr.show || []).filter(id => got.some(t => t.id === id)).slice(0, 3), best, adm: api.isAdmin() ? 1 : 0 };
+    const med = (J(lget('gbs-prizes'), {}) || {}).med || {};
+    return { med: { g: +med.g || 0, s: +med.s || 0, b: +med.b || 0 }, n: acct.n, lv: st ? st.lv.l : 1, pts: st ? st.pts : 0, tro: got.length, of: st ? st.list.length : 0, title, show: (tr.show || []).filter(id => got.some(t => t.id === id)).slice(0, 3), best, adm: api.isAdmin() ? 1 : 0 };
   }
   async function publish(keepalive, force) {
     if (!acct) return;
@@ -398,6 +399,56 @@
     setTimeout(() => { el.style.transform = 'translateX(130%)'; setTimeout(() => el.remove(), 500); }, 9000);
   }
   window.GBRun = GBRun;
+
+  /* ---------- weekly prizes: top 3 on last week's boards, paid on your first visit after Monday ---------- */
+  const PRIZE = { 1: { c: 300, st: 75, g: 5, k: 2, n: 'Gold', e: '🥇' }, 2: { c: 200, st: 50, g: 3, k: 1, n: 'Silver', e: '🥈' }, 3: { c: 120, st: 30, g: 2, k: 0, n: 'Bronze', e: '🥉' } };
+  async function weeklyPrizes() {
+    if (!acct) return;
+    const pz = J(lget('gbs-prizes'), {}) || {}; pz.got = pz.got || {}; pz.med = pz.med || { g: 0, s: 0, b: 0 };
+    const last = weekNow() - 1; if (last < 1 || (pz.checked || 0) >= last) return;
+    const wins = [];
+    for (const b of BOARDS) {
+      if (b.id === 'trophies') continue;
+      for (let w = Math.max(1, (pz.checked || 0) + 1, last - 1); w <= last; w++) {
+        const key = w + ':' + b.id; if (pz.got[key]) continue;
+        let rows; try { rows = await weekBoard(b.id, w, 3); } catch (e) { return; }   /* offline: try again next visit */
+        if (rows.length < 2) continue;                                               /* a board needs at least 2 players */
+        const r = rows.slice(0, 3).findIndex(x => x.u === acct.u) + 1; if (!r) continue;
+        pz.got[key] = r; pz.med[['', 'g', 's', 'b'][r]]++; wins.push({ b, r, w });
+      }
+    }
+    pz.checked = last;
+    if (wins.length) {
+      const bank = J(lget('gbs-bank'), {}) || {}, add = (g, f, v) => { if (!v) return; bank[g] = bank[g] || {}; bank[g][f] = (+bank[g][f] || 0) + v; bank[g].from = 'Weekly prizes'; };
+      let keys = 0; wins.forEach(({ r }) => { const p = PRIZE[r]; add('skyline', 'coins', p.c); add('slingshot', 'stars', p.st); add('gwf', 'gold', p.g); keys += p.k; });
+      LS.setItem('gbs-bank', JSON.stringify(bank)); if (keys) LS.setItem('gwf-keys', String((+lget('gwf-keys') || 0) + keys));
+      prizeCard(wins);
+    }
+    LS.setItem('gbs-prizes', JSON.stringify(pz)); publish(false, true);
+  }
+  function prizeCard(wins) {
+    const tot = wins.reduce((a, { r }) => { const p = PRIZE[r]; a.c += p.c; a.st += p.st; a.g += p.g; a.k += p.k; return a; }, { c: 0, st: 0, g: 0, k: 0 });
+    const W = document.createElement('div');
+    W.style.cssText = 'position:fixed;inset:0;z-index:2147483002;display:grid;place-items:center;padding:16px;background:rgba(4,7,12,.72);backdrop-filter:blur(6px);' + FONT;
+    W.innerHTML = '<div role="dialog" aria-modal="true" aria-label="Weekly prizes" style="max-width:420px;width:100%;padding:22px;border-radius:20px;background:linear-gradient(180deg,rgba(255,209,102,.14),#121923 55%);border:1px solid #ffd16699;color:#e8eef6;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.6)">'
+      + '<div style="font-size:46px;line-height:1">' + wins.map(w => PRIZE[w.r].e).join('') + '</div><h2 style="margin:8px 0 4px;font:700 26px system-ui,sans-serif">Weekly prizes!</h2><p style="margin:0 0 12px;color:#a9b4c6">You finished on last week’s podium:</p>'
+      + wins.map(({ b, r }) => '<div style="display:flex;justify-content:space-between;padding:7px 10px;margin:4px 0;border-radius:10px;background:#0d131c"><span>' + PRIZE[r].e + ' ' + esc(b.n) + '</span><b>#' + r + '</b></div>').join('')
+      + '<p style="margin:12px 0 14px;color:#ffd166;font-weight:600">+' + tot.c + ' Skyline coins · +' + tot.st + ' Slingshot stars · +' + tot.g + ' gold' + (tot.k ? ' · +' + tot.k + ' vault key' + (tot.k > 1 ? 's' : '') : '') + '</p>'
+      + '<p style="margin:0 0 14px;color:#8e9bb0;font-size:13px">Collected next time you open each game. Your medals show on your profile.</p><button style="cursor:pointer;width:100%;padding:12px;border-radius:11px;border:0;background:#ffd166;color:#1d1503;font:700 16px system-ui,sans-serif">Awesome</button></div>';
+    W.querySelector('button').onclick = () => W.remove(); W.addEventListener('click', e => { if (e.target === W) W.remove(); });
+    W.addEventListener('keydown', e => e.stopPropagation());
+    (document.body || document.documentElement).appendChild(W);
+    try { const A = new (window.AudioContext || window.webkitAudioContext)(), t = A.currentTime; [523, 659, 784, 1047].forEach((f, i) => { const o = A.createOscillator(), g = A.createGain(); o.type = 'triangle'; o.frequency.value = f; g.gain.setValueAtTime(0, t + i * .11); g.gain.linearRampToValueAtTime(.12, t + i * .11 + .02); g.gain.exponentialRampToValueAtTime(.001, t + i * .11 + .5); o.connect(g).connect(A.destination); o.start(t + i * .11); o.stop(t + i * .11 + .55); }); } catch (e) { }
+  }
+
+  /* ---------- friends filter for leaderboards ---------- */
+  async function friendIds() { if (!acct) return []; try { return Object.keys(await API.get('friends/' + acct.u, await token()) || {}); } catch (e) { return []; } }
+  async function friendsBoard(id, week) {
+    const ids = [acct ? acct.u : null].concat(await friendIds()).filter(Boolean);
+    const base = week ? 'lbw/' + weekNow() + '/' + id + '/' : 'lb/' + id + '/';
+    const rows = await Promise.all(ids.map(async u => { try { const o = await API.pub(base + u); return o ? { u, n: o.n, s: +o.s || 0, t: o.t || 0 } : null; } catch (e) { return null; } }));
+    return rows.filter(r => r && r.s > 0).sort((a, b) => b.s - a.s || a.t - b.t);
+  }
   ERR.NOUSER = 'No player has that username.'; ERR.SELF = 'That’s you!';
 
   /* ---------- admin tools (only for admin accounts) ---------- */
@@ -495,7 +546,7 @@
     const an = sget('gbs-admin-note'); if (an) { sset('gbs-admin-note', null); setTimeout(() => toast(an), 300); }
     if (!acct) { scan(); return; }
     if (inGame) setTimeout(gamePill, 900);
-    pull().then(() => { scan(); ensureName(); publish(false, true); }).catch(() => scan());
+    pull().then(() => { scan(); ensureName(); publish(false, true); setTimeout(weeklyPrizes, 2500); }).catch(() => scan());
     if (inGame) setInterval(() => { if (!document.hidden) publish(); }, 120000);
     setInterval(scan, 10000);
     addEventListener('pagehide', () => { scan(); if (dirty.size) push(true); });

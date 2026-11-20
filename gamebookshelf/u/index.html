@@ -29,6 +29,7 @@ main{max-width:1000px;margin:0 auto;padding:36px 24px 60px}
 .lvl{width:104px;height:104px;border-radius:50%;display:grid;place-items:center;text-align:center;background:conic-gradient(var(--g) var(--p,0%),var(--s2) 0);position:relative}
 .lvl::before{content:"";position:absolute;inset:9px;border-radius:50%;background:var(--s1)}
 .lvl div{position:relative}.lvl small{display:block;font:600 11px var(--ui);color:var(--muted);letter-spacing:.1em;text-transform:uppercase}.lvl b{font:700 40px/1 var(--disp)}
+.meds{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}.meds span{padding:4px 10px;border-radius:999px;background:var(--s2);border:1px solid var(--line);font-size:14px;color:var(--muted)}.meds b{color:var(--text)}
 .acts{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
 .btn{font:700 15px var(--ui);padding:10px 16px;border-radius:10px;border:1px solid var(--line);background:var(--s2);color:var(--text);cursor:pointer;transition:transform .1s,background .15s}
 .btn:hover{background:#223044}.btn:active{transform:scale(.97)}.btn.pri{background:var(--go);border-color:var(--go);color:#06110b}.btn:disabled{opacity:.6}
@@ -55,8 +56,8 @@ h2{font:700 26px var(--disp);margin:28px 0 10px}
  <nav aria-label="Main"><a href="/#games">Games</a><a href="/leaderboards/">Leaderboards</a><a href="/trophies/">Trophies</a><a href="/account/" data-acct-nav>Sign in</a></nav>
 </header>
 <main id="main"><div class="sk"></div></main>
-<script src="/shared/account.js?v=1795182534"></script>
-<script src="/shared/trophies.js?v=1795182534"></script>
+<script src="/shared/account.js?v=1795182843"></script>
+<script src="/shared/trophies.js?v=1795182843"></script>
 <script>
 (async()=>{'use strict';
 const A=GBAccount,T=GBTrophies,$m=document.getElementById('main'),esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -76,7 +77,7 @@ const show=(p.show||[]).map(id=>list.find(t=>t.id===id)).filter(Boolean);
 const bests=A.BOARDS.filter(b=>p.best&&p.best[b.id]);
 $m.innerHTML='<section class="hero"><div class="av">'+esc(nm[0].toUpperCase())+'</div><div class="who"><h1>'+esc(nm)+(p.adm?'<span class="badge">ADMIN</span>':'')+'</h1><div class="title">'+esc(p.title||'Newcomer')+'</div>'
  +'<p><span class="live'+(online?' on':'')+'"><i></i>'+(p.empty?'Hasn’t played yet':online?(p.game?'Playing '+esc(p.game)+' now':'Online now'):'Last seen '+ago(p.at)+(p.game?' playing '+esc(p.game):''))+'</span> · '+(p.tro||0)+' trophies · '+(p.pts||0)+' points</p>'
- +'<div class="acts" id="acts"></div><div class="msg" id="msg" role="status"></div></div>'
+ +(p.med&&(p.med.g||p.med.s||p.med.b)?'<div class="meds" title="Weekly leaderboard podiums">'+[['g','\ud83e\udd47','Gold'],['s','\ud83e\udd48','Silver'],['b','\ud83e\udd49','Bronze']].filter(m=>p.med[m[0]]).map(m=>'<span>'+m[1]+' <b>'+p.med[m[0]]+'</b> '+m[2]+'</span>').join('')+'</div>':'')+'<div class="acts" id="acts"></div><div class="msg" id="msg" role="status"></div></div>'
  +'<div class="lvl" style="--p:'+Math.round(L.into/L.need*100)+'%"><div><small>Level</small><b>'+lv+'</b></div></div></section>'
  +'<h2>Showcase</h2>'+(show.length?'<div class="show">'+show.map(t=>'<div class="tr '+t.tier+'"><span class="m">'+(EMO[t.from]||'🏆')+'</span><b>'+esc(t.name)+'</b><small>'+esc(T.TIER[t.tier].n)+' · '+esc(t.from)+'</small></div>').join('')+'</div>':'<div class="empty">'+(me?'Pin up to 3 trophies with ☆ in the <a href="/trophies/" style="text-decoration:underline">Trophy Room</a> to show them here.':'No trophies pinned yet.')+'</div>')
  +'<h2>Best scores</h2>'+(bests.length?'<div class="bests">'+bests.map(b=>'<a class="best" href="/leaderboards/?game='+b.id+'"><span>'+(EMO[b.n]||'')+' <b>'+esc(b.n)+'</b>'+esc(b.what)+'</span><em>'+Number(p.best[b.id]).toLocaleString()+'<small>'+esc(b.unit)+'</small></em></a>').join('')+'</div>':'<div class="empty">No scores yet.</div>');
