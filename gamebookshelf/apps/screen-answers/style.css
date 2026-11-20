@@ -96,6 +96,19 @@ dialog h2 { margin: 0 0 14px; }
 dialog label { display: grid; gap: 6px; margin-bottom: 12px; }
 dialog input[type=range] { accent-color: var(--accent); }
 .hint { color: var(--muted); font-size: 12.5px; margin: -6px 0 12px; line-height: 1.45; }
+.box { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; margin-bottom: 14px; background: #13171e; }
+.box .hint { margin: 8px 0 0; }
+.box label { margin-bottom: 8px; }
+.state { margin: 0 0 6px; font-weight: 600; }
+.state::before { content: ""; display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 8px; background: var(--muted); vertical-align: 1px; }
+.state.ok { color: var(--ok); } .state.ok::before { background: var(--ok); box-shadow: 0 0 8px var(--ok); }
+.state.bad { color: #f2b05e; } .state.bad::before { background: #f2b05e; }
+.steps { margin: 6px 0 0; padding-left: 18px; display: grid; gap: 8px; font-size: 13px; color: #c6ccd8; line-height: 1.45; }
+.steps code { background: #0f1218; border-radius: 4px; padding: 1px 5px; font-size: 12px; }
+.cmd { display: flex; gap: 6px; align-items: center; margin-top: 6px; }
+.cmd code { flex: 1; overflow-x: auto; white-space: nowrap; padding: 5px 8px !important; }
+dialog { max-height: 92vh; overflow-y: auto; }
+dialog .box[hidden] { display: none; }
 menu { display: flex; justify-content: flex-end; padding: 0; margin: 8px 0 0; }
 
 @media (max-width: 860px) {

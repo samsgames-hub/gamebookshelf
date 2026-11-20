@@ -58,10 +58,29 @@
 <dialog id="dlgSettings">
   <form method="dialog">
     <h2>Settings</h2>
-    <label>Anthropic API key
-      <input type="password" id="inKey" placeholder="sk-ant-…" autocomplete="off" spellcheck="false">
+    <label>Answer with
+      <select id="selEngine">
+        <option value="pro">My Claude plan (Pro or Max), through a helper on this PC</option>
+        <option value="api">An Anthropic API key</option>
+      </select>
     </label>
-    <p class="hint">Get a key at <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener">console.anthropic.com</a>. It is saved only in this browser and sent only to api.anthropic.com. Each answer is billed to your account.</p>
+    <div id="proBox" class="box">
+      <p class="state" id="helperState">Checking for the helper…</p>
+      <ol class="steps">
+        <li>Install Claude Code if you don't have it. In PowerShell run <code>irm https://claude.ai/install.ps1 | iex</code>, then run <code>claude</code> once and sign in with your Claude account.</li>
+        <li><a href="helper/screen-answers-helper.ps1" download>Download the helper</a> (Windows).</li>
+        <li>Start it from PowerShell and leave the window open:
+          <span class="cmd"><code id="helperCmd">powershell -ExecutionPolicy Bypass -File "$HOME\Downloads\screen-answers-helper.ps1"</code><button type="button" id="btnCopyCmd" class="ghost">Copy</button></span>
+        </li>
+      </ol>
+      <p class="hint">Answers count toward your plan's usage limits. If your browser asks to let this page access devices on your local network, allow it so the page can reach the helper. The helper only accepts requests from this page.</p>
+    </div>
+    <div id="apiBox" class="box" hidden>
+      <label>Anthropic API key
+        <input type="password" id="inKey" placeholder="sk-ant-…" autocomplete="off" spellcheck="false">
+      </label>
+      <p class="hint">Get a key at <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener">console.anthropic.com</a>. API use is billed separately from a Claude subscription. The key is saved only in this browser and sent only to api.anthropic.com.</p>
+    </div>
     <label>Model
       <select id="selModel">
         <option value="claude-opus-5-5">Claude Opus 5.5 (best)</option>
