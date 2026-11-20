@@ -3,16 +3,17 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Screen Translator</title>
+<title>Screen Translator · Game Bookshelf</title>
+<meta name="description" content="Translate any text on your screen into up to four languages at once. Runs in your browser.">
 <link rel="stylesheet" href="style.css">
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js"></script>
 </head>
 <body>
 <header class="bar">
-  <div class="brand">
+  <a class="brand" href="/apps/" title="Back to Game Bookshelf apps">
     <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path fill="currentColor" d="M3 4h10v2H9.9c-.5 2.2-1.5 4.1-2.8 5.6 1 .9 2.1 1.6 3.3 2.1l-.8 1.9c-1.4-.6-2.7-1.4-3.9-2.5-1.2 1-2.6 1.9-4.2 2.5l-.7-1.9c1.4-.5 2.6-1.2 3.6-2.1C3.3 10.3 2.5 8.8 2 7.2l1.9-.6c.4 1.2 1 2.4 1.9 3.5.9-1.1 1.6-2.5 2-4.1H3V4zm12.5 4h2l4.5 12h-2.1l-1.1-3h-4.6l-1.1 3H11l4.5-12zm-.6 7h3.2l-1.6-4.4-1.6 4.4z"/></svg>
     <span>Screen Translator</span>
-  </div>
+  </a>
   <div class="controls">
     <button id="btnShare" class="primary">Share screen</button>
     <button id="btnScan" disabled title="Space">Translate now</button>
@@ -84,5 +85,6 @@
 </dialog>
 
 <script src="app.js"></script>
+<script data-goatcounter="https://gamebookshelf.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
 </body>
 </html>
