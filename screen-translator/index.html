@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Screen Translator</title>
+<link rel="stylesheet" href="style.css">
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js"></script>
+</head>
+<body>
+<header class="bar">
+  <div class="brand">
+    <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path fill="currentColor" d="M3 4h10v2H9.9c-.5 2.2-1.5 4.1-2.8 5.6 1 .9 2.1 1.6 3.3 2.1l-.8 1.9c-1.4-.6-2.7-1.4-3.9-2.5-1.2 1-2.6 1.9-4.2 2.5l-.7-1.9c1.4-.5 2.6-1.2 3.6-2.1C3.3 10.3 2.5 8.8 2 7.2l1.9-.6c.4 1.2 1 2.4 1.9 3.5.9-1.1 1.6-2.5 2-4.1H3V4zm12.5 4h2l4.5 12h-2.1l-1.1-3h-4.6l-1.1 3H11l4.5-12zm-.6 7h3.2l-1.6-4.4-1.6 4.4z"/></svg>
+    <span>Screen Translator</span>
+  </div>
+  <div class="controls">
+    <button id="btnShare" class="primary">Share screen</button>
+    <button id="btnScan" disabled title="Space">Translate now</button>
+    <label class="toggle" title="A"><input type="checkbox" id="chkAuto"> Live</label>
+    <button id="btnFloat" disabled title="F">Float window</button>
+    <button id="btnSettings" title="Settings">Settings</button>
+  </div>
+</header>
+
+<section class="langs">
+  <label>From
+    <select id="selSource"></select>
+  </label>
+  <span class="arrow">→</span>
+  <div class="targets" id="targets"></div>
+  <span id="engineTag" class="tag"></span>
+</section>
+
+<main>
+  <div class="stage" id="stage">
+    <canvas id="view"></canvas>
+    <div class="empty" id="empty">
+      <h1>Translate anything on your screen</h1>
+      <p>Click <b>Share screen</b> and pick a screen, window or tab. The app reads the text with OCR and paints the translation right on top of it.</p>
+      <ol>
+        <li>Drag on the picture to translate only one area.</li>
+        <li>Turn on <b>Live</b> to re-translate whenever the screen changes.</li>
+        <li><b>Float window</b> keeps the translations on top of your other apps.</li>
+      </ol>
+      <p class="keys"><kbd>Space</kbd> translate · <kbd>A</kbd> live · <kbd>O</kbd> hold to see original · <kbd>Esc</kbd> clear area · <kbd>F</kbd> float</p>
+    </div>
+    <div class="status" id="status" hidden>
+      <div class="spinner"></div><span id="statusText"></span>
+      <div class="progress"><i id="progressBar"></i></div>
+    </div>
+  </div>
+  <aside class="panel">
+    <div class="panel-head">
+      <span>Translations <small id="lineCount"></small></span>
+      <button id="btnCopy" class="ghost" disabled>Copy all</button>
+    </div>
+    <ul id="lines" class="lines"></ul>
+  </aside>
+</main>
+
+<dialog id="dlgSettings">
+  <form method="dialog">
+    <h2>Settings</h2>
+    <label>Translation engine
+      <select id="selEngine">
+        <option value="auto">Automatic (on-device first)</option>
+        <option value="device">On-device only (Chrome built-in, private)</option>
+        <option value="online">Online (MyMemory)</option>
+      </select>
+    </label>
+    <p class="hint">On-device translation runs inside Chrome and never leaves your computer. The online engine sends the recognised text to api.mymemory.translated.net (free, about 5,000 characters a day).</p>
+    <label>Live refresh every <output id="outInterval"></output>
+      <input type="range" id="rngInterval" min="1" max="10" step="0.5">
+    </label>
+    <label>Overlay opacity <output id="outOpacity"></output>
+      <input type="range" id="rngOpacity" min="0.5" max="1" step="0.05">
+    </label>
+    <label>Minimum OCR confidence <output id="outConf"></output>
+      <input type="range" id="rngConf" min="30" max="90" step="5">
+    </label>
+    <label class="toggle"><input type="checkbox" id="chkOverlay"> Paint translations over the picture</label>
+    <menu><button value="close" class="primary">Done</button></menu>
+  </form>
+</dialog>
+
+<script src="app.js"></script>
+</body>
+</html>
