@@ -19,7 +19,7 @@
   <div class="controls">
     <button id="btnListen" class="primary" title="Space"><span class="dot"></span><span id="listenText">Start listening</span></button>
     <button id="btnMark" disabled title="M">★ Important</button>
-    <button id="btnNotes" disabled title="N">Update notes</button>
+    <button id="btnNotes" disabled title="Fix the transcript and update the notes (N)">Update notes</button>
     <button id="btnClasses" title="C">My classes</button>
     <button id="btnSettings" title="S">Settings</button>
   </div>
@@ -29,26 +29,31 @@
   <section class="pane transcript-pane">
     <div class="pane-head">
       <span>Transcript <small id="wordCount"></small></span>
+      <button id="btnOrig" class="ghost small" hidden></button>
       <span class="meter" id="meter" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span>
     </div>
+    <div class="sttstate" id="sttState" hidden></div>
     <div id="transcript" class="transcript">
       <div class="empty" id="empty">
         <h1>Take notes while your teacher talks</h1>
         <ol>
           <li>Type the class name at the top.</li>
           <li>Click <b>Start listening</b> and allow the microphone. Put your device where it can hear the teacher.</li>
-          <li>The transcript appears here. Every few minutes Claude turns it into notes on the right.</li>
+          <li>The transcript appears here. Every few minutes Claude fixes words the microphone misheard and turns it into notes on the right.</li>
           <li>Press <b>★ Important</b> when the teacher says something you must remember, like a test topic.</li>
         </ol>
         <p class="keys"><kbd>Space</kbd> start/pause · <kbd>M</kbd> important · <kbd>N</kbd> update notes · <kbd>C</kbd> classes · <kbd>S</kbd> settings</p>
         <p class="warn" id="supportNote"></p>
         <p class="keynote" id="keyNote"></p>
-        <p class="fine">Ask your teacher before recording a class. Speech is turned into text by your browser's speech service (in Chrome and Edge, that is Google or Microsoft). No audio is saved.</p>
+        <p>Recorded the class on your phone? <b>Upload a recording</b> below, or drop it here.</p>
+        <p class="fine">Ask your teacher before recording a class. Speech is turned into text on this device by the Whisper speech model (a one-time download), so no audio leaves your computer and none is saved. Only the text is sent to Claude to make notes.</p>
       </div>
     </div>
     <form id="addForm" class="add">
       <input id="addInput" type="text" placeholder="Add your own note or what's on the board…" autocomplete="off">
       <button type="submit">Add</button>
+      <button type="button" id="btnUpload" title="Transcribe an audio or video recording you made">Upload</button>
+      <input type="file" id="fileRec" accept="audio/*,video/*" hidden>
     </form>
   </section>
   <section class="pane notes-pane">
@@ -96,6 +101,21 @@
         <option value="ar-SA">العربية</option>
       </select>
     </label>
+    <label>Speech recognition
+      <select id="selStt">
+        <option value="whisper">Whisper, on this device (most accurate)</option>
+        <option value="browser">Browser's built-in (fast, less accurate)</option>
+      </select>
+    </label>
+    <label id="sttModelRow">Whisper model
+      <select id="selSttModel">
+        <option value="tiny">Tiny: fastest, for older laptops (about 40 to 120 MB)</option>
+        <option value="base">Base: accurate, recommended (about 80 to 210 MB)</option>
+        <option value="small">Small: most accurate, needs a fast computer (about 250 to 650 MB)</option>
+      </select>
+    </label>
+    <p class="hint" id="sttHint">The model downloads once and is saved by your browser. It runs on your graphics chip when it can, which is much faster.</p>
+    <label class="check"><input type="checkbox" id="chkFix"> Let Claude fix misheard words in the transcript</label>
     <label>Make notes with
       <select id="selEngine">
         <option value="pro">My Claude plan (Pro or Max), through a helper on this PC</option>

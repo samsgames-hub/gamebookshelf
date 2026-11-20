@@ -148,3 +148,16 @@ menu { display: flex; justify-content: flex-end; gap: 8px; padding: 0; margin: 8
   .title { max-width: none; order: 3; flex-basis: 100%; }
 }
 @media (prefers-reduced-motion: reduce) { .seg, .spinner, .toast, .notes.fresh, #btnListen.on .dot { animation: none; } }
+
+/* Whisper status, AI-corrected lines, upload */
+.sttstate { padding: 7px 16px; font-size: 13px; color: #c6ccd8; background: #172036; border-bottom: 1px solid var(--line); }
+.sttstate[hidden] { display: none; }
+.seg p.fixed { text-decoration: underline dotted rgba(91, 140, 255, .45); text-underline-offset: 4px; cursor: help; }
+.transcript.drop { outline: 3px dashed var(--accent); outline-offset: -10px; }
+button.small { font-size: 12px; font-weight: 400; color: var(--muted); padding: 2px 8px; }
+#btnOrig[hidden] { display: none; }
+.pane-head > span:first-child { display: flex; align-items: center; gap: 8px; }
+dialog label.check { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+dialog label.check input { accent-color: var(--accent); width: 16px; height: 16px; }
+dialog label[hidden] { display: none; }
+@media (max-width: 520px) { #btnUpload { padding: 7px 10px; } .add input { min-width: 0; } }
