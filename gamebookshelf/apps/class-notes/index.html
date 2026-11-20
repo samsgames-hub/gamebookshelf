@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Class Notes · Game Bookshelf</title>
+<meta name="description" content="Listens to your class and writes organized notes from what the teacher says. Live transcript in your browser, notes by Claude.">
+<link rel="stylesheet" href="style.css">
+<meta name="theme-color" content="#171b23">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%235b8cff'/%3E%3Crect x='12' y='6' width='8' height='13' rx='4' fill='%23fff'/%3E%3Cpath d='M9 15a7 7 0 0 0 14 0M16 22v4' fill='none' stroke='%23fff' stroke-width='2.4' stroke-linecap='round'/%3E%3C/svg%3E">
+</head>
+<body>
+<header class="bar">
+  <a class="brand" href="/apps/" title="Back to Game Bookshelf apps">
+    <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><rect x="8.5" y="2" width="7" height="12" rx="3.5" fill="currentColor"/><path d="M5 11a7 7 0 0 0 14 0M12 18v4" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+    <span>Class Notes</span>
+  </a>
+  <input id="inTitle" class="title" type="text" placeholder="Class name, e.g. Biology – Cells" autocomplete="off">
+  <div class="controls">
+    <button id="btnListen" class="primary" title="Space"><span class="dot"></span><span id="listenText">Start listening</span></button>
+    <button id="btnMark" disabled title="M">★ Important</button>
+    <button id="btnNotes" disabled title="N">Update notes</button>
+    <button id="btnClasses" title="C">My classes</button>
+    <button id="btnSettings" title="S">Settings</button>
+  </div>
+</header>
+
+<main>
+  <section class="pane transcript-pane">
+    <div class="pane-head">
+      <span>Transcript <small id="wordCount"></small></span>
+      <span class="meter" id="meter" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span>
+    </div>
+    <div id="transcript" class="transcript">
+      <div class="empty" id="empty">
+        <h1>Take notes while your teacher talks</h1>
+        <ol>
+          <li>Type the class name at the top.</li>
+          <li>Click <b>Start listening</b> and allow the microphone. Put your device where it can hear the teacher.</li>
+          <li>The transcript appears here. Every few minutes Claude turns it into notes on the right.</li>
+          <li>Press <b>★ Important</b> when the teacher says something you must remember, like a test topic.</li>
+        </ol>
+        <p class="keys"><kbd>Space</kbd> start/pause · <kbd>M</kbd> important · <kbd>N</kbd> update notes · <kbd>C</kbd> classes · <kbd>S</kbd> settings</p>
+        <p class="warn" id="supportNote"></p>
+        <p class="keynote" id="keyNote"></p>
+        <p class="fine">Ask your teacher before recording a class. Speech is turned into text by your browser's speech service (in Chrome and Edge, that is Google or Microsoft). No audio is saved.</p>
+      </div>
+    </div>
+    <form id="addForm" class="add">
+      <input id="addInput" type="text" placeholder="Add your own note or what's on the board…" autocomplete="off">
+      <button type="submit">Add</button>
+    </form>
+  </section>
+  <section class="pane notes-pane">
+    <div class="pane-head">
+      <span>Notes <small id="notesState"></small></span>
+      <span>
+        <button id="btnCopy" class="ghost" disabled>Copy</button>
+        <button id="btnDownload" class="ghost" disabled>Download</button>
+      </span>
+    </div>
+    <div id="notes" class="notes"><div class="hintbox">Your notes will show up here a few minutes into the class.</div></div>
+  </section>
+</main>
+
+<div class="toast" id="toast" hidden></div>
+
+<dialog id="dlgClasses">
+  <form method="dialog">
+    <h2>My classes</h2>
+    <p class="hint">Classes are saved in this browser. Click one to open it.</p>
+    <div id="classList" class="classlist"></div>
+    <menu><button type="button" id="btnNew">New class</button><button value="close" class="primary">Close</button></menu>
+  </form>
+</dialog>
+
+<dialog id="dlgSettings">
+  <form method="dialog">
+    <h2>Settings</h2>
+    <label>Language the teacher speaks
+      <select id="selLang">
+        <option value="en-US">English (US)</option>
+        <option value="en-GB">English (UK)</option>
+        <option value="en-AU">English (Australia)</option>
+        <option value="en-IN">English (India)</option>
+        <option value="es-ES">Español</option>
+        <option value="fr-FR">Français</option>
+        <option value="de-DE">Deutsch</option>
+        <option value="it-IT">Italiano</option>
+        <option value="pt-BR">Português (Brasil)</option>
+        <option value="nl-NL">Nederlands</option>
+        <option value="zh-CN">中文 (普通话)</option>
+        <option value="ja-JP">日本語</option>
+        <option value="ko-KR">한국어</option>
+        <option value="hi-IN">हिन्दी</option>
+        <option value="ar-SA">العربية</option>
+      </select>
+    </label>
+    <label>Make notes with
+      <select id="selEngine">
+        <option value="pro">My Claude plan (Pro or Max), through a helper on this PC</option>
+        <option value="api">An Anthropic API key</option>
+      </select>
+    </label>
+    <div id="proBox" class="box">
+      <p class="state" id="helperState">Checking for the helper…</p>
+      <ol class="steps">
+        <li>Install Claude Code if you don't have it. In PowerShell run <code>irm https://claude.ai/install.ps1 | iex</code>, then run <code>claude</code> once and sign in with your Claude account.</li>
+        <li><a href="../screen-answers/helper/screen-answers-helper.ps1" download>Download the helper</a> (Windows). It's the same helper Screen Answers uses.</li>
+        <li>Start it from PowerShell and leave the window open:
+          <span class="cmd"><code id="helperCmd">powershell -ExecutionPolicy Bypass -File "$HOME\Downloads\screen-answers-helper.ps1"</code><button type="button" id="btnCopyCmd" class="ghost">Copy</button></span>
+        </li>
+      </ol>
+      <p class="hint">Notes count toward your plan's usage limits. Some browsers, especially school or work ones, block websites from reaching your PC; if so, use an API key instead.</p>
+    </div>
+    <div id="apiBox" class="box" hidden>
+      <label>Anthropic API key
+        <input type="password" id="inKey" placeholder="sk-ant-…" autocomplete="off" spellcheck="false">
+      </label>
+      <p class="hint">Get a key at <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener">console.anthropic.com</a>. API use is billed separately from a Claude subscription. The key is saved only in this browser and sent only to api.anthropic.com.</p>
+    </div>
+    <label>Model
+      <select id="selModel">
+        <option value="claude-sonnet-5-5">Claude Sonnet 5.5 (recommended)</option>
+        <option value="claude-opus-5-5">Claude Opus 5.5 (best)</option>
+        <option value="claude-haiku-5-5">Claude Haiku 5.5 (fastest, cheapest)</option>
+      </select>
+    </label>
+    <label>Note style
+      <select id="selStyle">
+        <option value="outline">Outline with headings and bullets</option>
+        <option value="cornell">Cornell notes (questions, notes, summary)</option>
+        <option value="brief">Short summary and key points</option>
+      </select>
+    </label>
+    <label>Update notes every <output id="outInterval"></output>
+      <input type="range" id="rngInterval" min="1" max="10" step="1">
+    </label>
+    <menu><button value="close" class="primary">Done</button></menu>
+  </form>
+</dialog>
+
+<script type="module" src="app.js"></script>
+<script data-goatcounter="https://gamebookshelf.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
+</body>
+</html>
