@@ -227,6 +227,24 @@ dialog input[type=range] { accent-color: var(--accent); }
 .hint { font-size: 12px; color: var(--muted); margin: -6px 0 14px; line-height: 1.5; }
 dialog menu { display: flex; justify-content: flex-end; padding: 0; margin: 4px 0 0; }
 
+/* Install */
+button.install {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-color: rgba(60,207,145,.5);
+  color: var(--ok);
+}
+button.install[hidden] { display: none; }
+button.install:hover:not(:disabled) { border-color: var(--ok); background: rgba(60,207,145,.1); }
+button.big { width: 100%; padding: 12px; font-size: 15px; margin-bottom: 12px; }
+.inst-head { display: flex; gap: 14px; align-items: center; margin-bottom: 12px; }
+.inst-head img { border-radius: 12px; }
+.inst-head h2 { margin: 0; }
+#dlgInstall p { line-height: 1.5; }
+.ok-note { color: var(--ok); }
+body.standalone .brand { pointer-events: none; }
+
 /* Float window */
 body.float { padding: 0; }
 body.float .lines { padding: 6px; }

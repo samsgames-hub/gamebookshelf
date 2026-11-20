@@ -6,6 +6,10 @@
 <title>Screen Translator · Game Bookshelf</title>
 <meta name="description" content="Translate any text on your screen into up to four languages at once. Runs in your browser.">
 <link rel="stylesheet" href="style.css">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#171b23">
+<link rel="icon" type="image/png" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js"></script>
 </head>
 <body>
@@ -20,6 +24,10 @@
     <label class="toggle" title="A"><input type="checkbox" id="chkAuto"> Live</label>
     <button id="btnFloat" disabled title="F">Float window</button>
     <button id="btnSettings" title="Settings">Settings</button>
+    <button id="btnInstall" class="install" hidden title="Install as an app on this computer">
+      <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M8 2v8M4.5 6.5 8 10l3.5-3.5M3 13h10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Install app
+    </button>
   </div>
 </header>
 
@@ -81,6 +89,24 @@
     </label>
     <label class="toggle"><input type="checkbox" id="chkOverlay"> Paint translations over the picture</label>
     <menu><button value="close" class="primary">Done</button></menu>
+  </form>
+</dialog>
+
+<dialog id="dlgInstall">
+  <form method="dialog">
+    <div class="inst-head">
+      <img src="icons/icon-192.png" alt="" width="56" height="56">
+      <div><h2>Download Screen Translator</h2><p class="hint" style="margin:2px 0 0">Free · no account needed · works on Windows, Mac, ChromeOS and Linux</p></div>
+    </div>
+    <p>Install it as an app and it gets its own window, a desktop and Start menu icon, and opens even when you're offline.</p>
+    <div id="instReady" hidden>
+      <button type="button" id="btnInstallNow" class="primary big">Install Screen Translator</button>
+    </div>
+    <div id="instDone" hidden><p class="ok-note">✓ Installed. Open it from your desktop, Start menu or app launcher.</p></div>
+    <div id="instManual">
+      <p class="hint" id="instHow"></p>
+    </div>
+    <menu><button value="close">Close</button></menu>
   </form>
 </dialog>
 

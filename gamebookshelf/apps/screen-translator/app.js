@@ -648,7 +648,65 @@ window.addEventListener('keyup', e => {
   if (e.key.toLowerCase() === 'o' && showOriginal) { showOriginal = false; render(); }
 });
 
+// ---------- Install (download as an app) ----------
+let installPrompt = null;
+const isStandalone = () => matchMedia('(display-mode: standalone)').matches ||
+  matchMedia('(display-mode: window-controls-overlay)').matches || navigator.standalone === true;
+
+function installHowTo() {
+  const ua = navigator.userAgent;
+  if (/iPhone|iPad|Android/i.test(ua)) return 'Screen Translator needs to share a screen, which phones and tablets don’t allow. Open this page on a computer to install it.';
+  if (/Edg\//.test(ua)) return 'In Edge: open the ⋯ menu, choose Apps, then “Install this site as an app”.';
+  if (/Firefox\//.test(ua)) return 'Firefox can’t install web apps. Open this page in Chrome or Edge to install it (the app also works best there).';
+  if (/Safari\//.test(ua) && !/Chrome\//.test(ua)) return 'In Safari on a Mac: choose File → Add to Dock.';
+  return 'In Chrome: click the install icon at the right of the address bar, or open the ⋮ menu → Cast, save and share → Install page as app.';
+}
+
+function updateInstallUI() {
+  const installed = isStandalone();
+  document.body.classList.toggle('standalone', installed);
+  $('btnInstall').hidden = installed;
+  $('instReady').hidden = !installPrompt;
+  $('instManual').hidden = !!installPrompt;
+  $('instHow').textContent = installHowTo();
+}
+
+function openInstall() {
+  $('instDone').hidden = true;
+  updateInstallUI();
+  $('dlgInstall').showModal();
+}
+
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  installPrompt = e;
+  updateInstallUI();
+});
+window.addEventListener('appinstalled', () => {
+  installPrompt = null;
+  updateInstallUI();
+  $('instReady').hidden = true;
+  $('instManual').hidden = true;
+  $('instDone').hidden = false;
+  flashTag('Installed. Look for Screen Translator on your desktop.');
+});
+$('btnInstall').onclick = openInstall;
+$('btnInstallNow').onclick = async () => {
+  if (!installPrompt) return;
+  installPrompt.prompt();
+  const { outcome } = await installPrompt.userChoice;
+  installPrompt = null;
+  if (outcome !== 'accepted') updateInstallUI();
+};
+matchMedia('(display-mode: standalone)').addEventListener('change', updateInstallUI);
+
+if ('serviceWorker' in navigator && location.protocol !== 'file:') {
+  navigator.serviceWorker.register('sw.js').catch(() => { /* offline support is optional */ });
+}
+
 buildLangUI();
 setupSettings();
+updateInstallUI();
+if (location.hash === '#install' && !isStandalone()) openInstall();
 updateEngineTag();
 renderList(document);

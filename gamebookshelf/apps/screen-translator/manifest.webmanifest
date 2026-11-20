@@ -1,0 +1,17 @@
+{
+  "name": "Screen Translator",
+  "short_name": "Translator",
+  "description": "Translate any text on your screen into up to four languages at once.",
+  "id": "/apps/screen-translator/",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#0f1218",
+  "theme_color": "#171b23",
+  "categories": ["productivity", "utilities"],
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
