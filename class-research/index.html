@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Class Research Notes</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;700&family=Nunito:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+/* VOICE: friendly, calm, made for a 9th grader in the middle of class.
+   IDEA: a spiral school notebook — blue rules, red margin line, yellow highlighter.
+   PICTURE: the notebook page itself, with what you heard in handwriting and Claude's note beside it.
+   COLOUR and TYPE: white paper, navy ink, red margin, highlighter yellow; Nunito body, Caveat handwriting.
+   LAYOUT: navy cover band with class picker, one notebook column, composer pinned to the bottom. */
+:root{color-scheme:light dark;
+--bg:light-dark(#e9eef6,#0c1322);--paper:light-dark(#ffffff,#152036);--rule:light-dark(#d6e4f5,#22324f);
+--ink:light-dark(#1b2a4a,#e4ebf7);--soft:light-dark(#566582,#9fb0cc);--margin:light-dark(#e05a5a,#ef7d7d);
+--hi:light-dark(#ffe45c,#7a6a10);--hiInk:light-dark(#1b2a4a,#fff6c2);--cover:#1b2a4a;--btn:light-dark(#1b2a4a,#e4ebf7);--btnInk:light-dark(#fff,#0c1322);
+--card:light-dark(#f4f8fd,#1b2943);--line:light-dark(#c9d6ea,#2c3d5e)}
+:root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;min-width:0}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 Nunito,system-ui,sans-serif;overflow-x:clip}
+button,select,input,textarea{font:inherit;color:inherit}
+button{cursor:pointer;min-height:44px;border-radius:10px;border:1px solid var(--line);background:var(--paper);padding:0 14px;font-weight:600}
+button:focus-visible,select:focus-visible,textarea:focus-visible,input:focus-visible{outline:3px solid var(--margin);outline-offset:2px}
+button:disabled{opacity:.5;cursor:default}
+.primary{background:var(--btn);color:var(--btnInk);border-color:transparent}
+.cover{background:var(--cover);color:#fff;padding:18px max(4vw,16px) 22px;background-image:radial-gradient(circle at 18px 50%,rgba(255,255,255,.13) 3px,transparent 4px);background-size:100% 28px}
+.cover-in{max-width:900px;margin:auto;display:flex;flex-wrap:wrap;gap:12px 18px;align-items:end;justify-content:space-between}
+h1{font-size:clamp(30px,5vw,44px);line-height:1.05;margin:0;font-weight:800;text-wrap:balance}
+h1 span{font-family:Caveat,cursive;font-weight:700;color:#ffe45c;font-size:1.05em}
+.sub{margin:6px 0 0;color:#c8d4ea;max-width:52ch}
+.picker{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.picker select{min-height:44px;border-radius:10px;border:0;padding:0 12px;background:#fff;color:#1b2a4a;font-weight:600;max-width:240px}
+.picker button{background:transparent;color:#fff;border-color:rgba(255,255,255,.35)}
+.picker .hl{background:#ffe45c;color:#1b2a4a;border-color:transparent}
+main{max-width:900px;margin:0 auto;padding:22px max(3vw,10px) 200px}
+.page{background:var(--paper);border-radius:6px;box-shadow:0 1px 0 var(--line),0 18px 40px -24px rgba(20,40,80,.35);
+background-image:linear-gradient(var(--paper),var(--paper)),repeating-linear-gradient(transparent 0 31px,var(--rule) 31px 32px);
+background-size:100% 56px,100% 100%;background-repeat:no-repeat,repeat;position:relative;padding:20px 22px 30px 74px;min-height:60vh}
+.page::before{content:"";position:absolute;top:0;bottom:0;left:56px;border-left:2px solid var(--margin);opacity:.7}
+.status{font-size:14px;color:var(--soft);margin:0 0 6px;min-height:22px}
+.empty h2{font-size:24px;margin:16px 0 8px}
+.empty ol{padding-left:20px;margin:0;max-width:60ch}.empty li{margin:6px 0}
+.entry{margin:22px 0 34px;animation:in .35s ease-out}
+@keyframes in{from{opacity:0;transform:translateY(6px)}}
+@media(prefers-reduced-motion:reduce){.entry{animation:none}}
+.heard{font-family:Caveat,cursive;font-size:24px;line-height:1.3;margin:0 0 8px;position:relative}
+.heard time{position:absolute;left:-66px;top:4px;font:600 12px Nunito,sans-serif;color:var(--margin);width:50px;text-align:right}
+.note{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px 18px}
+.note h3{margin:0 0 6px;font-size:21px;line-height:1.2}
+.note h3 mark{background:linear-gradient(transparent 45%,var(--hi) 45%);color:var(--hiInk);padding:0 2px}
+.fix{margin:0 0 8px;font-size:15px;border-left:4px solid var(--margin);padding:4px 10px;background:light-dark(#fdeeee,#3a1e26)}
+.note p{margin:6px 0}.note ul{margin:6px 0;padding-left:20px}
+.lbl{font-weight:800;font-size:14px;color:var(--soft);margin-top:12px;display:block}
+dl{margin:4px 0;display:grid;grid-template-columns:minmax(90px,max-content) minmax(0,1fr);gap:4px 12px}
+dt{font-weight:800}dd{margin:0}
+details.check{margin-top:12px;border-top:1px dashed var(--line);padding-top:10px}
+details.check summary{cursor:pointer;font-weight:700;min-height:32px}
+.tools{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}
+.tools button{min-height:38px;font-size:14px;padding:0 10px}
+.thinking{color:var(--soft);font-style:italic}
+.dots::after{content:"…";animation:d 1.2s steps(4) infinite}@keyframes d{0%{content:""}33%{content:"."}66%{content:".."}}
+.err{color:var(--margin);font-weight:600}
+.composer{position:fixed;left:0;right:0;bottom:0;background:light-dark(rgba(233,238,246,.94),rgba(12,19,34,.94));backdrop-filter:blur(6px);border-top:1px solid var(--line);padding:10px max(3vw,10px) calc(10px + env(safe-area-inset-bottom))}
+.composer form{max-width:900px;margin:auto;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:end}
+textarea{width:100%;min-height:56px;max-height:30vh;resize:vertical;border:1px solid var(--line);border-radius:12px;padding:10px 12px;background:var(--paper);font-size:16px}
+.btns{display:flex;gap:6px}
+#mic[aria-pressed=true]{background:var(--margin);color:#fff;border-color:transparent}
+.hint{max-width:900px;margin:4px auto 0;font-size:13px;color:var(--soft)}
+.sheet{position:fixed;inset:0;background:rgba(10,18,34,.55);display:none;align-items:flex-start;justify-content:center;padding:4vh 12px;overflow:auto;z-index:5}
+.sheet.open{display:flex}
+.sheet .box{background:var(--paper);border-radius:14px;max-width:760px;width:100%;padding:22px 24px}
+.sheet h2{margin:0 0 4px;font-size:28px;line-height:1.1}
+.sheet .row{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end;margin-top:16px}
+.dialog .box{max-width:420px}
+.dialog input{width:100%;min-height:44px;border:1px solid var(--line);border-radius:10px;padding:0 12px;background:var(--paper);font-size:16px}
+@media(max-width:600px){.page{padding:16px 12px 24px 40px}.page::before{left:28px}.heard time{display:none}.note{padding:12px}.composer form{grid-template-columns:1fr}.btns>*{flex:1}}
+</style>
+</head>
+<body>
+<header class="cover"><div class="cover-in">
+  <div><h1>Class <span>research notes</span></h1>
+  <p class="sub">Type what your teacher is saying. Claude looks it up and writes a clear note at a 9th grade level.</p></div>
+  <div class="picker">
+    <label for="cls" class="sr" style="position:absolute;left:-9999px">Class</label>
+    <select id="cls"></select>
+    <button id="newCls" type="button">New class</button>
+    <button id="study" type="button" class="hl">Study sheet</button>
+  </div>
+</div></header>
+<main><div class="page" id="page">
+  <p class="status" id="status" role="status"></p>
+  <div id="entries"></div>
+</div></main>
+<div class="composer"><form id="form">
+  <textarea id="heard" placeholder="What is the teacher talking about? e.g. “photosynthesis makes glucose using sunlight”" aria-label="What you heard in class"></textarea>
+  <div class="btns"><button type="button" id="mic" aria-pressed="false" hidden>Listen</button><button class="primary" id="send" type="submit">Research it</button></div>
+</form><p class="hint">Enter to send · Shift+Enter for a new line · short phrases work best</p></div>
+
+<div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetT"><div class="box">
+  <h2 id="sheetT">Study sheet</h2><div id="sheetBody"></div>
+  <div class="row"><button id="copySheet" type="button">Copy</button><button id="closeSheet" type="button" class="primary">Close</button></div>
+</div></div>
+<div class="sheet dialog" id="dlg" role="dialog" aria-modal="true" aria-labelledby="dlgT"><div class="box">
+  <h2 id="dlgT">New class</h2><p>What class is this? (Biology, World History, English 9…)</p>
+  <input id="dlgIn" maxlength="60" autocomplete="off">
+  <div class="row"><button id="dlgCancel" type="button">Cancel</button><button id="dlgOk" type="button" class="primary">Add class</button></div>
+</div></div>
+
+<script>
+{
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+const LS='classResearchNotes.v1';
+let classes={}, current=null, db=null, me=null, sample=null, dict=null, busy=0;
+const writeChain={};
+
+function status(t,isErr){const s=$('status');s.textContent=t||'';s.className='status'+(isErr?' err':'')}
+function lsSave(){try{localStorage.setItem(LS,JSON.stringify({classes,current}))}catch(e){}}
+function lsLoad(){try{const v=JSON.parse(localStorage.getItem(LS)||'null');if(v&&v.classes){classes=v.classes;current=v.current}}catch(e){}}
+
+function save(c){
+  lsSave();
+  if(!db||!me)return;
+  const ref=db.collection('data/users/'+me).doc(c.id);
+  const body=JSON.parse(JSON.stringify(c));
+  writeChain[c.id]=(writeChain[c.id]||Promise.resolve()).then(()=>ref.set(body)).catch(e=>{
+    status(e&&e.code==='quota_exceeded'?'Storage is full. Delete some old notes to keep saving.':'Saved on this device only right now.',true)});
+}
+function cls(){return classes[current]}
+function ensureClass(name){const id='c'+uid();classes[id]={id,name,created:Date.now(),entries:[]};current=id;save(classes[id]);return classes[id]}
+
+function renderPicker(){
+  const list=Object.values(classes).sort((a,b)=>a.created-b.created);
+  $('cls').innerHTML=list.map(c=>`<option value="${esc(c.id)}"${c.id===current?' selected':''}>${esc(c.name)}</option>`).join('')||'<option value="">No classes yet</option>';
+  $('study').disabled=!cls()||!cls().entries.some(e=>e.note);
+}
+function noteHTML(n){
+  if(!n)return '';
+  return `${n.fix?`<p class="fix"><b>Heads up:</b> ${esc(n.fix)}</p>`:''}
+  <h3><mark>${esc(n.title)}</mark></h3><p>${esc(n.plain)}</p>
+  ${n.points&&n.points.length?`<span class="lbl">Key points</span><ul>${n.points.map(p=>`<li>${esc(p)}</li>`).join('')}</ul>`:''}
+  ${n.terms&&n.terms.length?`<span class="lbl">Words to know</span><dl>${n.terms.map(t=>`<dt>${esc(t.term)}</dt><dd>${esc(t.def)}</dd>`).join('')}</dl>`:''}
+  ${n.example?`<span class="lbl">Example</span><p>${esc(n.example)}</p>`:''}
+  ${n.why?`<span class="lbl">Why it matters</span><p>${esc(n.why)}</p>`:''}
+  ${n.check&&n.check.q?`<details class="check"><summary>Check yourself: ${esc(n.check.q)}</summary><p>${esc(n.check.a)}</p></details>`:''}`;
+}
+function render(){
+  renderPicker();
+  const c=cls();
+  if(!c||!c.entries.length){
+    $('entries').innerHTML=`<div class="empty"><h2>${c?esc(c.name)+': ':''}your notebook is ready</h2><ol>
+    <li>${c?'':'Pick <b>New class</b> and name it, or just start typing. '}Listen to your teacher.</li>
+    <li>Type a few words about what they said, even if it is messy. Spelling does not matter.</li>
+    <li>Press <b>Research it</b>. Claude writes a clear note with key points, words to know and a quick quiz question.</li>
+    <li>At the end of class, press <b>Study sheet</b> to turn the whole class into one review page.</li></ol></div>`;
+    return;
+  }
+  $('entries').innerHTML=c.entries.map(e=>{
+    const t=new Date(e.at).toLocaleTimeString([],{hour:'numeric',minute:'2-digit'});
+    const body=e.state==='thinking'?'<p class="thinking dots">Researching</p>':e.state==='error'?`<p class="err">${esc(e.error||'Could not get a note.')}</p>`:noteHTML(e.note);
+    return `<article class="entry" id="e-${esc(e.id)}"><p class="heard"><time>${esc(t)}</time>${esc(e.heard)}</p>
+    <div class="note">${body}<div class="tools">
+      <button type="button" data-act="simpler" data-id="${esc(e.id)}" ${e.state==='thinking'?'disabled':''}>Explain simpler</button>
+      <button type="button" data-act="deeper" data-id="${esc(e.id)}" ${e.state==='thinking'?'disabled':''}>Go deeper</button>
+      <button type="button" data-act="retry" data-id="${esc(e.id)}" ${e.state==='thinking'?'disabled':''}>Redo</button>
+      <button type="button" data-act="del" data-id="${esc(e.id)}">Delete</button></div></div></article>`}).join('');
+}
+
+function parseJSON(t){
+  t=String(t||'').replace(/```(json)?/g,'');const a=t.indexOf('{'),b=t.lastIndexOf('}');
+  if(a<0||b<a)throw new Error('bad');return JSON.parse(t.slice(a,b+1));
+}
+function clean(n){
+  const s=v=>typeof v==='string'?v.trim():'';const arr=v=>Array.isArray(v)?v:[];
+  return {title:s(n.title)||'Note',fix:s(n.fix),plain:s(n.plain),points:arr(n.points).map(s).filter(Boolean).slice(0,6),
+    terms:arr(n.terms).filter(t=>t&&t.term).map(t=>({term:s(t.term),def:s(t.def)})).slice(0,5),
+    example:s(n.example),why:s(n.why),check:n.check&&typeof n.check==='object'?{q:s(n.check.q),a:s(n.check.a)}:null};
+}
+const MODES={normal:'',simpler:'The student found the last explanation hard. Make it even simpler: everyday words, very short sentences, a familiar comparison.',
+  deeper:'The student wants more depth. Add more detail, causes and connections, but keep it readable for a 9th grader.'};
+
+async function research(e,mode){
+  if(!sample){e.state='error';e.error='Claude is not available in this view. Open this page on claude.ai while signed in.';render();return}
+  const c=cls();e.state='thinking';render();busy++;
+  const recent=c.entries.filter(x=>x!==e&&x.note).slice(-4).map(x=>'- '+x.note.title+': '+x.note.plain).join('\n')||'(none yet)';
+  const prompt=`You are a study helper for a 9th grade student who is taking notes during class.
+Class: ${c.name}
+Notes from earlier in this class:
+${recent}
+
+The student just typed this about what the teacher said (it may be rushed, misspelled or partly misheard):
+"""${e.heard}"""
+
+Work out what topic the teacher means and research it using accurate, well-established knowledge that fits a high school ${c.name} class. Write at a 9th grade reading level: short sentences, plain words, and explain any hard word. Never invent facts; if something is debated or uncertain, say so simply.
+${MODES[mode]||''}
+If the student's words contain a likely mistake or mishearing, explain the correct version in "fix" in one kind sentence; otherwise leave "fix" empty.
+
+Reply with ONLY a JSON object, no other text:
+{"title":"topic in at most 6 words","fix":"","plain":"2 to 4 sentences explaining it","points":["3 to 5 short key facts"],"terms":[{"term":"word","def":"simple meaning"}],"example":"one concrete real-world example","why":"one sentence on why it matters or how it connects to the class","check":{"q":"one quiz question","a":"its short answer"}}`;
+  try{
+    const r=await sample(prompt,{modelTier:mode==='deeper'?'complex':'default',cache:false});
+    e.note=clean(parseJSON(r.text));e.state='done';e.error='';
+  }catch(err){
+    e.state='error';
+    e.error=err&&err.code==='rate_limited'?'Too many requests right now. Wait a minute, then press Redo.':err&&err.code==='not_granted'?'Claude access was not allowed. Reload and allow it to get notes.':'Something went wrong getting this note. Press Redo to try again.';
+  }
+  busy--;save(c);render();
+}
+
+$('form').addEventListener('submit',ev=>{
+  ev.preventDefault();
+  const text=$('heard').value.trim();if(!text)return;
+  const c=cls()||ensureClass('My class');
+  const e={id:uid(),heard:text.slice(0,1500),at:Date.now(),state:'thinking',note:null};
+  c.entries.push(e);$('heard').value='';
+  research(e,'normal');
+  requestAnimationFrame(()=>{const el=$('e-'+e.id);el&&el.scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'center'})});
+});
+$('heard').addEventListener('keydown',ev=>{if(ev.key==='Enter'&&!ev.shiftKey&&!ev.isComposing){ev.preventDefault();$('form').requestSubmit()}});
+$('heard').addEventListener('input',()=>{try{sessionStorage.setItem(LS+'.draft',$('heard').value)}catch(e){}});
+try{$('heard').value=sessionStorage.getItem(LS+'.draft')||''}catch(e){}
+
+$('entries').addEventListener('click',ev=>{
+  const b=ev.target.closest('button[data-act]');if(!b)return;
+  const c=cls(),e=c&&c.entries.find(x=>x.id===b.dataset.id);if(!e)return;
+  if(b.dataset.act==='del'){
+    if(b.dataset.sure){c.entries=c.entries.filter(x=>x!==e);save(c);render();status('Note deleted.')}
+    else{b.dataset.sure='1';b.textContent='Tap again to delete';setTimeout(()=>{if(b.isConnected){delete b.dataset.sure;b.textContent='Delete'}},3000)}
+    return;
+  }
+  research(e,b.dataset.act==='retry'?'normal':b.dataset.act);
+});
+$('cls').addEventListener('change',()=>{current=$('cls').value;lsSave();render()});
+
+function openDlg(){$('dlgIn').value='';$('dlg').classList.add('open');$('dlgIn').focus()}
+function closeDlg(){$('dlg').classList.remove('open')}
+$('newCls').addEventListener('click',openDlg);$('dlgCancel').addEventListener('click',closeDlg);
+$('dlgOk').addEventListener('click',()=>{const n=$('dlgIn').value.trim();if(!n)return $('dlgIn').focus();ensureClass(n.slice(0,60));closeDlg();render();$('heard').focus()});
+$('dlgIn').addEventListener('keydown',ev=>{if(ev.key==='Enter')$('dlgOk').click()});
+
+let sheetText='';
+$('study').addEventListener('click',async()=>{
+  const c=cls();if(!c)return;const done=c.entries.filter(e=>e.note);if(!done.length)return;
+  $('sheetT').textContent=c.name+' study sheet';$('sheetBody').innerHTML='<p class="thinking dots">Building your study sheet</p>';$('sheet').classList.add('open');$('closeSheet').focus();
+  if(!sample){$('sheetBody').innerHTML='<p class="err">Claude is not available in this view.</p>';return}
+  const notes=done.map(e=>`## ${e.note.title}\n${e.note.plain}\n${e.note.points.map(p=>'- '+p).join('\n')}\nTerms: ${e.note.terms.map(t=>t.term+' = '+t.def).join('; ')}`).join('\n\n');
+  try{
+    const r=await sample(`Turn these class notes from a 9th grade ${c.name} class into one study sheet at a 9th grade reading level. Use only facts that are in the notes or are basic, well-established knowledge.
+${notes}
+
+Reply with ONLY JSON: {"summary":"3 to 5 sentences that tie the class together","bigIdeas":["3 to 6 main ideas"],"vocab":[{"term":"","def":""}],"quiz":[{"q":"","a":""}]} with 5 quiz questions.`,{modelTier:'default',cache:false});
+    const s=parseJSON(r.text);const A=v=>Array.isArray(v)?v:[];
+    const ideas=A(s.bigIdeas).map(String),vocab=A(s.vocab).filter(v=>v&&v.term),quiz=A(s.quiz).filter(q=>q&&q.q);
+    $('sheetBody').innerHTML=`<p>${esc(s.summary)}</p><span class="lbl">Big ideas</span><ul>${ideas.map(i=>`<li>${esc(i)}</li>`).join('')}</ul>
+    ${vocab.length?`<span class="lbl">Vocabulary</span><dl>${vocab.map(v=>`<dt>${esc(v.term)}</dt><dd>${esc(v.def)}</dd>`).join('')}</dl>`:''}
+    <span class="lbl">Practice quiz</span>${quiz.map((q,i)=>`<details class="check"><summary>${i+1}. ${esc(q.q)}</summary><p>${esc(q.a)}</p></details>`).join('')}`;
+    sheetText=`${c.name} study sheet\n\n${s.summary||''}\n\nBig ideas\n${ideas.map(i=>'• '+i).join('\n')}\n\nVocabulary\n${vocab.map(v=>v.term+': '+v.def).join('\n')}\n\nPractice quiz\n${quiz.map((q,i)=>(i+1)+'. '+q.q+'\n   Answer: '+q.a).join('\n')}`;
+  }catch(err){$('sheetBody').innerHTML='<p class="err">Could not build the study sheet. Close this and try again in a minute.</p>'}
+});
+$('closeSheet').addEventListener('click',()=>$('sheet').classList.remove('open'));
+$('copySheet').addEventListener('click',async()=>{try{await navigator.clipboard.writeText(sheetText);$('copySheet').textContent='Copied'}catch(e){$('copySheet').textContent='Select and copy the text'}setTimeout(()=>$('copySheet').textContent='Copy',2000)});
+document.addEventListener('keydown',ev=>{if(ev.key==='Escape'){$('sheet').classList.remove('open');closeDlg()}});
+
+lsLoad();render();
+
+(async()=>{
+  if(!window.claude||!claude.use){status('Open this page on claude.ai to get Claude’s notes. Your typing is saved on this device.');return}
+  const [s,d,database,u]=await Promise.all(['sample','dictation','db','user'].map(n=>claude.use(n).catch(()=>null)));
+  sample=s;dict=d;
+  if(!sample)status('Claude is not available in this view. Open the page on claude.ai while signed in.',true);
+  if(dict){
+    const mic=$('mic');mic.hidden=false;let base='';
+    dict.onState(({state})=>{const on=state==='listening';mic.setAttribute('aria-pressed',on);mic.textContent=on?'Stop':'Listen'});
+    dict.onPartial(({text})=>{$('heard').value=(base+' '+text).trim()});
+    dict.onFinal(({text})=>{base=(base+' '+text).trim();$('heard').value=base});
+    mic.addEventListener('click',()=>{
+      if(mic.getAttribute('aria-pressed')==='true'){dict.stop().catch(()=>{});return}
+      base=$('heard').value.trim();
+      dict.start().catch(e=>{if(e&&e.code==='not_granted'){mic.hidden=true;status('Microphone not allowed, so keep typing.')}});
+    });
+  }
+  if(database&&u){
+    me=await u.id().catch(()=>null);
+    if(me){db=database;
+      const timer=setTimeout(()=>status('Your saved notes can’t be reached yet. Showing what is on this device.'),10000);
+      db.collection('data/users/'+me).onSnapshot(snap=>{
+        if(!snap.metadata.fromCache){clearTimeout(timer);if(!busy)status('')}
+        const remote={};snap.docs.forEach(d=>{const v=d.data();if(v&&Array.isArray(v.entries))remote[d.id]=JSON.parse(JSON.stringify(v))});
+        const localOnly=Object.values(classes).filter(c=>!remote[c.id]);
+        for(const id in remote){const loc=classes[id];if(loc&&loc.entries.some(e=>e.state==='thinking'))continue;classes[id]=remote[id];classes[id].entries.forEach(e=>{if(e.state==='thinking'){e.state='error';e.error='This note stopped before it finished. Press Redo.'}})}
+        localOnly.forEach(c=>{classes[c.id]=c;save(c)});
+        if(!classes[current])current=Object.keys(classes)[0]||null;
+        if(!busy)render();
+      },()=>{clearTimeout(timer);status('Saving on this device only.',true)});
+    }
+  }
+})();
+}
+</script>
+</body>
+</html>
